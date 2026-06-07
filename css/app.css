@@ -136,11 +136,6 @@ a:hover {
 .sidebar-nav li a.active {
     background: #EFF6FF;
     color: var(--color-primary);
-    border-right: 3px solid var(--color-primary);
-}
-
-.sidebar.collapsed .sidebar-nav li a.active {
-    border-right: none;
     border-left: 3px solid var(--color-primary);
 }
 
