@@ -155,6 +155,10 @@ class Designer {
                  data-element-id="${el.id}"
                  data-element-type="${el.type}"
                  style="${style}">
+                <div class="corner-handle corner-tl"></div>
+                <div class="corner-handle corner-tr"></div>
+                <div class="corner-handle corner-bl"></div>
+                <div class="corner-handle corner-br"></div>
                 ${content}
                 <div class="resize-handle" data-element-id="${el.id}"></div>
             </div>
