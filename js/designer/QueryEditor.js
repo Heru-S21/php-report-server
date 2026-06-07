@@ -43,6 +43,7 @@ class QueryEditor {
             }
             if (def.connectionId) {
                 this.connectionSelect.value = def.connectionId;
+                this.loadTables(parseInt(def.connectionId));
             }
             // Load saved query columns if any
             if (def.queryColumns && def.queryColumns.length > 0) {
