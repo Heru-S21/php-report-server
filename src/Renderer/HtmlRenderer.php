@@ -128,7 +128,7 @@ class HtmlRenderer implements RendererInterface
     {
         $borderStyle = $band->border ? $band->border->toHtmlStyle() : '';
         $style = sprintf(
-            'height:%.1fmm; background:%s; %s',
+            'position:relative; height:%.1fmm; background:%s; %s',
             $band->height,
             $band->backgroundColor ?: 'transparent',
             $borderStyle
@@ -154,7 +154,7 @@ class HtmlRenderer implements RendererInterface
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
 
         $style = sprintf(
-            'position:relative; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; background:%s; %s',
+            'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; vertical-align:%s; background:%s; %s',
             $el->top,
             $el->left,
             $el->width,
@@ -166,6 +166,7 @@ class HtmlRenderer implements RendererInterface
             $el->underline ? 'underline' : 'none',
             $el->color ?: '#000000',
             $el->textAlign ?: 'left',
+            $el->verticalAlign ?? 'top',
             $el->backgroundColor ?: 'transparent',
             $borderStyle
         );
@@ -248,7 +249,7 @@ class HtmlRenderer implements RendererInterface
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
             .report-container { max-width: ' . $page->getPaperWidthMm() . 'mm; margin: 0 auto; background: white; padding: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
             .band { padding: 2px 4px; border-bottom: 1px solid #eee; overflow: hidden; }
-            .element { display: inline-block; overflow: hidden; white-space: nowrap; }
+            .element { overflow: hidden; white-space: nowrap; }
             .band-page_header { background: #e8f4f8; }
             .band-page_footer { background: #e8f4f8; }
             .band-report_header { background: #e8f0fe; }

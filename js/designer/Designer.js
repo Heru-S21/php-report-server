@@ -146,6 +146,7 @@ class Designer {
             text-decoration: ${el.underline ? 'underline' : 'none'};
             color: ${el.color || '#000000'};
             text-align: ${el.textAlign || 'left'};
+            vertical-align: ${el.verticalAlign || 'top'};
             background-color: ${el.backgroundColor || 'transparent'};
             ${el.border ? this.borderToStyle(el.border) : ''}
         `;
@@ -457,6 +458,7 @@ class Designer {
 
         if (!band.elements) band.elements = [];
 
+        const isTextEl = ['label', 'field', 'pageno', 'datetime'].includes(type);
         const el = {
             id: 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
             type: type,
@@ -473,6 +475,7 @@ class Designer {
             underline: false,
             color: '#000000',
             textAlign: 'left',
+            verticalAlign: isTextEl ? 'middle' : 'top',
             backgroundColor: 'transparent',
             border: {},
         };
