@@ -20,20 +20,32 @@
             </select>
         </div>
     </div>
-</div>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    window.ReportingEngine.state.activeReportId = <?= json_encode($reportId) ?>;
-    window.designer = new Designer('canvas-inner');
-    window.bandManager = new BandManager(window.designer);
-    window.elementEditor = new ElementEditor(window.designer);
-    window.borderEditor = new BorderEditor(window.designer);
-    window.groupEditor = new GroupEditor(window.designer);
-    window.aggregateEditor = new AggregateEditor(window.designer);
-    window.dragDrop = new DragDrop(window.designer);
-    window.groupEditor.updateGroupList();
-});
-</script>
+    <div class="designer-panels">
+        <aside class="panel panel-left">
+            <div class="panel-section">
+                <h3><i class="ph-database"></i> Data Source</h3>
+                <div class="form-group" style="margin-bottom:6px">
+                    <label style="font-size:11px;text-transform:none;letter-spacing:0">Connection</label>
+                    <select id="query-connection" class="prop-control" onchange="queryEditor.onConnectionChange()">
+                        <option value="">Select connection...</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:6px">
+                    <label style="font-size:11px;text-transform:none;letter-spacing:0">SQL Query</label>
+                    <textarea id="query-sql" class="prop-control" rows="4" style="font-family:var(--font-mono);font-size:12px;resize:vertical" placeholder="SELECT * FROM ..." onchange="queryEditor.onSqlChange()"></textarea>
+                </div>
+                <div style="display:flex;gap:4px">
+                    <button class="btn btn-sm" onclick="queryEditor.runQuery()"><i class="ph-play"></i> Run</button>
+                    <button class="btn btn-sm" onclick="queryEditor.applyFields()"><i class="ph-check"></i> Apply Fields</button>
+                </div>
+                <div id="query-status" style="font-size:11px;color:var(--color-text-muted);margin-top:4px"></div>
+            </div>
+            <div class="panel-section">
+                <h3><i class="ph-list"></i> Fields</h3>
+                <div id="field-list" class="field-list">
+                    <p class="text-muted" style="font-size:12px;padding:4px 0">Run a query to see fields</p>
+                </div>
+            </div>
             <div class="panel-section">
                 <h3><i class="ph-squares-four"></i> Elements</h3>
                 <div class="element-toolbox">
@@ -72,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     </div>
 </div>
+
 <!-- Group Editor Modal -->
 <div id="group-modal" class="modal" style="display:none">
     <div class="modal-backdrop" onclick="groupEditor.close()"></div>
@@ -124,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     </div>
 </div>
+
 <!-- Aggregate Editor Modal -->
 <div id="aggregate-modal" class="modal" style="display:none">
     <div class="modal-backdrop" onclick="aggregateEditor.close()"></div>
@@ -165,3 +179,19 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    window.ReportingEngine.state.activeReportId = <?= json_encode($reportId) ?>;
+    window.designer = new Designer('canvas-inner');
+    window.bandManager = new BandManager(window.designer);
+    window.elementEditor = new ElementEditor(window.designer);
+    window.borderEditor = new BorderEditor(window.designer);
+    window.groupEditor = new GroupEditor(window.designer);
+    window.aggregateEditor = new AggregateEditor(window.designer);
+    window.dragDrop = new DragDrop(window.designer);
+    window.queryEditor = new QueryEditor(window.designer);
+    window.groupEditor.updateGroupList();
+    window.queryEditor.init();
+});
+</script>

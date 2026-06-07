@@ -17,6 +17,7 @@ $router->get('/reports/new', function () {
         'reportId' => null,
         'extraCss' => ['/css/designer.css'],
         'extraScripts' => [
+            '/js/designer/QueryEditor.js',
             '/js/designer/BorderEditor.js',
             '/js/designer/BandManager.js',
             '/js/designer/ElementEditor.js',
@@ -34,6 +35,7 @@ $router->get('/reports/designer/{id}', function ($request) {
         'reportId' => $request->getParam('id'),
         'extraCss' => ['/css/designer.css'],
         'extraScripts' => [
+            '/js/designer/QueryEditor.js',
             '/js/designer/BorderEditor.js',
             '/js/designer/BandManager.js',
             '/js/designer/ElementEditor.js',

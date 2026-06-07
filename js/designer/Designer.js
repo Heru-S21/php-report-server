@@ -225,7 +225,8 @@ class Designer {
             const rect = band.getBoundingClientRect();
             const x = (e.clientX - rect.left) / this.zoom;
             const y = (e.clientY - rect.top) / this.zoom;
-            this.addElement(type, band.dataset.bandType, x, y);
+            const fieldName = e.dataTransfer.getData('field-name') || null;
+            this.addElement(type, band.dataset.bandType, x, y, fieldName);
         });
     }
 
@@ -363,7 +364,7 @@ class Designer {
         document.querySelectorAll('.canvas-element, .band').forEach(el => el.classList.remove('selected'));
     }
 
-    addElement(type, bandType, x, y) {
+    addElement(type, bandType, x, y, fieldName) {
         const band = this.bands.find(b => b.type === bandType);
         if (!band) return;
 
@@ -377,7 +378,7 @@ class Designer {
             width: type === 'line' ? 80 : 40,
             height: type === 'line' ? 1 : 12,
             text: type === 'label' ? 'Label' : null,
-            fieldName: type === 'field' ? '' : null,
+            fieldName: type === 'field' ? (fieldName || '') : null,
             fontFamily: 'Arial',
             fontSize: 10,
             bold: false,
