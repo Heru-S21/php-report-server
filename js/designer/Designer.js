@@ -146,7 +146,7 @@ class Designer {
             text-decoration: ${el.underline ? 'underline' : 'none'};
             color: ${el.color || '#000000'};
             text-align: ${el.textAlign || 'left'};
-            background: ${el.backgroundColor || 'transparent'};
+            background-color: ${el.backgroundColor || 'transparent'};
             ${el.border ? this.borderToStyle(el.border) : ''}
         `;
 
