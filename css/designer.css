@@ -76,7 +76,7 @@
     font-family: var(--font-ui);
     background: none;
     border: none;
-    border-left: 2px solid transparent;
+    border-right: 2px solid transparent;
     cursor: pointer;
     color: var(--color-text-muted);
     transition: color 0.15s, border-color 0.15s, background 0.15s;
@@ -105,7 +105,7 @@
 
 .l-tab.active {
     color: var(--color-primary);
-    border-left-color: var(--color-primary);
+    border-right: 2px solid var(--color-primary);
     background: var(--color-surface);
 }
 
