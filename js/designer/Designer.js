@@ -274,6 +274,11 @@ class Designer {
     }
 
     attachElementEvents() {
+        const getPxToMm = () => {
+            const cr = this.canvasInner.getBoundingClientRect();
+            return this.canvasUsableWidth / cr.width;
+        };
+
         document.querySelectorAll('.canvas-element').forEach(el => {
             el.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.resize-handle')) return;
@@ -282,10 +287,11 @@ class Designer {
                 const elId = el.dataset.elementId;
                 const origTop = parseFloat(el.style.top);
                 const origLeft = parseFloat(el.style.left);
+                const pxToMm = getPxToMm();
 
                 const onMove = (me) => {
-                    const dx = (me.clientX - startX) / this.zoom;
-                    const dy = (me.clientY - startY) / this.zoom;
+                    const dx = (me.clientX - startX) * pxToMm;
+                    const dy = (me.clientY - startY) * pxToMm;
                     el.style.left = (origLeft + dx) + 'mm';
                     el.style.top = (origTop + dy) + 'mm';
                 };
@@ -319,10 +325,11 @@ class Designer {
                 const startY = e.clientY;
                 const origW = parseFloat(el.style.width);
                 const origH = parseFloat(el.style.height);
+                const pxToMm = getPxToMm();
 
                 const onMove = (me) => {
-                    const dw = (me.clientX - startX) / this.zoom;
-                    const dh = (me.clientY - startY) / this.zoom;
+                    const dw = (me.clientX - startX) * pxToMm;
+                    const dh = (me.clientY - startY) * pxToMm;
                     el.style.width = Math.max(5, origW + dw) + 'mm';
                     el.style.height = Math.max(5, origH + dh) + 'mm';
                 };
@@ -353,9 +360,10 @@ class Designer {
                 const bandType = band.dataset.bandType;
                 const startY = e.clientY;
                 const origH = parseFloat(band.style.height);
+                const pxToMm = getPxToMm();
 
                 const onMove = (me) => {
-                    const dh = (me.clientY - startY) / this.zoom;
+                    const dh = (me.clientY - startY) * pxToMm;
                     band.style.height = Math.max(8, origH + dh) + 'mm';
                 };
 
