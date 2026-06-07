@@ -159,11 +159,12 @@ class RenderController
 
             // Convert rows to associative arrays
             $data = [];
-            foreach ($result['rows'] as $row) {
+            foreach ($result['rows'] as $i => $row) {
                 $assocRow = [];
-                foreach ($result['columns'] as $i => $col) {
-                    $assocRow[$col['name']] = $row[$i] ?? null;
+                foreach ($result['columns'] as $j => $col) {
+                    $assocRow[$col['name']] = $row[$j] ?? null;
                 }
+                $assocRow['_rowno'] = $i + 1;
                 $data[] = $assocRow;
             }
             return $data;
@@ -173,6 +174,10 @@ class RenderController
         $pdo = Database::getInstance();
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $i => &$row) {
+            $row['_rowno'] = $i + 1;
+        }
+        return $rows;
     }
 }

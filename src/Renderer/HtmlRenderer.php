@@ -185,7 +185,8 @@ class HtmlRenderer implements RendererInterface
             'image' => $el->imageUrl ? '<img src="' . htmlspecialchars($el->imageUrl) . '" style="max-width:100%;max-height:100%">' : '',
             'line' => '<hr style="border:none;border-top:1px solid #000;margin:0;width:100%">',
             'rect' => '',
-            'pageno' => htmlspecialchars($el->text ?? '{PAGENO}'),
+            'pageno' => '1',
+            'rowno' => $data && is_array($data) && isset($data['_rowno']) ? (string)$data['_rowno'] : '1',
             'datetime' => date($el->format ?? 'Y-m-d'),
             default => htmlspecialchars($el->text ?? ''),
         };

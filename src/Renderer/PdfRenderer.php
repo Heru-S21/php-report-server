@@ -189,6 +189,7 @@ class PdfRenderer implements RendererInterface
             'line' => '<hr style="border:none;border-top:1px solid #000">',
             'rect' => '',
             'pageno' => '{PAGENO}',
+            'rowno' => $data && is_array($data) && isset($data['_rowno']) ? (string)$data['_rowno'] : '1',
             'datetime' => date($el->format ?? 'Y-m-d'),
             default => htmlspecialchars($el->text ?? ''),
         };

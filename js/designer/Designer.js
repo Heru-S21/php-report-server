@@ -177,7 +177,8 @@ class Designer {
             case 'image': return el.imageUrl ? `<img src="${el.imageUrl}" style="max-width:100%;max-height:100%">` : '[Image]';
             case 'line': return '<hr style="border:none;border-top:1px solid #000;margin:0">';
             case 'rect': return '';
-            case 'pageno': return el.text || 'Page {page} of {pages}';
+            case 'pageno': return el.text || '{PAGENO}';
+            case 'rowno': return el.text || '{ROWNO}';
             case 'datetime': return '[Date/Time]';
             default: return el.text || '';
         }
@@ -458,7 +459,7 @@ class Designer {
 
         if (!band.elements) band.elements = [];
 
-        const isTextEl = ['label', 'field', 'pageno', 'datetime'].includes(type);
+        const isTextEl = ['label', 'field', 'pageno', 'rowno', 'datetime'].includes(type);
         const el = {
             id: 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
             type: type,
@@ -643,7 +644,7 @@ class Designer {
                     html += `<div class="tree-item element-tree-item ${elSelected ? 'selected' : ''}"
                                  data-tree-element="${el.id}"
                                  style="padding-left:40px">
-                                <i class="ph-${el.type === 'label' ? 'text-t' : el.type === 'field' ? 'database' : el.type === 'aggregate' ? 'function' : 'square'}"></i>
+                                <i class="ph-${el.type === 'label' ? 'text-t' : el.type === 'field' ? 'database' : el.type === 'aggregate' ? 'function' : el.type === 'rowno' ? 'list-numbers' : 'square'}"></i>
                                 <span>${elLabel}</span>
                                 <small style="color:var(--color-text-muted)">${el.type}</small>
                              </div>`;
