@@ -21,8 +21,15 @@
     </ul>
 </aside>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const sidebar = document.getElementById('app-sidebar');
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        sidebar.classList.add('collapsed');
+    }
+});
 function toggleSidebar() {
     const sidebar = document.getElementById('app-sidebar');
     sidebar.classList.toggle('collapsed');
+    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
 }
 </script>
