@@ -59,24 +59,43 @@
     flex-direction: column;
 }
 
-.panel-split {
+.right-panel-tabs {
     display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
 }
 
-.panel-split-top {
+.r-tab {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: var(--font-ui);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.r-tab:hover {
+    color: var(--color-text);
+}
+
+.r-tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.rpanel-content {
+    display: none;
     flex: 1;
     overflow-y: auto;
-    border-bottom: 1px solid var(--color-border);
 }
 
-.panel-split-bottom {
-    flex: 0 0 auto;
-    max-height: 50%;
-    min-height: 120px;
-    overflow-y: auto;
+.rpanel-content.active {
+    display: block;
 }
 
 /* Object Tree */

@@ -178,6 +178,8 @@ class Designer {
 
     bindEvents() {
         document.addEventListener('click', (e) => {
+            // Ignore clicks in panels (left toolbox, right properties/tree)
+            if (e.target.closest('.panel-left') || e.target.closest('.panel-right')) return;
             const el = e.target.closest('.canvas-element');
             if (el) {
                 this.selectElement(el.dataset.elementId);

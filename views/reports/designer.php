@@ -69,27 +69,27 @@
             <div class="canvas-inner" id="canvas-inner"></div>
         </div>
         <aside class="panel panel-right">
-            <div class="panel-split">
-                <div class="panel-split-top">
-                    <div class="panel-section">
-                        <h3>Properties</h3>
-                        <div class="properties-tabs">
-                            <button class="tab active" data-tab="general" onclick="elementEditor.switchTab('general')">General</button>
-                            <button class="tab" data-tab="style" onclick="elementEditor.switchTab('style')">Style</button>
-                            <button class="tab" data-tab="border" onclick="elementEditor.switchTab('border')">Border</button>
-                            <button class="tab" data-tab="advanced" onclick="elementEditor.switchTab('advanced')">Advanced</button>
-                        </div>
-                        <div id="properties-content" class="properties-content">
-                            <p class="text-muted">Select an element or band to edit properties</p>
-                        </div>
+            <div class="right-panel-tabs">
+                <button class="r-tab active" data-rpanel="properties" onclick="switchRightPanel('properties')">Properties</button>
+                <button class="r-tab" data-rpanel="tree" onclick="switchRightPanel('tree')">Object Tree</button>
+            </div>
+            <div id="rpanel-properties" class="rpanel-content active">
+                <div class="panel-section">
+                    <div class="properties-tabs">
+                        <button class="tab active" data-tab="general" onclick="elementEditor.switchTab('general')">General</button>
+                        <button class="tab" data-tab="style" onclick="elementEditor.switchTab('style')">Style</button>
+                        <button class="tab" data-tab="border" onclick="elementEditor.switchTab('border')">Border</button>
+                        <button class="tab" data-tab="advanced" onclick="elementEditor.switchTab('advanced')">Advanced</button>
+                    </div>
+                    <div id="properties-content" class="properties-content">
+                        <p class="text-muted">Select an element or band to edit properties</p>
                     </div>
                 </div>
-                <div class="panel-split-bottom">
-                    <div class="panel-section">
-                        <h3><i class="ph-tree-structure"></i> Object Tree</h3>
-                        <div id="object-tree" class="object-tree">
-                            <p class="text-muted" style="font-size:12px;padding:4px 0">No bands</p>
-                        </div>
+            </div>
+            <div id="rpanel-tree" class="rpanel-content">
+                <div class="panel-section">
+                    <div id="object-tree" class="object-tree">
+                        <p class="text-muted" style="font-size:12px;padding:4px 0">No bands</p>
                     </div>
                 </div>
             </div>
@@ -205,5 +205,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.queryEditor = new QueryEditor(window.designer);
     window.groupEditor.updateGroupList();
     window.queryEditor.init();
+    switchRightPanel('properties');
 });
+
+function switchRightPanel(name) {
+    document.querySelectorAll('.r-tab').forEach(t => t.classList.toggle('active', t.dataset.rpanel === name));
+    document.querySelectorAll('.rpanel-content').forEach(c => c.classList.toggle('active', c.id === 'rpanel-' + name));
+}
 </script>
