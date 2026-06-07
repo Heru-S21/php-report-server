@@ -31,6 +31,20 @@ class Designer {
                 if (def.showGrid === undefined) def.showGrid = true;
                 if (def.snapToGrid === undefined) def.snapToGrid = true;
                 if (!def.gridSize) def.gridSize = 2;
+                // Ensure column_header band exists (backward compat)
+                if (!def.bands || !def.bands.some(b => b.type === 'column_header')) {
+                    if (!def.bands) def.bands = this.getDefaultBands();
+                    else {
+                        const idx = def.bands.findIndex(b => b.type === 'report_header');
+                        def.bands.splice(idx >= 0 ? idx + 1 : def.bands.length, 0, {
+                            type: 'column_header',
+                            height: 16,
+                            backgroundColor: '#fef9c3',
+                            border: {},
+                            elements: [],
+                        });
+                    }
+                }
                 window.ReportingEngine.dispatch('SET_DEFINITION', def);
                 this.bands = def.bands || this.getDefaultBands();
                 window.ReportingEngine.state.queryColumns = def.queryColumns || [];
