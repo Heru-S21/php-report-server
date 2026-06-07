@@ -22,10 +22,10 @@
     <div class="designer-panels">
         <aside class="panel panel-left">
             <div class="left-tabs">
-                <button class="l-tab active" data-lpanel="datasource" onclick="switchLeftPanel('datasource')" title="Data Source"><i class="ph-database"></i><span>Data Source</span></button>
-                <button class="l-tab" data-lpanel="fields" onclick="switchLeftPanel('fields')" title="Fields"><i class="ph-list"></i><span>Fields</span></button>
-                <button class="l-tab" data-lpanel="elements" onclick="switchLeftPanel('elements')" title="Elements"><i class="ph-squares-four"></i><span>Elements</span></button>
-                <button class="l-tab" data-lpanel="groups" onclick="switchLeftPanel('groups')" title="Groups"><i class="ph-folder"></i><span>Groups</span></button>
+                <button class="l-tab active" data-lpanel="datasource" onclick="switchLeftPanel('datasource')" title="Data Source"><i class="ph-database"></i><span>e<br>c<br>r<br>u<br>o<br>S<br>&nbsp;<br>a<br>t<br>a<br>D</span></button>
+                <button class="l-tab" data-lpanel="fields" onclick="switchLeftPanel('fields')" title="Fields"><i class="ph-list"></i><span>s<br>l<br>d<br>e<br>i<br>F</span></button>
+                <button class="l-tab" data-lpanel="elements" onclick="switchLeftPanel('elements')" title="Elements"><i class="ph-squares-four"></i><span>s<br>t<br>n<br>e<br>m<br>e<br>l<br>E</span></button>
+                <button class="l-tab" data-lpanel="groups" onclick="switchLeftPanel('groups')" title="Groups"><i class="ph-folder"></i><span>s<br>p<br>u<br>o<br>r<br>G</span></button>
             </div>
             <div class="left-panels">
                 <!-- Data Source -->
