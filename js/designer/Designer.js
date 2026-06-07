@@ -580,8 +580,7 @@ class Designer {
             const hasChildren = band.elements && band.elements.length > 0;
 
             html += `<div class="tree-item band-tree-item ${isSelected ? 'selected' : ''}"
-                         data-tree-band="${band.type}"
-                         onclick="designer.selectBand('${band.type}')">
+                         data-tree-band="${band.type}">
                         <i class="ph-square"></i>
                         <span>${label}</span>
                         ${hasChildren ? `<span class="tree-badge">${band.elements.length}</span>` : ''}
@@ -593,8 +592,7 @@ class Designer {
                     const elLabel = el.text || el.fieldName || el.type;
                     html += `<div class="tree-item element-tree-item ${elSelected ? 'selected' : ''}"
                                  data-tree-element="${el.id}"
-                                 style="padding-left:32px"
-                                 onclick="event.stopPropagation(); designer.selectElement('${el.id}')">
+                                 style="padding-left:32px">
                                 <i class="ph-${el.type === 'label' ? 'text-t' : el.type === 'field' ? 'database' : el.type === 'aggregate' ? 'function' : 'square'}"></i>
                                 <span>${elLabel}</span>
                                 <small style="color:var(--color-text-muted)">${el.type}</small>
@@ -603,6 +601,27 @@ class Designer {
             }
         }
         container.innerHTML = html || '<div class="text-muted" style="padding:8px;font-size:12px">No bands</div>';
+        this.attachObjectTreeEvents(container);
+    }
+
+    attachObjectTreeEvents(container) {
+        // Remove old listener to avoid duplicates
+        if (this._treeClickHandler) {
+            container.removeEventListener('click', this._treeClickHandler);
+        }
+        this._treeClickHandler = (e) => {
+            const target = e.target.closest('[data-tree-band],[data-tree-element]');
+            if (!target) return;
+            e.stopPropagation();
+            const bandType = target.dataset.treeBand;
+            const elementId = target.dataset.treeElement;
+            if (elementId) {
+                this.selectElement(elementId);
+            } else if (bandType) {
+                this.selectBand(bandType);
+            }
+        };
+        container.addEventListener('click', this._treeClickHandler);
     }
 
     showToast(message, type = 'success') {
