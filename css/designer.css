@@ -1,7 +1,7 @@
 .designer-page {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 56px - 48px);
+    height: calc(100vh - 56px);
     margin: -24px;
 }
 
@@ -21,6 +21,56 @@
     display: flex;
     align-items: center;
     gap: 6px;
+}
+
+.toolbar-center {
+    flex: 1;
+    gap: 8px;
+    padding: 0 16px;
+}
+
+.report-name-input {
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font-ui);
+    color: var(--color-text);
+    background: transparent;
+    width: 220px;
+    outline: none;
+}
+
+.report-name-input:hover {
+    border-color: var(--color-border);
+}
+
+.report-name-input:focus {
+    border-color: var(--color-primary);
+    background: var(--color-surface);
+}
+
+.report-desc-input {
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: var(--font-ui);
+    color: var(--color-text-muted);
+    background: transparent;
+    width: 300px;
+    outline: none;
+}
+
+.report-desc-input:hover {
+    border-color: var(--color-border);
+}
+
+.report-desc-input:focus {
+    border-color: var(--color-primary);
+    background: var(--color-surface);
+    color: var(--color-text);
 }
 
 .zoom-label {

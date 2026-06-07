@@ -128,7 +128,7 @@ class HtmlRenderer implements RendererInterface
     {
         $borderStyle = $band->border ? $band->border->toHtmlStyle() : '';
         $style = sprintf(
-            'height:%dpt; background:%s; %s',
+            'height:%.1fmm; background:%s; %s',
             $band->height,
             $band->backgroundColor ?: 'transparent',
             $borderStyle
@@ -154,7 +154,7 @@ class HtmlRenderer implements RendererInterface
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
 
         $style = sprintf(
-            'position:relative; top:%dpt; left:%dpt; width:%dpt; height:%dpt; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; background:%s; %s',
+            'position:relative; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; background:%s; %s',
             $el->top,
             $el->left,
             $el->width,

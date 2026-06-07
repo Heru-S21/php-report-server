@@ -18,6 +18,7 @@ class Designer {
         this.renderCanvas();
         this.renderObjectTree();
         this.bindEvents();
+        this.loadReportInfo();
     }
 
     async loadReport(id) {
@@ -502,10 +503,35 @@ class Designer {
         window.ReportingEngine.dispatch('REDO_STACK', []);
     }
 
+    loadReportInfo() {
+        const def = window.ReportingEngine.state.definition;
+        const nameInput = document.getElementById('report-name');
+        const descInput = document.getElementById('report-description');
+        if (nameInput) nameInput.value = def.name || '';
+        if (descInput) descInput.value = def.description || '';
+    }
+
+    updateName(name) {
+        const def = window.ReportingEngine.state.definition;
+        def.name = name || 'Untitled Report';
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+    }
+
+    updateDescription(desc) {
+        const def = window.ReportingEngine.state.definition;
+        def.description = desc || '';
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+    }
+
     async save() {
         this.pushUndoState();
         const def = window.ReportingEngine.state.definition;
         def.bands = this.bands;
+        // Sync name/description from inputs
+        const nameInput = document.getElementById('report-name');
+        const descInput = document.getElementById('report-description');
+        if (nameInput) def.name = nameInput.value || 'Untitled Report';
+        if (descInput) def.description = descInput.value || '';
 
         const payload = {
             name: def.name || 'Untitled Report',
