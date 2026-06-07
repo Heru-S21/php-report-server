@@ -37,7 +37,7 @@ class BandCollection
 
     public function getSorted(): array
     {
-        $order = ['page_header', 'report_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
+        $order = ['page_header', 'report_header', 'column_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
         $sorted = $this->bands;
         usort($sorted, function (Band $a, Band $b) use ($order) {
             $ia = array_search($a->type, $order);

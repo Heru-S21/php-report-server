@@ -41,6 +41,12 @@ class HtmlRenderer implements RendererInterface
             $html .= $this->renderBandElement($reportHeaderBand, $definition, null, null);
         }
 
+        // Column header
+        $columnHeaderBand = $definition->bands->get('column_header');
+        if ($hasElements($columnHeaderBand)) {
+            $html .= $this->renderBandElement($columnHeaderBand, $definition, null, null);
+        }
+
         if (empty($data)) {
             $html .= '<div class="band band-detail" style="height:20px;padding:8px;">No data returned.</div>';
         } else {
@@ -262,6 +268,7 @@ class HtmlRenderer implements RendererInterface
             .band-report_footer { background: #e8f0fe; }
             .band-group_header { background: #fef3c7; }
             .band-group_footer { background: #fef3c7; }
+            .band-column_header { background: #fef9c3; }
             .band-detail { background: #f0fdf4; }
         ';
     }

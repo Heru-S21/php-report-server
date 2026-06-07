@@ -357,6 +357,7 @@
 .band-group_header { background: var(--band-group); border-left-color: #F59E0B; }
 .band-group_footer { background: var(--band-group); border-left-color: #F59E0B; }
 .band-detail { background: var(--band-detail); border-left-color: #22C55E; }
+.band-column_header { background: var(--band-column); border-left-color: #EAB308; }
 
 /* Canvas Elements */
 .canvas-element {

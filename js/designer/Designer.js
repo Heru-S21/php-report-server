@@ -70,6 +70,7 @@ class Designer {
         return [
             { type: 'page_header', height: 30, printOnEveryPage: true, backgroundColor: '#e8f4f8', border: {}, elements: [] },
             { type: 'report_header', height: 20, backgroundColor: '#e8f0fe', border: {}, elements: [] },
+            { type: 'column_header', height: 16, backgroundColor: '#fef9c3', border: {}, elements: [] },
             { type: 'detail', height: 16, backgroundColor: '#f0fdf4', border: {}, elements: [] },
             { type: 'report_footer', height: 22, backgroundColor: '#e8f0fe', border: {}, elements: [] },
             { type: 'page_footer', height: 16, printOnEveryPage: true, backgroundColor: '#e8f4f8', border: {}, elements: [] },
@@ -91,7 +92,7 @@ class Designer {
         this.canvasInner.style.transformOrigin = 'top center';
 
         let html = '';
-        const bandOrder = ['page_header', 'report_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
+        const bandOrder = ['page_header', 'report_header', 'column_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
 
         const sortedBands = [...this.bands].sort((a, b) => {
             return bandOrder.indexOf(a.type) - bandOrder.indexOf(b.type);
@@ -616,7 +617,7 @@ class Designer {
         const container = document.getElementById('object-tree');
         if (!container) return;
         const reportSelected = !window.ReportingEngine.state.selectedBand && !window.ReportingEngine.state.selectedElement;
-        const bandOrder = ['page_header', 'report_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
+        const bandOrder = ['page_header', 'report_header', 'column_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
         const sortedBands = [...this.bands].sort((a, b) => bandOrder.indexOf(a.type) - bandOrder.indexOf(b.type));
 
         let html = `<div class="tree-item report-tree-item ${reportSelected ? 'selected' : ''}"
