@@ -82,12 +82,12 @@ class Designer {
 
     getDefaultBands() {
         return [
-            { type: 'page_header', height: 30, printOnEveryPage: true, backgroundColor: '#dbeafe', border: {}, elements: [] },
+            { type: 'page_header', height: 30, printOnEveryPage: true, backgroundColor: '#fee2e2', border: {}, elements: [] },
             { type: 'report_header', height: 20, backgroundColor: '#e9d5ff', border: {}, elements: [] },
             { type: 'column_header', height: 16, backgroundColor: '#fef9c3', border: {}, elements: [] },
             { type: 'detail', height: 16, backgroundColor: '#f0fdf4', border: {}, elements: [] },
             { type: 'report_footer', height: 22, backgroundColor: '#e9d5ff', border: {}, elements: [] },
-            { type: 'page_footer', height: 16, printOnEveryPage: true, backgroundColor: '#dbeafe', border: {}, elements: [] },
+            { type: 'page_footer', height: 16, printOnEveryPage: true, backgroundColor: '#fee2e2', border: {}, elements: [] },
         ];
     }
 
