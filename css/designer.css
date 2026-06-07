@@ -562,6 +562,10 @@
     font-family: var(--font-ui);
 }
 
+.prop-control {
+    width: 100%;
+}
+
 .prop-group .prop-control:focus {
     outline: none;
     border-color: var(--color-primary);
