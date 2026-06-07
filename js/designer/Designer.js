@@ -101,7 +101,7 @@ class Designer {
             : band.type.replace('_', ' ');
 
         return `
-            <div class="band band-${band.type} ${window.ReportingEngine.state.selectedBand === band.type ? 'selected' : ''}"
+            <div class="band band-${band.type} ${window.ReportingEngine.state.selectedBand === band.type ? 'selected' : ''} drop-zone"
                  data-band-type="${band.type}"
                  style="height:${band.height}mm; background:${band.backgroundColor || 'transparent'}; ${borderStyle}">
                 <span class="band-label">${label}</span>
@@ -211,23 +211,49 @@ class Designer {
         document.querySelectorAll('.toolbox-item').forEach(item => {
             item.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('text/plain', item.dataset.type);
+                e.dataTransfer.effectAllowed = 'copy';
             });
         });
 
-        // Canvas drop
-        this.canvasInner.addEventListener('dragover', (e) => e.preventDefault());
+        // Drag-over: highlight target band and allow drop
+        this.canvasInner.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            const bandEl = this.findBandAtPoint(e.clientX, e.clientY);
+            document.querySelectorAll('.band.drag-over').forEach(b => b.classList.remove('drag-over'));
+            if (bandEl) bandEl.classList.add('drag-over');
+        });
+
+        this.canvasInner.addEventListener('dragleave', (e) => {
+            document.querySelectorAll('.band.drag-over').forEach(b => b.classList.remove('drag-over'));
+        });
+
+        // Canvas drop — uses coordinate-based band detection
         this.canvasInner.addEventListener('drop', (e) => {
             e.preventDefault();
+            document.querySelectorAll('.band.drag-over').forEach(b => b.classList.remove('drag-over'));
             const type = e.dataTransfer.getData('text/plain');
             if (!type) return;
-            const band = e.target.closest('.band');
-            if (!band) return;
-            const rect = band.getBoundingClientRect();
+            const bandEl = this.findBandAtPoint(e.clientX, e.clientY);
+            if (!bandEl) return;
+            const rect = bandEl.getBoundingClientRect();
             const x = (e.clientX - rect.left) / this.zoom;
             const y = (e.clientY - rect.top) / this.zoom;
             const fieldName = e.dataTransfer.getData('field-name') || null;
-            this.addElement(type, band.dataset.bandType, x, y, fieldName);
+            this.addElement(type, bandEl.dataset.bandType, x, y, fieldName);
         });
+    }
+
+    // Find band DOM element at given screen coordinates
+    findBandAtPoint(clientX, clientY) {
+        const bands = this.canvasInner.querySelectorAll('.band');
+        for (const b of bands) {
+            const r = b.getBoundingClientRect();
+            if (clientY >= r.top && clientY <= r.bottom) {
+                return b;
+            }
+        }
+        return null;
     }
 
     attachElementEvents() {
