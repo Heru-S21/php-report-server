@@ -291,10 +291,10 @@ class PdfRenderer implements RendererInterface
             body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; padding: 0; }
             .band { padding: 2px 4px; overflow: hidden; }
             .element { display: inline-block; overflow: hidden; }
-            .band-page_header { background: #e8f4f8; }
-            .band-page_footer { background: #e8f4f8; }
-            .band-report_header { background: #e8f0fe; }
-            .band-report_footer { background: #e8f0fe; }
+            .band-page_header { background: #dbeafe; }
+            .band-page_footer { background: #dbeafe; }
+            .band-report_header { background: #e9d5ff; }
+            .band-report_footer { background: #e9d5ff; }
             .band-group_header { background: #fef3c7; }
             .band-group_footer { background: #fef3c7; }
             .band-column_header { background: #fef9c3; }

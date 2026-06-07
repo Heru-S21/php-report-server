@@ -262,10 +262,10 @@ class HtmlRenderer implements RendererInterface
             .report-container { max-width: ' . $page->getPaperWidthMm() . 'mm; margin: 0 auto; background: white; padding: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
             .band { padding: 2px 4px; border-bottom: 1px solid #eee; overflow: hidden; }
             .element { overflow: hidden; white-space: nowrap; }
-            .band-page_header { background: #e8f4f8; }
-            .band-page_footer { background: #e8f4f8; }
-            .band-report_header { background: #e8f0fe; }
-            .band-report_footer { background: #e8f0fe; }
+            .band-page_header { background: #dbeafe; }
+            .band-page_footer { background: #dbeafe; }
+            .band-report_header { background: #e9d5ff; }
+            .band-report_footer { background: #e9d5ff; }
             .band-group_header { background: #fef3c7; }
             .band-group_footer { background: #fef3c7; }
             .band-column_header { background: #fef9c3; }
