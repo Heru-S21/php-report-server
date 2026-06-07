@@ -72,8 +72,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 4px 0;
+    gap: 2px;
+    padding: 6px 0;
     font-family: var(--font-ui);
     background: none;
     border: none;
@@ -81,7 +81,7 @@
     cursor: pointer;
     color: var(--color-text-muted);
     transition: color 0.15s, border-color 0.15s, background 0.15s;
-    min-height: 64px;
+    flex: 1;
 }
 
 .l-tab:hover {
@@ -100,8 +100,7 @@
 }
 
 .l-tab span {
-    transform: rotate(-90deg);
-    white-space: nowrap;
+    writing-mode: vertical-rl;
     font-weight: 500;
     font-size: 9px;
     letter-spacing: 0.5px;
