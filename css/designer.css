@@ -329,8 +329,8 @@
 
 .element-toolbox {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
+    grid-template-columns: 1fr;
+    gap: 3px;
 }
 
 .toolbox-item {
