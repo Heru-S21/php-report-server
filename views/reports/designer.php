@@ -69,16 +69,28 @@
             <div class="canvas-inner" id="canvas-inner"></div>
         </div>
         <aside class="panel panel-right">
-            <div class="panel-section">
-                <h3>Properties</h3>
-                <div class="properties-tabs">
-                    <button class="tab active" data-tab="general" onclick="elementEditor.switchTab('general')">General</button>
-                    <button class="tab" data-tab="style" onclick="elementEditor.switchTab('style')">Style</button>
-                    <button class="tab" data-tab="border" onclick="elementEditor.switchTab('border')">Border</button>
-                    <button class="tab" data-tab="advanced" onclick="elementEditor.switchTab('advanced')">Advanced</button>
+            <div class="panel-split">
+                <div class="panel-split-top">
+                    <div class="panel-section">
+                        <h3>Properties</h3>
+                        <div class="properties-tabs">
+                            <button class="tab active" data-tab="general" onclick="elementEditor.switchTab('general')">General</button>
+                            <button class="tab" data-tab="style" onclick="elementEditor.switchTab('style')">Style</button>
+                            <button class="tab" data-tab="border" onclick="elementEditor.switchTab('border')">Border</button>
+                            <button class="tab" data-tab="advanced" onclick="elementEditor.switchTab('advanced')">Advanced</button>
+                        </div>
+                        <div id="properties-content" class="properties-content">
+                            <p class="text-muted">Select an element or band to edit properties</p>
+                        </div>
+                    </div>
                 </div>
-                <div id="properties-content" class="properties-content">
-                    <p class="text-muted">Select an element or band to edit properties</p>
+                <div class="panel-split-bottom">
+                    <div class="panel-section">
+                        <h3><i class="ph-tree-structure"></i> Object Tree</h3>
+                        <div id="object-tree" class="object-tree">
+                            <p class="text-muted" style="font-size:12px;padding:4px 0">No bands</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </aside>

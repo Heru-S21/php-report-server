@@ -16,6 +16,7 @@ class Designer {
             this.createDefaultDefinition();
         }
         this.renderCanvas();
+        this.renderObjectTree();
         this.bindEvents();
     }
 
@@ -74,7 +75,10 @@ class Designer {
         const widthMm = page.orientation === 'landscape' ? (paperWidth * 1.414) : paperWidth;
         const usableHeight = widthMm - (page.marginTop || 20) - (page.marginBottom || 20);
 
-        this.canvasInner.style.width = (usableWidth * this.zoom) + 'mm';
+        // Store usableWidth so drop handler can use it
+        this.canvasUsableWidth = usableWidth;
+
+        this.canvasInner.style.width = usableWidth + 'mm';
         this.canvasInner.style.transform = `scale(${this.zoom})`;
         this.canvasInner.style.transformOrigin = 'top center';
 
@@ -236,15 +240,26 @@ class Designer {
             if (!type) return;
             const bandEl = this.findBandAtPoint(e.clientX, e.clientY);
             if (!bandEl) return;
-            const rect = bandEl.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / this.zoom;
-            const y = (e.clientY - rect.top) / this.zoom;
+            const bandType = bandEl.dataset.bandType;
+            const bandData = this.bands.find(b => b.type === bandType);
+            if (!bandData) return;
+
+            // Convert visual pixels to mm using the canvas-to-mm ratio
+            const bandRect = bandEl.getBoundingClientRect();
+            const canvasRect = this.canvasInner.getBoundingClientRect();
+            // Use Y ratio from band itself (band height in mm / visual height in pixels)
+            // Use X ratio from canvas (usableWidth in mm / visual width in pixels)
+            const mmPerPxY = bandData.height / bandRect.height;
+            const mmPerPxX = this.canvasUsableWidth / canvasRect.width;
+            const x_mm = (e.clientX - bandRect.left) * mmPerPxX;
+            const y_mm = (e.clientY - bandRect.top) * mmPerPxY;
+
             const fieldName = e.dataTransfer.getData('field-name') || null;
-            this.addElement(type, bandEl.dataset.bandType, x, y, fieldName);
+            this.addElement(type, bandType, x_mm, y_mm, fieldName);
         });
     }
 
-    // Find band DOM element at given screen coordinates
+    // Find band DOM element at given viewport coordinates
     findBandAtPoint(clientX, clientY) {
         const bands = this.canvasInner.querySelectorAll('.band');
         for (const b of bands) {
@@ -371,6 +386,7 @@ class Designer {
                 if (elem) window.elementEditor.loadElement(elem);
             }
         }
+        this.renderObjectTree();
     }
 
     selectBand(type) {
@@ -382,12 +398,14 @@ class Designer {
             const band = this.bands.find(b => b.type === type);
             if (band) window.elementEditor.loadBand(band);
         }
+        this.renderObjectTree();
     }
 
     deselectAll() {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
         window.ReportingEngine.dispatch('SELECT_BAND', null);
         document.querySelectorAll('.canvas-element, .band').forEach(el => el.classList.remove('selected'));
+        this.renderObjectTree();
     }
 
     addElement(type, bandType, x, y, fieldName) {
@@ -424,6 +442,7 @@ class Designer {
 
         band.elements.push(el);
         this.renderCanvas();
+        this.renderObjectTree();
 
         // Open aggregate editor for aggregate elements
         if (type === 'aggregate' && window.aggregateEditor) {
@@ -443,6 +462,7 @@ class Designer {
         }
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
         this.renderCanvas();
+        this.renderObjectTree();
     }
 
     moveElement(id, dx, dy) {
@@ -529,6 +549,7 @@ class Designer {
         window.ReportingEngine.dispatch('SET_DEFINITION', prev);
         this.bands = prev.bands || this.getDefaultBands();
         this.renderCanvas();
+        this.renderObjectTree();
     }
 
     redo() {
@@ -541,6 +562,45 @@ class Designer {
         window.ReportingEngine.dispatch('SET_DEFINITION', next);
         this.bands = next.bands || this.getDefaultBands();
         this.renderCanvas();
+        this.renderObjectTree();
+    }
+
+    renderObjectTree() {
+        const container = document.getElementById('object-tree');
+        if (!container) return;
+        const bandOrder = ['page_header', 'report_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
+        const sortedBands = [...this.bands].sort((a, b) => bandOrder.indexOf(a.type) - bandOrder.indexOf(b.type));
+
+        let html = '';
+        for (const band of sortedBands) {
+            const isSelected = window.ReportingEngine.state.selectedBand === band.type;
+            const label = band.type.replace(/_/g, ' ');
+            const hasChildren = band.elements && band.elements.length > 0;
+
+            html += `<div class="tree-item band-tree-item ${isSelected ? 'selected' : ''}"
+                         data-tree-band="${band.type}"
+                         onclick="designer.selectBand('${band.type}')">
+                        <i class="ph-square"></i>
+                        <span>${label}</span>
+                        ${hasChildren ? `<span class="tree-badge">${band.elements.length}</span>` : ''}
+                     </div>`;
+
+            if (hasChildren) {
+                for (const el of band.elements) {
+                    const elSelected = window.ReportingEngine.state.selectedElement === el.id;
+                    const elLabel = el.text || el.fieldName || el.type;
+                    html += `<div class="tree-item element-tree-item ${elSelected ? 'selected' : ''}"
+                                 data-tree-element="${el.id}"
+                                 style="padding-left:32px"
+                                 onclick="event.stopPropagation(); designer.selectElement('${el.id}')">
+                                <i class="ph-${el.type === 'label' ? 'text-t' : el.type === 'field' ? 'database' : el.type === 'aggregate' ? 'function' : 'square'}"></i>
+                                <span>${elLabel}</span>
+                                <small style="color:var(--color-text-muted)">${el.type}</small>
+                             </div>`;
+                }
+            }
+        }
+        container.innerHTML = html || '<div class="text-muted" style="padding:8px;font-size:12px">No bands</div>';
     }
 
     showToast(message, type = 'success') {
