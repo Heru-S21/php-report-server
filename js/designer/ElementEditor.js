@@ -28,13 +28,19 @@ class ElementEditor {
         this.render();
     }
 
+    loadReport() {
+        this.currentElement = null;
+        this.currentBand = null;
+        this.render();
+    }
+
     render() {
         if (this.currentElement) {
             this.renderElementProps();
         } else if (this.currentBand) {
             this.renderBandProps();
         } else {
-            this.contentEl.innerHTML = '<p class="text-muted">Select an element or band to edit properties</p>';
+            this.renderReportProps();
         }
     }
 
@@ -261,12 +267,61 @@ class ElementEditor {
         `;
     }
 
+    renderReportProps() {
+        const def = window.ReportingEngine.state.definition;
+        this.contentEl.innerHTML = `
+            <div class="prop-group">
+                <label>Report Name</label>
+                <input class="prop-control" type="text" value="${escapeHtml(def.name || '')}"
+                       onchange="window.elementEditor.updateReportField('name', this.value || 'Untitled Report')">
+            </div>
+            <div class="prop-group">
+                <label>Description</label>
+                <textarea class="prop-control" rows="2" style="resize:vertical"
+                    onchange="window.elementEditor.updateReportField('description', this.value)">${escapeHtml(def.description || '')}</textarea>
+            </div>
+            <div class="prop-group" style="border-top:1px solid var(--color-border);padding-top:12px;margin-top:8px">
+                <label style="font-weight:400;text-transform:none">
+                    <input type="checkbox" ${def.showGrid ? 'checked' : ''}
+                           onchange="window.elementEditor.updateReportField('showGrid', this.checked)">
+                    Show Grid
+                </label>
+            </div>
+            <div class="prop-group">
+                <label style="font-weight:400;text-transform:none">
+                    <input type="checkbox" ${def.snapToGrid !== false ? 'checked' : ''}
+                           onchange="window.elementEditor.updateReportField('snapToGrid', this.checked)">
+                    Snap to Grid
+                </label>
+            </div>
+            <div class="prop-group">
+                <label>Grid Size (mm)</label>
+                <input class="prop-control" type="number" value="${def.gridSize || 2}" min="1" max="20" step="1"
+                       onchange="window.elementEditor.updateReportField('gridSize', parseInt(this.value) || 2)">
+            </div>
+        `;
+    }
+
+    updateReportField(field, value) {
+        const def = window.ReportingEngine.state.definition;
+        def[field] = value;
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.designer.renderCanvas();
+        this.renderReportProps();
+    }
+
     updateField(field, value) {
         if (!this.currentElement) return;
-        this.currentElement[field] = value;
+        const el = this.currentElement;
+        // Snap position/size fields
+        if (['top', 'left', 'width', 'height'].includes(field)) {
+            value = this.designer.snapValue(parseFloat(value) || 0);
+            if (field === 'width' || field === 'height') value = Math.max(1, value);
+        }
+        el[field] = value;
         this.designer.renderCanvas();
-        if (window.ReportingEngine.state.selectedElement === this.currentElement.id) {
-            this.designer.selectElement(this.currentElement.id);
+        if (window.ReportingEngine.state.selectedElement === el.id) {
+            this.designer.selectElement(el.id);
         }
     }
 

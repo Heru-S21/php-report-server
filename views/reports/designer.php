@@ -6,12 +6,7 @@
             <button class="btn" onclick="designer.exportPdf()"><i class="ph-file-pdf"></i> Export PDF</button>
             <button class="btn" onclick="designer.exportHtml()"><i class="ph-file-html"></i> Export HTML</button>
         </div>
-        <div class="toolbar-center">
-            <input type="text" id="report-name" class="report-name-input" placeholder="Untitled Report" spellcheck="false"
-                   onchange="designer.updateName(this.value)">
-            <input type="text" id="report-description" class="report-desc-input" placeholder="Description (optional)" spellcheck="false"
-                   onchange="designer.updateDescription(this.value)">
-        </div>
+        <div class="toolbar-center"></div>
         <div class="toolbar-right">
             <button class="btn btn-icon" onclick="designer.undo()" title="Undo (Ctrl+Z)"><i class="ph-arrow-counter-clockwise"></i></button>
             <button class="btn btn-icon" onclick="designer.redo()" title="Redo (Ctrl+Y)"><i class="ph-arrow-clockwise"></i></button>

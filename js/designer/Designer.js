@@ -18,7 +18,7 @@ class Designer {
         this.renderCanvas();
         this.renderObjectTree();
         this.bindEvents();
-        this.loadReportInfo();
+        this.selectReport();
     }
 
     async loadReport(id) {
@@ -54,6 +54,9 @@ class Designer {
             query: { sql: '', visualJson: null, parameters: [] },
             groups: [],
             bands: this.getDefaultBands(),
+            showGrid: true,
+            snapToGrid: true,
+            gridSize: 2,
         };
         window.ReportingEngine.dispatch('SET_DEFINITION', def);
         this.bands = def.bands;
@@ -95,6 +98,20 @@ class Designer {
         }
 
         this.canvasInner.innerHTML = html;
+
+        // Grid background
+        const def = window.ReportingEngine.state.definition;
+        if (def.showGrid) {
+            const gs = def.gridSize || 2;
+            this.canvasInner.style.backgroundImage = `
+                linear-gradient(to right, #e8e8e8 0.5px, transparent 0.5px),
+                linear-gradient(to bottom, #e8e8e8 0.5px, transparent 0.5px)
+            `;
+            this.canvasInner.style.backgroundSize = `${gs}mm ${gs}mm`;
+        } else {
+            this.canvasInner.style.backgroundImage = 'none';
+        }
+
         this.attachElementEvents();
     }
 
@@ -191,7 +208,7 @@ class Designer {
                 this.selectBand(band.dataset.bandType);
                 return;
             }
-            this.deselectAll();
+            this.selectReport();
         });
 
         // Keyboard shortcuts
@@ -258,7 +275,7 @@ class Designer {
             const y_mm = (e.clientY - bandRect.top) * mmPerPxY;
 
             const fieldName = e.dataTransfer.getData('field-name') || null;
-            this.addElement(type, bandType, x_mm, y_mm, fieldName);
+            this.addElement(type, bandType, this.snapValue(x_mm), this.snapValue(y_mm), fieldName);
         });
     }
 
@@ -293,8 +310,8 @@ class Designer {
                 const onMove = (me) => {
                     const dx = (me.clientX - startX) * pxToMm;
                     const dy = (me.clientY - startY) * pxToMm;
-                    el.style.left = (origLeft + dx) + 'mm';
-                    el.style.top = (origTop + dy) + 'mm';
+                    el.style.left = this.snapValue(origLeft + dx) + 'mm';
+                    el.style.top = this.snapValue(origTop + dy) + 'mm';
                 };
 
                 const onUp = () => {
@@ -331,8 +348,8 @@ class Designer {
                 const onMove = (me) => {
                     const dw = (me.clientX - startX) * pxToMm;
                     const dh = (me.clientY - startY) * pxToMm;
-                    el.style.width = Math.max(5, origW + dw) + 'mm';
-                    el.style.height = Math.max(5, origH + dh) + 'mm';
+                    el.style.width = Math.max(1, this.snapValue(origW + dw)) + 'mm';
+                    el.style.height = Math.max(1, this.snapValue(origH + dh)) + 'mm';
                 };
 
                 const onUp = () => {
@@ -365,7 +382,7 @@ class Designer {
 
                 const onMove = (me) => {
                     const dh = (me.clientY - startY) * pxToMm;
-                    band.style.height = Math.max(8, origH + dh) + 'mm';
+                    band.style.height = Math.max(1, this.snapValue(origH + dh)) + 'mm';
                 };
 
                 const onUp = () => {
@@ -387,9 +404,11 @@ class Designer {
 
     selectElement(id) {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', id);
+        window.ReportingEngine.dispatch('SELECT_BAND', null);
         document.querySelectorAll('.canvas-element').forEach(el => {
             el.classList.toggle('selected', el.dataset.elementId === id);
         });
+        document.querySelectorAll('.band').forEach(b => b.classList.remove('selected'));
         if (window.elementEditor) {
             const band = this.findBandForElement(id);
             if (band) {
@@ -401,10 +420,12 @@ class Designer {
     }
 
     selectBand(type) {
+        window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
         window.ReportingEngine.dispatch('SELECT_BAND', type);
         document.querySelectorAll('.band').forEach(b => {
             b.classList.toggle('selected', b.dataset.bandType === type);
         });
+        document.querySelectorAll('.canvas-element').forEach(el => el.classList.remove('selected'));
         if (window.elementEditor) {
             const band = this.bands.find(b => b.type === type);
             if (band) window.elementEditor.loadBand(band);
@@ -412,11 +433,21 @@ class Designer {
         this.renderObjectTree();
     }
 
-    deselectAll() {
+    selectReport() {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
         window.ReportingEngine.dispatch('SELECT_BAND', null);
         document.querySelectorAll('.canvas-element, .band').forEach(el => el.classList.remove('selected'));
+        if (window.elementEditor) {
+            window.elementEditor.loadReport();
+        }
         this.renderObjectTree();
+    }
+
+    snapValue(val) {
+        const def = window.ReportingEngine.state.definition;
+        if (!def.snapToGrid) return val;
+        const grid = def.gridSize || 2;
+        return Math.max(1, Math.round(val / grid)) * grid;
     }
 
     addElement(type, bandType, x, y, fieldName) {
@@ -481,8 +512,8 @@ class Designer {
         if (!band) return;
         const elem = band.elements.find(e => e.id === id);
         if (!elem) return;
-        elem.top = Math.max(0, elem.top + dy);
-        elem.left = Math.max(0, elem.left + dx);
+        elem.top = Math.max(0, this.snapValue(elem.top + dy));
+        elem.left = Math.max(0, this.snapValue(elem.left + dx));
         this.renderCanvas();
         if (window.ReportingEngine.state.selectedElement === id) {
             this.selectElement(id);
@@ -503,35 +534,10 @@ class Designer {
         window.ReportingEngine.dispatch('REDO_STACK', []);
     }
 
-    loadReportInfo() {
-        const def = window.ReportingEngine.state.definition;
-        const nameInput = document.getElementById('report-name');
-        const descInput = document.getElementById('report-description');
-        if (nameInput) nameInput.value = def.name || '';
-        if (descInput) descInput.value = def.description || '';
-    }
-
-    updateName(name) {
-        const def = window.ReportingEngine.state.definition;
-        def.name = name || 'Untitled Report';
-        window.ReportingEngine.dispatch('SET_DIRTY', true);
-    }
-
-    updateDescription(desc) {
-        const def = window.ReportingEngine.state.definition;
-        def.description = desc || '';
-        window.ReportingEngine.dispatch('SET_DIRTY', true);
-    }
-
     async save() {
         this.pushUndoState();
         const def = window.ReportingEngine.state.definition;
         def.bands = this.bands;
-        // Sync name/description from inputs
-        const nameInput = document.getElementById('report-name');
-        const descInput = document.getElementById('report-description');
-        if (nameInput) def.name = nameInput.value || 'Untitled Report';
-        if (descInput) def.description = descInput.value || '';
 
         const payload = {
             name: def.name || 'Untitled Report',
@@ -604,10 +610,16 @@ class Designer {
     renderObjectTree() {
         const container = document.getElementById('object-tree');
         if (!container) return;
+        const reportSelected = !window.ReportingEngine.state.selectedBand && !window.ReportingEngine.state.selectedElement;
         const bandOrder = ['page_header', 'report_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
         const sortedBands = [...this.bands].sort((a, b) => bandOrder.indexOf(a.type) - bandOrder.indexOf(b.type));
 
-        let html = '';
+        let html = `<div class="tree-item report-tree-item ${reportSelected ? 'selected' : ''}"
+                         data-tree-report="1">
+                        <i class="ph-file-text"></i>
+                        <span>Report</span>
+                     </div>`;
+
         for (const band of sortedBands) {
             const isSelected = window.ReportingEngine.state.selectedBand === band.type;
             const label = band.type.replace(/_/g, ' ');
@@ -626,7 +638,7 @@ class Designer {
                     const elLabel = el.text || el.fieldName || el.type;
                     html += `<div class="tree-item element-tree-item ${elSelected ? 'selected' : ''}"
                                  data-tree-element="${el.id}"
-                                 style="padding-left:32px">
+                                 style="padding-left:40px">
                                 <i class="ph-${el.type === 'label' ? 'text-t' : el.type === 'field' ? 'database' : el.type === 'aggregate' ? 'function' : 'square'}"></i>
                                 <span>${elLabel}</span>
                                 <small style="color:var(--color-text-muted)">${el.type}</small>
@@ -634,7 +646,7 @@ class Designer {
                 }
             }
         }
-        container.innerHTML = html || '<div class="text-muted" style="padding:8px;font-size:12px">No bands</div>';
+        container.innerHTML = html;
         this.attachObjectTreeEvents(container);
     }
 
@@ -644,9 +656,13 @@ class Designer {
             container.removeEventListener('click', this._treeClickHandler);
         }
         this._treeClickHandler = (e) => {
-            const target = e.target.closest('[data-tree-band],[data-tree-element]');
+            const target = e.target.closest('[data-tree-band],[data-tree-element],[data-tree-report]');
             if (!target) return;
             e.stopPropagation();
+            if (target.dataset.treeReport !== undefined) {
+                this.selectReport();
+                return;
+            }
             const bandType = target.dataset.treeBand;
             const elementId = target.dataset.treeElement;
             if (elementId) {

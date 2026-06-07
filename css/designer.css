@@ -25,52 +25,6 @@
 
 .toolbar-center {
     flex: 1;
-    gap: 8px;
-    padding: 0 16px;
-}
-
-.report-name-input {
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    padding: 4px 8px;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: var(--font-ui);
-    color: var(--color-text);
-    background: transparent;
-    width: 220px;
-    outline: none;
-}
-
-.report-name-input:hover {
-    border-color: var(--color-border);
-}
-
-.report-name-input:focus {
-    border-color: var(--color-primary);
-    background: var(--color-surface);
-}
-
-.report-desc-input {
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    padding: 4px 8px;
-    font-size: 12px;
-    font-family: var(--font-ui);
-    color: var(--color-text-muted);
-    background: transparent;
-    width: 300px;
-    outline: none;
-}
-
-.report-desc-input:hover {
-    border-color: var(--color-border);
-}
-
-.report-desc-input:focus {
-    border-color: var(--color-primary);
-    background: var(--color-surface);
-    color: var(--color-text);
 }
 
 .zoom-label {
@@ -193,6 +147,17 @@
     padding: 1px 6px;
     border-radius: 10px;
     font-weight: 600;
+}
+
+.report-tree-item {
+    font-weight: 600;
+    border-left: 3px solid transparent;
+    color: var(--color-primary);
+}
+
+.report-tree-item.selected {
+    border-left-color: var(--color-primary);
+    background: #EFF6FF;
 }
 
 .band-tree-item {
