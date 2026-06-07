@@ -381,8 +381,8 @@
         linear-gradient(to left, rgba(0,0,0,0.15) 2px, transparent 2px),
         linear-gradient(to top, rgba(0,0,0,0.15) 2px, transparent 2px);
     background-repeat: no-repeat;
-    background-size: 8px 2px, 2px 8px, 8px 2px, 2px 8px,
-                     8px 2px, 2px 8px, 8px 2px, 2px 8px;
+    background-size: 14px 2px, 2px 14px, 14px 2px, 2px 14px,
+                     14px 2px, 2px 14px, 14px 2px, 2px 14px;
     background-position:
         top left, top left,
         top right, top right,
