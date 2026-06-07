@@ -287,6 +287,16 @@
     transform-origin: top center;
 }
 
+.grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
 /* Bands */
 .band {
     position: relative;
@@ -359,6 +369,27 @@
     font-size: 10pt;
 }
 
+/* Corner markers on unselected elements */
+.canvas-element:not(.selected) {
+    background-image:
+        linear-gradient(to right, rgba(0,0,0,0.15) 2px, transparent 2px),
+        linear-gradient(to bottom, rgba(0,0,0,0.15) 2px, transparent 2px),
+        linear-gradient(to left, rgba(0,0,0,0.15) 2px, transparent 2px),
+        linear-gradient(to bottom, rgba(0,0,0,0.15) 2px, transparent 2px),
+        linear-gradient(to right, rgba(0,0,0,0.15) 2px, transparent 2px),
+        linear-gradient(to top, rgba(0,0,0,0.15) 2px, transparent 2px),
+        linear-gradient(to left, rgba(0,0,0,0.15) 2px, transparent 2px),
+        linear-gradient(to top, rgba(0,0,0,0.15) 2px, transparent 2px);
+    background-repeat: no-repeat;
+    background-size: 8px 2px, 2px 8px, 8px 2px, 2px 8px,
+                     8px 2px, 2px 8px, 8px 2px, 2px 8px;
+    background-position:
+        top left, top left,
+        top right, top right,
+        bottom left, bottom left,
+        bottom right, bottom right;
+}
+
 .canvas-element:hover {
     border-color: #93C5FD;
 }
@@ -366,6 +397,7 @@
 .canvas-element.selected {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 1px var(--color-primary);
+    background-image: none !important;
 }
 
 .canvas-element .resize-handle {

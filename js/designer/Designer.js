@@ -101,18 +101,14 @@ class Designer {
             html += this.renderBand(band);
         }
 
-        this.canvasInner.innerHTML = html;
-
-        // Grid background
+        // Grid overlay (on top of bands so dots are always visible)
         const def = window.ReportingEngine.state.definition;
         if (def.showGrid) {
             const gs = def.gridSize || 2;
-            this.canvasInner.style.backgroundImage = 'radial-gradient(circle, #bbb 0.8px, transparent 0.8px)';
-            this.canvasInner.style.backgroundSize = `${gs}mm ${gs}mm`;
-        } else {
-            this.canvasInner.style.backgroundImage = 'none';
+            html += `<div class="grid-overlay" style="background-image:radial-gradient(circle, #bbb 0.8px, transparent 0.8px);background-size:${gs}mm ${gs}mm"></div>`;
         }
 
+        this.canvasInner.innerHTML = html;
         this.attachElementEvents();
     }
 
