@@ -24,15 +24,20 @@ class HtmlRenderer implements RendererInterface
         $html .= '</style></head><body>';
         $html .= '<div class="report-container">';
 
+        // Helper to check if a band has child elements
+        $hasElements = function(?Band $b): bool {
+            return $b && $b->visible && !empty($b->elements);
+        };
+
         // Page header
         $pageHeaderBand = $definition->bands->get('page_header');
-        if ($pageHeaderBand && $pageHeaderBand->visible) {
+        if ($hasElements($pageHeaderBand)) {
             $html .= $this->renderBandElement($pageHeaderBand, $definition, null, null);
         }
 
         // Report header
         $reportHeaderBand = $definition->bands->get('report_header');
-        if ($reportHeaderBand && $reportHeaderBand->visible) {
+        if ($hasElements($reportHeaderBand)) {
             $html .= $this->renderBandElement($reportHeaderBand, $definition, null, null);
         }
 
@@ -55,7 +60,7 @@ class HtmlRenderer implements RendererInterface
                         // Close inner groups
                         for ($inner = count($groups) - 1; $inner >= $g; $inner--) {
                             $footerBand = $this->findGroupFooter($definition, $groups[$inner]);
-                            if ($footerBand) {
+                            if ($footerBand && $hasElements($footerBand)) {
                                 $html .= $this->renderBandElement($footerBand, $definition, $groups[$inner], $groupAggregates[$inner]);
                             }
                             $groupAggregates[$inner]->reset();
@@ -64,7 +69,7 @@ class HtmlRenderer implements RendererInterface
                         for ($outer = $g; $outer < count($groups); $outer++) {
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;
                             $headerBand = $this->findGroupHeader($definition, $groups[$outer]);
-                            if ($headerBand) {
+                            if ($headerBand && $hasElements($headerBand)) {
                                 $html .= $this->renderBandElement($headerBand, $definition, $groups[$outer], $row);
                             }
                         }
@@ -77,7 +82,7 @@ class HtmlRenderer implements RendererInterface
                     for ($g = 0; $g < count($groups); $g++) {
                         $groupValues[$g] = $row[$groups[$g]->fieldName] ?? null;
                         $headerBand = $this->findGroupHeader($definition, $groups[$g]);
-                        if ($headerBand) {
+                        if ($headerBand && $hasElements($headerBand)) {
                             $html .= $this->renderBandElement($headerBand, $definition, $groups[$g], $row);
                         }
                     }
@@ -93,7 +98,7 @@ class HtmlRenderer implements RendererInterface
 
                 // Detail band
                 $detailBand = $definition->bands->get('detail');
-                if ($detailBand && $detailBand->visible) {
+                if ($hasElements($detailBand)) {
                     $html .= $this->renderBandElement($detailBand, $definition, null, $row);
                 }
             }
@@ -101,7 +106,7 @@ class HtmlRenderer implements RendererInterface
             // Close remaining groups
             for ($g = count($groups) - 1; $g >= 0; $g--) {
                 $footerBand = $this->findGroupFooter($definition, $groups[$g]);
-                if ($footerBand) {
+                if ($footerBand && $hasElements($footerBand)) {
                     $html .= $this->renderBandElement($footerBand, $definition, $groups[$g], $groupAggregates[$g]);
                 }
                 $groupAggregates[$g]->reset();
@@ -109,14 +114,14 @@ class HtmlRenderer implements RendererInterface
 
             // Report footer
             $reportFooterBand = $definition->bands->get('report_footer');
-            if ($reportFooterBand && $reportFooterBand->visible) {
+            if ($hasElements($reportFooterBand)) {
                 $html .= $this->renderBandElement($reportFooterBand, $definition, null, $reportAggregates);
             }
         }
 
         // Page footer
         $pageFooterBand = $definition->bands->get('page_footer');
-        if ($pageFooterBand && $pageFooterBand->visible) {
+        if ($hasElements($pageFooterBand)) {
             $html .= $this->renderBandElement($pageFooterBand, $definition, null, null);
         }
 
