@@ -107,10 +107,7 @@ class Designer {
         const def = window.ReportingEngine.state.definition;
         if (def.showGrid) {
             const gs = def.gridSize || 2;
-            this.canvasInner.style.backgroundImage = `
-                linear-gradient(to right, #d4d4d4 1px, transparent 1px),
-                linear-gradient(to bottom, #d4d4d4 1px, transparent 1px)
-            `;
+            this.canvasInner.style.backgroundImage = 'radial-gradient(circle, #bbb 0.8px, transparent 0.8px)';
             this.canvasInner.style.backgroundSize = `${gs}mm ${gs}mm`;
         } else {
             this.canvasInner.style.backgroundImage = 'none';
