@@ -21,48 +21,71 @@
     </div>
     <div class="designer-panels">
         <aside class="panel panel-left">
-            <div class="panel-section">
-                <h3><i class="ph-database"></i> Data Source</h3>
-                <div class="form-group" style="margin-bottom:6px">
-                    <label style="font-size:11px;text-transform:none;letter-spacing:0">Connection</label>
-                    <select id="query-connection" class="prop-control" onchange="queryEditor.onConnectionChange()">
-                        <option value="">Select connection...</option>
-                    </select>
-                </div>
-                <div class="form-group" style="margin-bottom:6px">
-                    <label style="font-size:11px;text-transform:none;letter-spacing:0">SQL Query</label>
-                    <textarea id="query-sql" class="prop-control" rows="4" style="font-family:var(--font-mono);font-size:12px;resize:vertical" placeholder="SELECT * FROM ..." onchange="queryEditor.onSqlChange()"></textarea>
-                </div>
-                <div style="display:flex;gap:4px">
-                    <button class="btn btn-sm" onclick="queryEditor.runQuery()"><i class="ph-play"></i> Run</button>
-                    <button class="btn btn-sm" onclick="queryEditor.applyFields()"><i class="ph-check"></i> Apply Fields</button>
-                </div>
-                <div id="query-status" style="font-size:11px;color:var(--color-text-muted);margin-top:4px"></div>
+            <div class="left-tabs">
+                <button class="l-tab active" data-lpanel="datasource" onclick="switchLeftPanel('datasource')" title="Data Source"><i class="ph-database"></i><span>Data Source</span></button>
+                <button class="l-tab" data-lpanel="fields" onclick="switchLeftPanel('fields')" title="Fields"><i class="ph-list"></i><span>Fields</span></button>
+                <button class="l-tab" data-lpanel="elements" onclick="switchLeftPanel('elements')" title="Elements"><i class="ph-squares-four"></i><span>Elements</span></button>
+                <button class="l-tab" data-lpanel="groups" onclick="switchLeftPanel('groups')" title="Groups"><i class="ph-folder"></i><span>Groups</span></button>
             </div>
-            <div class="panel-section">
-                <h3><i class="ph-list"></i> Fields</h3>
-                <div id="field-list" class="field-list">
-                    <p class="text-muted" style="font-size:12px;padding:4px 0">Run a query to see fields</p>
+            <div class="left-panels">
+                <!-- Data Source -->
+                <div id="lpanel-datasource" class="lpanel-content active">
+                    <div class="panel-section">
+                        <div class="form-group" style="margin-bottom:6px">
+                            <label style="font-size:11px;text-transform:none;letter-spacing:0">Connection</label>
+                            <select id="query-connection" class="prop-control" onchange="queryEditor.onConnectionChange()">
+                                <option value="">Select connection...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:6px">
+                            <label style="font-size:11px;text-transform:none;letter-spacing:0">Tables</label>
+                            <div id="table-list" class="table-list"><p class="text-muted" style="font-size:12px;padding:2px 0">Select a connection</p></div>
+                        </div>
+                        <div class="form-group" style="margin-bottom:6px">
+                            <label style="font-size:11px;text-transform:none;letter-spacing:0">SQL Query</label>
+                            <textarea id="query-sql" class="prop-control" rows="6" style="font-family:var(--font-mono);font-size:12px;resize:vertical" placeholder="SELECT * FROM ..." onchange="queryEditor.onSqlChange()"></textarea>
+                        </div>
+                        <div style="display:flex;gap:4px">
+                            <button class="btn btn-sm" onclick="queryEditor.runQuery()"><i class="ph-play"></i> Run</button>
+                            <button class="btn btn-sm" onclick="queryEditor.applyFields()"><i class="ph-check"></i> Apply Fields</button>
+                        </div>
+                        <div id="query-status" style="font-size:11px;color:var(--color-text-muted);margin-top:4px"></div>
+                    </div>
                 </div>
-            </div>
-            <div class="panel-section">
-                <h3><i class="ph-squares-four"></i> Elements</h3>
-                <div class="element-toolbox">
-                    <div class="toolbox-item" draggable="true" data-type="label"><i class="ph-text-t"></i> Label</div>
-                    <div class="toolbox-item" draggable="true" data-type="field"><i class="ph-database"></i> Field</div>
-                    <div class="toolbox-item" draggable="true" data-type="aggregate"><i class="ph-function"></i> Aggregate</div>
-                    <div class="toolbox-item" draggable="true" data-type="image"><i class="ph-image"></i> Image</div>
-                    <div class="toolbox-item" draggable="true" data-type="line"><i class="ph-minus"></i> Line</div>
-                    <div class="toolbox-item" draggable="true" data-type="rect"><i class="ph-square"></i> Rectangle</div>
-                    <div class="toolbox-item" draggable="true" data-type="pageno"><i class="ph-hash"></i> Page #</div>
-                    <div class="toolbox-item" draggable="true" data-type="rowno"><i class="ph-list-numbers"></i> Row #</div>
-                    <div class="toolbox-item" draggable="true" data-type="datetime"><i class="ph-clock"></i> Date/Time</div>
+                <!-- Fields -->
+                <div id="lpanel-fields" class="lpanel-content">
+                    <div class="panel-section">
+                        <h3><i class="ph-list"></i> Fields</h3>
+                        <div id="field-list" class="field-list">
+                            <p class="text-muted" style="font-size:12px;padding:4px 0">Run a query to see fields</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="panel-section">
-                <h3><i class="ph-folder"></i> Groups</h3>
-                <button class="btn btn-sm btn-outline" onclick="groupEditor.open()"><i class="ph-plus"></i> Add Group</button>
-                <ul id="group-list" class="group-list"></ul>
+                <!-- Elements -->
+                <div id="lpanel-elements" class="lpanel-content">
+                    <div class="panel-section">
+                        <h3><i class="ph-squares-four"></i> Elements</h3>
+                        <div class="element-toolbox">
+                            <div class="toolbox-item" draggable="true" data-type="label"><i class="ph-text-t"></i> Label</div>
+                            <div class="toolbox-item" draggable="true" data-type="field"><i class="ph-database"></i> Field</div>
+                            <div class="toolbox-item" draggable="true" data-type="aggregate"><i class="ph-function"></i> Aggregate</div>
+                            <div class="toolbox-item" draggable="true" data-type="image"><i class="ph-image"></i> Image</div>
+                            <div class="toolbox-item" draggable="true" data-type="line"><i class="ph-minus"></i> Line</div>
+                            <div class="toolbox-item" draggable="true" data-type="rect"><i class="ph-square"></i> Rectangle</div>
+                            <div class="toolbox-item" draggable="true" data-type="pageno"><i class="ph-hash"></i> Page #</div>
+                            <div class="toolbox-item" draggable="true" data-type="rowno"><i class="ph-list-numbers"></i> Row #</div>
+                            <div class="toolbox-item" draggable="true" data-type="datetime"><i class="ph-clock"></i> Date/Time</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Groups -->
+                <div id="lpanel-groups" class="lpanel-content">
+                    <div class="panel-section">
+                        <h3><i class="ph-folder"></i> Groups</h3>
+                        <button class="btn btn-sm btn-outline" onclick="groupEditor.open()"><i class="ph-plus"></i> Add Group</button>
+                        <ul id="group-list" class="group-list"></ul>
+                    </div>
+                </div>
             </div>
         </aside>
         <div class="designer-canvas" id="designer-canvas">
@@ -206,10 +229,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.groupEditor.updateGroupList();
     window.queryEditor.init();
     switchRightPanel('properties');
+    switchLeftPanel('datasource');
 });
 
 function switchRightPanel(name) {
     document.querySelectorAll('.r-tab').forEach(t => t.classList.toggle('active', t.dataset.rpanel === name));
     document.querySelectorAll('.rpanel-content').forEach(c => c.classList.toggle('active', c.id === 'rpanel-' + name));
+}
+
+function switchLeftPanel(name) {
+    document.querySelectorAll('.l-tab').forEach(t => t.classList.toggle('active', t.dataset.lpanel === name));
+    document.querySelectorAll('.lpanel-content').forEach(c => c.classList.toggle('active', c.id === 'lpanel-' + name));
 }
 </script>

@@ -50,8 +50,66 @@
     width: 240px;
     background: var(--color-surface);
     border-right: 1px solid var(--color-border);
-    overflow-y: auto;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.left-tabs {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+}
+
+.l-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--font-ui);
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    text-align: left;
+}
+
+.l-tab:hover {
+    color: var(--color-text);
+    background: var(--color-surface);
+}
+
+.l-tab.active {
+    color: var(--color-primary);
+    border-left-color: var(--color-primary);
+    background: var(--color-surface);
+}
+
+.l-tab i {
+    font-size: 15px;
+    width: 18px;
+    text-align: center;
+}
+
+.left-panels {
+    flex: 1;
+    overflow-y: auto;
+    min-width: 0;
+}
+
+.lpanel-content {
+    display: none;
+}
+
+.lpanel-content.active {
+    display: block;
 }
 
 .panel-right {
@@ -198,6 +256,40 @@
 
 .field-list {
     min-height: 60px;
+}
+
+.table-list {
+    max-height: 140px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+}
+
+.table-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.table-item:last-child {
+    border-bottom: none;
+}
+
+.table-item:hover {
+    background: var(--color-surface);
+    color: var(--color-primary);
+}
+
+.table-item i {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    flex-shrink: 0;
 }
 
 .field-item {

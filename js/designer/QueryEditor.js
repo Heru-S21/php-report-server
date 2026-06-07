@@ -5,8 +5,10 @@ class QueryEditor {
         this.sqlTextarea = document.getElementById('query-sql');
         this.statusEl = document.getElementById('query-status');
         this.fieldList = document.getElementById('field-list');
+        this.tableListEl = document.getElementById('table-list');
         this.connections = [];
         this.queryColumns = [];
+        this.tables = [];
     }
 
     async init() {
@@ -55,6 +57,55 @@ class QueryEditor {
     onConnectionChange() {
         const connId = this.connectionSelect.value;
         window.ReportingEngine.state.definition.connectionId = connId ? parseInt(connId) : null;
+        if (connId) {
+            this.loadTables(parseInt(connId));
+        } else {
+            this.tableListEl.innerHTML = '<p class="text-muted" style="font-size:12px;padding:2px 0">Select a connection</p>';
+            this.tables = [];
+        }
+    }
+
+    async loadTables(connId) {
+        this.tableListEl.innerHTML = '<p class="text-muted" style="font-size:12px;padding:2px 0">Loading tables...</p>';
+        try {
+            const res = await window.ReportingEngine.api('GET', `/api/connections/${connId}/tables`);
+            this.tables = res.data || [];
+            this.renderTableList();
+        } catch (e) {
+            this.tableListEl.innerHTML = '<p class="text-muted" style="font-size:12px;padding:2px 0;color:var(--color-danger)">Failed to load tables</p>';
+        }
+    }
+
+    async loadTableColumns(tableName) {
+        const connId = this.connectionSelect.value;
+        if (!connId) return;
+        try {
+            const res = await window.ReportingEngine.api('GET', `/api/connections/${connId}/tables/${encodeURIComponent(tableName)}/columns`);
+            const columns = res.data || [];
+            const colNames = columns.map(c => c.name || c.column_name).filter(Boolean);
+            if (colNames.length > 0) {
+                this.sqlTextarea.value = `SELECT ${colNames.join(', ')}\nFROM ${tableName}`;
+            } else {
+                this.sqlTextarea.value = `SELECT *\nFROM ${tableName}`;
+            }
+            this.onSqlChange();
+        } catch (e) {
+            this.setStatus('Failed to load columns', 'error');
+        }
+    }
+
+    renderTableList() {
+        if (!this.tables || this.tables.length === 0) {
+            this.tableListEl.innerHTML = '<p class="text-muted" style="font-size:12px;padding:2px 0">No tables found</p>';
+            return;
+        }
+        this.tableListEl.innerHTML = this.tables.map(t => {
+            const name = t.name || t.table_name || t;
+            return `<div class="table-item" onclick="queryEditor.loadTableColumns('${name.replace(/'/g, "\\'")}')">
+                <i class="ph-table"></i>
+                <span>${name}</span>
+            </div>`;
+        }).join('');
     }
 
     onSqlChange() {
