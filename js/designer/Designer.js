@@ -108,8 +108,8 @@ class Designer {
         if (def.showGrid) {
             const gs = def.gridSize || 2;
             this.canvasInner.style.backgroundImage = `
-                linear-gradient(to right, #e8e8e8 0.5px, transparent 0.5px),
-                linear-gradient(to bottom, #e8e8e8 0.5px, transparent 0.5px)
+                linear-gradient(to right, #d4d4d4 1px, transparent 1px),
+                linear-gradient(to bottom, #d4d4d4 1px, transparent 1px)
             `;
             this.canvasInner.style.backgroundSize = `${gs}mm ${gs}mm`;
         } else {
