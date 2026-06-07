@@ -27,6 +27,10 @@ class Designer {
             if (res.data) {
                 const def = typeof res.data.definition === 'string'
                     ? JSON.parse(res.data.definition) : res.data.definition;
+                // Ensure grid defaults for backward compatibility
+                if (def.showGrid === undefined) def.showGrid = true;
+                if (def.snapToGrid === undefined) def.snapToGrid = true;
+                if (!def.gridSize) def.gridSize = 2;
                 window.ReportingEngine.dispatch('SET_DEFINITION', def);
                 this.bands = def.bands || this.getDefaultBands();
                 window.ReportingEngine.state.queryColumns = def.queryColumns || [];
