@@ -128,24 +128,24 @@ class ElementEditor {
             <div class="prop-row">
                 <div class="prop-group">
                     <label>Top (mm)</label>
-                    <input class="prop-control" type="number" value="${el.top}" step="0.5"
+                    <input class="prop-control" type="number" value="${el.top}" step="0.5" min="0"
                            onchange="window.elementEditor.updateField('top', parseFloat(this.value))">
                 </div>
                 <div class="prop-group">
                     <label>Left (mm)</label>
-                    <input class="prop-control" type="number" value="${el.left}" step="0.5"
+                    <input class="prop-control" type="number" value="${el.left}" step="0.5" min="0"
                            onchange="window.elementEditor.updateField('left', parseFloat(this.value))">
                 </div>
             </div>
             <div class="prop-row">
                 <div class="prop-group">
                     <label>Width (mm)</label>
-                    <input class="prop-control" type="number" value="${el.width}" step="0.5"
+                    <input class="prop-control" type="number" value="${el.width}" step="0.5" min="1"
                            onchange="window.elementEditor.updateField('width', parseFloat(this.value))">
                 </div>
                 <div class="prop-group">
                     <label>Height (mm)</label>
-                    <input class="prop-control" type="number" value="${el.height}" step="0.5"
+                    <input class="prop-control" type="number" value="${el.height}" step="0.5" min="1"
                            onchange="window.elementEditor.updateField('height', parseFloat(this.value))">
                 </div>
             </div>
@@ -316,6 +316,7 @@ class ElementEditor {
         // Snap position/size fields
         if (['top', 'left', 'width', 'height'].includes(field)) {
             value = this.designer.snapValue(parseFloat(value) || 0);
+            if (field === 'left' || field === 'top') value = Math.max(0, value);
             if (field === 'width' || field === 'height') value = Math.max(1, value);
         }
         el[field] = value;
