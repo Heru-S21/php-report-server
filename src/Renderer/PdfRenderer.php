@@ -30,29 +30,39 @@ class PdfRenderer implements RendererInterface
             return $b && $b->visible && !empty($b->elements);
         };
 
-        // Page header (set via mPDF header)
+        // Page header
         $pageHeaderBand = $definition->bands->get('page_header');
+        $inlineHeader = null;
         if ($hasElements($pageHeaderBand)) {
             $headerHtml = $this->renderBandHtml($pageHeaderBand, $definition, null, null);
-            $mpdf->SetHTMLHeader($headerHtml);
+            if ($pageHeaderBand->printOnEveryPage) {
+                $mpdf->SetHTMLHeader($headerHtml);
+            } else {
+                $inlineHeader = $headerHtml;
+            }
         }
 
         // Page footer
         $pageFooterBand = $definition->bands->get('page_footer');
+        $inlineFooter = null;
         if ($hasElements($pageFooterBand)) {
             $footerHtml = $this->renderBandHtml($pageFooterBand, $definition, null, null);
-            $mpdf->SetHTMLFooter($footerHtml);
+            if ($pageFooterBand->printOnEveryPage) {
+                $mpdf->SetHTMLFooter($footerHtml);
+            } else {
+                $inlineFooter = $footerHtml;
+            }
         }
 
         // Build body content
-        $html = $this->buildBody($definition, $data);
+        $html = $this->buildBody($definition, $data, $inlineHeader, $inlineFooter);
 
         $mpdf->WriteHTML($html);
 
         return $mpdf->Output('', 'S');
     }
 
-    private function buildBody(ReportDefinition $definition, array $data): string
+    private function buildBody(ReportDefinition $definition, array $data, ?string $inlineHeader = null, ?string $inlineFooter = null): string
     {
         $groups = $definition->groups;
         usort($groups, fn(GroupDefinition $a, GroupDefinition $b) => $a->level <=> $b->level);
@@ -64,6 +74,10 @@ class PdfRenderer implements RendererInterface
         $html = '<html><head><style>';
         $html .= $this->getStyles();
         $html .= '</style></head><body>';
+
+        if ($inlineHeader) {
+            $html .= $inlineHeader;
+        }
 
         // Report header
         $reportHeaderBand = $definition->bands->get('report_header');
@@ -138,6 +152,10 @@ class PdfRenderer implements RendererInterface
             if ($hasElements($reportFooterBand)) {
                 $html .= $this->renderBandHtml($reportFooterBand, $definition, null, $reportAggregates);
             }
+        }
+
+        if ($inlineFooter) {
+            $html .= $inlineFooter;
         }
 
         $html .= '</body></html>';
