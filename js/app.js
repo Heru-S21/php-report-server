@@ -74,12 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (path === '/' || path === '/index.php') {
         initDashboard();
-    } else if (path.startsWith('/reports') && !path.includes('/designer') && !path.includes('/preview')) {
+    } else if ((path === '/reports' || path === '/reports/') && !path.includes('/designer') && !path.includes('/preview')) {
         initReportsList();
-    } else if (path.includes('/connections')) {
+    } else if (path.startsWith('/connections')) {
         if (path === '/connections' || path === '/connections/') {
             initConnectionsList();
-        } else {
+        } else if (path.includes('/edit/')) {
             initConnectionEdit();
         }
     }
