@@ -1,9 +1,4 @@
 <aside class="sidebar" id="app-sidebar">
-    <div class="sidebar-header">
-        <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
-            <i class="ph-caret-left"></i>
-        </button>
-    </div>
     <ul class="sidebar-nav" id="sidebar-nav">
         <li>
             <a href="/" class="<?= ($content ?? '') === 'dashboard' ? 'active' : '' ?>">
@@ -28,10 +23,6 @@
 <script>
 function toggleSidebar() {
     const sidebar = document.getElementById('app-sidebar');
-    const btn = document.getElementById('sidebar-toggle');
     sidebar.classList.toggle('collapsed');
-    btn.innerHTML = sidebar.classList.contains('collapsed')
-        ? '<i class="ph-caret-right"></i>'
-        : '<i class="ph-caret-left"></i>';
 }
 </script>
