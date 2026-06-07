@@ -15,9 +15,7 @@
 </head>
 <body>
     <?php include __DIR__ . '/partials/navbar.php'; ?>
-    <div class="app-layout">
-        <?php include __DIR__ . '/partials/sidebar.php'; ?>
-        <main class="main-content">
+    <main class="main-content">
             <?php
             if (isset($content) && $content) {
                 $viewFile = __DIR__ . '/' . $content . '.php';
@@ -29,7 +27,6 @@
             }
             ?>
         </main>
-    </div>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
     <script src="/js/app.js"></script>
