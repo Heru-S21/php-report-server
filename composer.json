@@ -1,0 +1,19 @@
+{
+    "name": "reporting-engine/php-reporting-engine",
+    "description": "PHP Reporting Engine - Self-contained web reporting application",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "mpdf/mpdf": "^8.2",
+        "ext-pdo": "*",
+        "ext-pdo_sqlite": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "ReportingEngine\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

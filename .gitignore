@@ -1,0 +1,7 @@
+/vendor/
+/data/reporting.sqlite
+/data/reporting.sqlite-wal
+/data/reporting.sqlite-shm
+composer.lock
+.env
+*.log
