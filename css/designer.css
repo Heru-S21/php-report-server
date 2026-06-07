@@ -95,8 +95,7 @@
     font-size: 9px;
     line-height: 1.15;
     text-align: center;
-    writing-mode: vertical-rl;
-    text-orientation: sideways;
+    writing-mode: sideways-lr;
 }
 
 .l-tab:hover {
