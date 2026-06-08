@@ -7,7 +7,7 @@
         <a href="/" class="nav-link <?= ($content ?? '') === 'dashboard' ? 'active' : '' ?>">
             <i class="ph-layout"></i> Dashboard
         </a>
-        <a href="/reports" class="nav-link <?= str_starts_with($content ?? '', 'reports') ? 'active' : '' ?>">
+        <a href="/reports" class="nav-link <?= str_starts_with($content ?? '', 'reports') && ($content ?? '') !== 'reports/readme' ? 'active' : '' ?>">
             <i class="ph-file-text"></i> Reports
         </a>
         <a href="/connections" class="nav-link <?= str_starts_with($content ?? '', 'connections') ? 'active' : '' ?>">
