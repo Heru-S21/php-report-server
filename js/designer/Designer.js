@@ -20,6 +20,7 @@ class Designer {
         this.renderObjectTree();
         this.bindEvents();
         this.selectReport();
+        if (window.groupEditor) window.groupEditor.updateGroupList();
     }
 
     async loadReport(id) {

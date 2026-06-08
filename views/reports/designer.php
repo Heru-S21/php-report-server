@@ -260,7 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.aggregateEditor = new AggregateEditor(window.designer);
     window.dragDrop = new DragDrop(window.designer);
     window.queryEditor = new QueryEditor(window.designer);
-    window.groupEditor.updateGroupList();
     window.queryEditor.init();
     switchRightPanel('properties');
     switchLeftPanel('fields');
