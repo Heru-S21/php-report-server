@@ -191,8 +191,11 @@ class ElementEditor {
                 </div>
                 <div class="prop-group">
                     <label>Background</label>
-                    <input class="prop-control" type="color" value="${el.backgroundColor || '#ffffff'}"
-                           onchange="window.elementEditor.updateField('backgroundColor', this.value === '#ffffff' ? 'transparent' : this.value)">
+                    <div style="display:flex;gap:4px;align-items:center">
+                        <input class="prop-control" type="color" value="${el.backgroundColor && el.backgroundColor !== 'transparent' ? el.backgroundColor : '#ffffff'}"
+                               onchange="window.elementEditor.updateField('backgroundColor', this.value === '#ffffff' ? 'transparent' : this.value)">
+                        <button type="button" title="Transparent" onclick="window.elementEditor.updateField('backgroundColor', 'transparent')" style="width:24px;height:24px;padding:0;font-size:12px;line-height:1;border:1px solid #ccc;border-radius:3px;background:#fff;cursor:pointer">&times;</button>
+                    </div>
                 </div>
             </div>
             <div class="prop-row">
@@ -266,8 +269,11 @@ class ElementEditor {
             </div>
             <div class="prop-group">
                 <label>Background Color</label>
-                <input class="prop-control" type="color" value="${band.backgroundColor && band.backgroundColor !== 'transparent' ? band.backgroundColor : '#ffffff'}"
-                       onchange="window.elementEditor.updateBandField('backgroundColor', this.value === '#ffffff' ? 'transparent' : this.value)">
+                <div style="display:flex;gap:4px;align-items:center">
+                    <input class="prop-control" type="color" value="${band.backgroundColor && band.backgroundColor !== 'transparent' ? band.backgroundColor : '#ffffff'}"
+                           onchange="window.elementEditor.updateBandField('backgroundColor', this.value === '#ffffff' ? 'transparent' : this.value)">
+                    <button type="button" class="btn-icon" title="Transparent" onclick="window.elementEditor.updateBandField('backgroundColor', 'transparent')" style="width:24px;height:24px;padding:0;font-size:12px;line-height:1;border:1px solid #ccc;border-radius:3px;background:#fff;cursor:pointer">&times;</button>
+                </div>
             </div>
             <div class="prop-group">
                 <label style="font-weight:400;text-transform:none">
@@ -356,8 +362,11 @@ class ElementEditor {
                 </div>
                 <div class="prop-group">
                     <label>Background</label>
-                    <input class="prop-control" type="color" value="${ds.backgroundColor && ds.backgroundColor !== 'transparent' ? ds.backgroundColor : '#ffffff'}"
-                           onchange="window.elementEditor.updateDefaultStyle('backgroundColor', this.value === '#ffffff' ? 'transparent' : this.value)">
+                    <div style="display:flex;gap:4px;align-items:center">
+                        <input class="prop-control" type="color" value="${ds.backgroundColor && ds.backgroundColor !== 'transparent' ? ds.backgroundColor : '#ffffff'}"
+                               onchange="window.elementEditor.updateDefaultStyle('backgroundColor', this.value === '#ffffff' ? 'transparent' : this.value)">
+                        <button type="button" class="btn-icon" title="Transparent" onclick="window.elementEditor.updateDefaultStyle('backgroundColor', 'transparent')" style="width:24px;height:24px;padding:0;font-size:12px;line-height:1;border:1px solid #ccc;border-radius:3px;background:#fff;cursor:pointer">&times;</button>
+                    </div>
                 </div>
             </div>
         `;
