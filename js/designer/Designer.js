@@ -397,6 +397,8 @@ class Designer {
                 const origTop = parseFloat(el.style.top);
                 const origW = parseFloat(el.style.width);
                 const origH = parseFloat(el.style.height);
+                const startX = e.clientX;
+                const startY = e.clientY;
                 const pxToMm = getPxToMm();
 
                 const expandBand = () => {
