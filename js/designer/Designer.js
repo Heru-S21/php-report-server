@@ -478,7 +478,7 @@ class Designer {
         const def = window.ReportingEngine.state.definition;
         if (!def.snapToGrid) return val;
         const grid = def.gridSize || 2;
-        return Math.max(1, Math.round(val / grid)) * grid;
+        return Math.max(0, Math.round(val / grid)) * grid;
     }
 
     addElement(type, bandType, x, y, fieldName) {
