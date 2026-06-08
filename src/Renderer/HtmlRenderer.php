@@ -297,21 +297,45 @@ class HtmlRenderer implements RendererInterface
         $value = $this->getElementValue($el, $def, $group, $data, $pageNum);
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
         $va = $el->verticalAlign ?? 'top';
-        $alignItems = match ($va) { 'middle' => 'center', 'bottom' => 'flex-end', default => 'flex-start' };
-        $style = sprintf(
-            'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; display:flex; align-items:%s; background:%s; %s',
-            $el->top, $el->left, $el->width, $el->height,
-            $el->fontFamily ?: 'Arial',
-            $el->fontSize ?: 10,
-            $el->bold ? 'bold' : 'normal',
-            $el->italic ? 'italic' : 'normal',
-            $el->underline ? 'underline' : 'none',
-            $el->color ?: '#000000',
-            $el->textAlign ?: 'left',
-            $alignItems,
-            $el->backgroundColor ?: 'transparent',
-            $borderStyle
-        );
+        $ta = $el->textAlign ?: 'left';
+
+        if ($va === 'top') {
+            $style = sprintf(
+                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; background:%s; %s',
+                $el->top, $el->left, $el->width, $el->height,
+                $el->fontFamily ?: 'Arial',
+                $el->fontSize ?: 10,
+                $el->bold ? 'bold' : 'normal',
+                $el->italic ? 'italic' : 'normal',
+                $el->underline ? 'underline' : 'none',
+                $el->color ?: '#000000',
+                $ta,
+                $el->backgroundColor ?: 'transparent',
+                $borderStyle
+            );
+        } else {
+            $alignItems = $va === 'middle' ? 'center' : 'flex-end';
+            $justify = match ($ta) {
+                'center' => 'center',
+                'right' => 'flex-end',
+                default => 'flex-start',
+            };
+            $style = sprintf(
+                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; display:flex; align-items:%s; justify-content:%s; background:%s; %s',
+                $el->top, $el->left, $el->width, $el->height,
+                $el->fontFamily ?: 'Arial',
+                $el->fontSize ?: 10,
+                $el->bold ? 'bold' : 'normal',
+                $el->italic ? 'italic' : 'normal',
+                $el->underline ? 'underline' : 'none',
+                $el->color ?: '#000000',
+                $alignItems,
+                $justify,
+                $el->backgroundColor ?: 'transparent',
+                $borderStyle
+            );
+        }
+
         return sprintf('<div class="element" style="%s">%s</div>', $style, $value);
     }
 

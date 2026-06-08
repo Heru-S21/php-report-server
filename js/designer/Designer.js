@@ -163,6 +163,10 @@ class Designer {
         if (!el) return '';
         const isSelected = window.ReportingEngine.state.selectedElement === el.id;
         const content = this.getElementContent(el);
+        const textAlign = el.textAlign || 'left';
+        const vertAlign = el.verticalAlign || 'top';
+        const flexAlign = vertAlign === 'middle' ? 'center' : vertAlign === 'bottom' ? 'flex-end' : null;
+        const flexJustify = textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start';
         const style = `
             top: ${el.top}mm;
             left: ${el.left}mm;
@@ -174,8 +178,7 @@ class Designer {
             font-style: ${el.italic ? 'italic' : 'normal'};
             text-decoration: ${el.underline ? 'underline' : 'none'};
             color: ${el.color || '#000000'};
-            text-align: ${el.textAlign || 'left'};
-            ${(!el.verticalAlign || el.verticalAlign === 'top') ? '' : `display: flex; align-items: ${el.verticalAlign === 'middle' ? 'center' : 'flex-end'};`}
+            ${flexAlign ? `display:flex; align-items:${flexAlign}; justify-content:${flexJustify};` : `text-align:${textAlign};`}
             background-color: ${el.backgroundColor || 'transparent'};
             ${el.border ? this.borderToStyle(el.border) : ''}
         `;
