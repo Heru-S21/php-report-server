@@ -25,6 +25,7 @@ class HtmlRenderer implements RendererInterface
         $usableHeight = $paperH - $page->marginTop  - $page->marginBottom;
 
         $html  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">';
+        $html .= '<title>' . htmlspecialchars($definition->name ?: 'Report') . '</title>';
         $html .= '<style>' . $this->getBaseStyles($usableWidth) . '</style></head><body>';
 
         $has = function(?Band $b): bool {
