@@ -153,6 +153,9 @@ class ElementEditor {
     }
 
     renderStyleTab(el) {
+        const def = window.ReportingEngine.state.definition;
+        const ds = def.defaultStyle || {};
+        const isInheriting = el.inheritStyle !== false;
         this.contentEl.innerHTML = `
             <div class="prop-row">
                 <div class="prop-group">
@@ -209,6 +212,12 @@ class ElementEditor {
                     </select>
                 </div>
             </div>
+            ${!isInheriting ? `
+            <div style="border-top:1px solid var(--color-border);padding-top:8px;margin-top:8px">
+                <button class="btn btn-sm" onclick="window.elementEditor.resetToDefaultStyle()" style="color:var(--color-primary);width:100%">
+                    <i class="ph-arrow-counter-clockwise"></i> Reset to Report Defaults
+                </button>
+            </div>` : ''}
         `;
     }
 
@@ -270,6 +279,7 @@ class ElementEditor {
     renderReportProps() {
         const def = window.ReportingEngine.state.definition;
         const page = def.page || {};
+        const ds = def.defaultStyle || {};
         this.contentEl.innerHTML = `
             <div class="prop-group">
                 <label>Report Name</label>
@@ -280,6 +290,39 @@ class ElementEditor {
                 <label>Description</label>
                 <textarea class="prop-control" rows="2" style="resize:vertical"
                     onchange="window.elementEditor.updateReportField('description', this.value)">${escapeHtml(def.description || '')}</textarea>
+            </div>
+            <div class="prop-group" style="border-top:1px solid var(--color-border);padding-top:12px;margin-top:8px">
+                <label style="font-weight:600;font-size:11px;text-transform:uppercase">Default Style</label>
+            </div>
+            <div class="prop-row">
+                <div class="prop-group">
+                    <label>Font</label>
+                    <select class="prop-control" onchange="window.elementEditor.updateDefaultStyle('fontFamily', this.value)">
+                        <option value="Arial" ${(ds.fontFamily||'Arial') === 'Arial' ? 'selected' : ''}>Arial</option>
+                        <option value="Helvetica" ${(ds.fontFamily||'Arial') === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+                        <option value="Times New Roman" ${(ds.fontFamily||'Arial') === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
+                        <option value="Courier New" ${(ds.fontFamily||'Arial') === 'Courier New' ? 'selected' : ''}>Courier New</option>
+                        <option value="Georgia" ${(ds.fontFamily||'Arial') === 'Georgia' ? 'selected' : ''}>Georgia</option>
+                        <option value="Verdana" ${(ds.fontFamily||'Arial') === 'Verdana' ? 'selected' : ''}>Verdana</option>
+                    </select>
+                </div>
+                <div class="prop-group">
+                    <label>Size (pt)</label>
+                    <input class="prop-control" type="number" value="${ds.fontSize || 10}" min="6" max="72"
+                           onchange="window.elementEditor.updateDefaultStyle('fontSize', parseInt(this.value) || 10)">
+                </div>
+            </div>
+            <div class="prop-row">
+                <div class="prop-group">
+                    <label>Color</label>
+                    <input class="prop-control" type="color" value="${ds.color || '#000000'}"
+                           onchange="window.elementEditor.updateDefaultStyle('color', this.value)">
+                </div>
+                <div class="prop-group">
+                    <label>Background</label>
+                    <input class="prop-control" type="color" value="${ds.backgroundColor && ds.backgroundColor !== 'transparent' ? ds.backgroundColor : '#ffffff'}"
+                           onchange="window.elementEditor.updateDefaultStyle('backgroundColor', this.value === '#ffffff' ? 'transparent' : this.value)">
+                </div>
             </div>
             <div class="prop-group" style="border-top:1px solid var(--color-border);padding-top:12px;margin-top:8px">
                 <label style="font-weight:600;font-size:11px;text-transform:uppercase">Page Setup</label>
@@ -364,6 +407,19 @@ class ElementEditor {
         this.renderReportProps();
     }
 
+    updateDefaultStyle(field, value) {
+        const def = window.ReportingEngine.state.definition;
+        if (!def.defaultStyle) def.defaultStyle = {};
+        const oldVal = def.defaultStyle[field];
+        def.defaultStyle[field] = value;
+        if (oldVal !== undefined && oldVal !== value) {
+            this.designer.applyDefaultStyleToElements(field, oldVal, value);
+        }
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.designer.renderCanvas();
+        this.renderReportProps();
+    }
+
     updateField(field, value) {
         if (!this.currentElement) return;
         const el = this.currentElement;
@@ -374,10 +430,28 @@ class ElementEditor {
             if (field === 'width' || field === 'height') value = Math.max(1, value);
         }
         el[field] = value;
+        // If a style field is manually changed, mark element as no longer inheriting
+        if (['fontFamily', 'fontSize', 'color', 'backgroundColor'].includes(field)) {
+            el.inheritStyle = false;
+        }
         this.designer.renderCanvas();
         if (window.ReportingEngine.state.selectedElement === el.id) {
             this.designer.selectElement(el.id);
         }
+    }
+
+    resetToDefaultStyle() {
+        if (!this.currentElement) return;
+        const def = window.ReportingEngine.state.definition;
+        const ds = def.defaultStyle || {};
+        const el = this.currentElement;
+        el.fontFamily = ds.fontFamily || 'Arial';
+        el.fontSize = ds.fontSize || 10;
+        el.color = ds.color || '#000000';
+        el.backgroundColor = ds.backgroundColor || 'transparent';
+        el.inheritStyle = true;
+        this.designer.renderCanvas();
+        this.render();
     }
 
     updateBandField(field, value) {

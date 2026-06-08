@@ -31,6 +31,9 @@ class Designer {
                 if (def.showGrid === undefined) def.showGrid = true;
                 if (def.snapToGrid === undefined) def.snapToGrid = true;
                 if (!def.gridSize) def.gridSize = 2;
+                if (!def.defaultStyle) def.defaultStyle = {
+                    fontFamily: 'Arial', fontSize: 10, color: '#000000', backgroundColor: 'transparent',
+                };
                 // Ensure column_header band exists (backward compat)
                 if (!def.bands || !def.bands.some(b => b.type === 'column_header')) {
                     if (!def.bands) def.bands = this.getDefaultBands();
@@ -75,6 +78,12 @@ class Designer {
             showGrid: true,
             snapToGrid: true,
             gridSize: 2,
+            defaultStyle: {
+                fontFamily: 'Arial',
+                fontSize: 10,
+                color: '#000000',
+                backgroundColor: 'transparent',
+            },
         };
         window.ReportingEngine.dispatch('SET_DEFINITION', def);
         this.bands = def.bands;
@@ -93,10 +102,11 @@ class Designer {
 
     renderCanvas() {
         const page = window.ReportingEngine.state.definition.page || {};
-        const paperWidth = page.paperSize === 'A4' ? 210 : page.paperSize === 'Letter' ? 215.9 : 210;
-        const usableWidth = paperWidth - (page.marginLeft || 15) - (page.marginRight || 15);
-        const widthMm = page.orientation === 'landscape' ? (paperWidth * 1.414) : paperWidth;
-        const usableHeight = widthMm - (page.marginTop || 20) - (page.marginBottom || 20);
+        const paperSizes = { A4: { w: 210, h: 297 }, Letter: { w: 215.9, h: 279.4 }, Legal: { w: 215.9, h: 355.6 } };
+        const ps = paperSizes[page.paperSize] || paperSizes.A4;
+        const paperW = page.orientation === 'landscape' ? ps.h : ps.w;
+        const paperH = page.orientation === 'landscape' ? ps.w : ps.h;
+        const usableWidth = paperW - (page.marginLeft || 15) - (page.marginRight || 15);
 
         // Store usableWidth so drop handler can use it
         this.canvasUsableWidth = usableWidth;
@@ -474,6 +484,8 @@ class Designer {
 
         if (!band.elements) band.elements = [];
 
+        const def = window.ReportingEngine.state.definition;
+        const ds = def.defaultStyle || {};
         const isTextEl = ['label', 'field', 'pageno', 'rowno', 'datetime'].includes(type);
         const el = {
             id: 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
@@ -484,16 +496,17 @@ class Designer {
             height: type === 'line' ? 1 : 12,
             text: type === 'label' ? 'Label' : null,
             fieldName: type === 'field' ? (fieldName || '') : null,
-            fontFamily: 'Arial',
-            fontSize: 10,
+            fontFamily: ds.fontFamily || 'Arial',
+            fontSize: ds.fontSize || 10,
             bold: false,
             italic: false,
             underline: false,
-            color: '#000000',
+            color: ds.color || '#000000',
             textAlign: 'left',
             verticalAlign: isTextEl ? 'middle' : 'top',
-            backgroundColor: 'transparent',
+            backgroundColor: ds.backgroundColor || 'transparent',
             border: {},
+            inheritStyle: true,
         };
 
         if (type === 'aggregate') {
@@ -525,6 +538,26 @@ class Designer {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
         this.renderCanvas();
         this.renderObjectTree();
+    }
+
+    applyDefaultStyleToElements(field, oldVal, newVal) {
+        const fieldMap = {
+            fontFamily: 'fontFamily',
+            fontSize: 'fontSize',
+            color: 'color',
+            backgroundColor: 'backgroundColor',
+        };
+        const elField = fieldMap[field];
+        if (elField === undefined) return;
+        if (oldVal === newVal) return;
+        for (const band of this.bands) {
+            if (!band.elements) continue;
+            for (const el of band.elements) {
+                if (el.inheritStyle !== false && el[elField] === oldVal) {
+                    el[elField] = newVal;
+                }
+            }
+        }
     }
 
     moveElement(id, dx, dy) {
