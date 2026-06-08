@@ -11,6 +11,8 @@ class QueryEditor {
         this.tables = [];
         this.lastResultRows = [];
         this.lastResultColumns = [];
+        this.savedQuerySql = '';
+        this.savedConnectionId = null;
     }
 
     async init() {
@@ -41,6 +43,8 @@ class QueryEditor {
             if (!res.data) return;
             const def = typeof res.data.definition === 'string'
                 ? JSON.parse(res.data.definition) : res.data.definition;
+            this.savedQuerySql = def.query?.sql || '';
+            this.savedConnectionId = def.connectionId || null;
             if (def.query?.sql) {
                 this.sqlTextarea.value = def.query.sql;
             }
@@ -249,6 +253,19 @@ class QueryEditor {
         params.splice(index, 1);
         window.ReportingEngine.dispatch('SET_DIRTY', true);
         this.renderParameters();
+    }
+
+    resetQuery() {
+        this.sqlTextarea.value = this.savedQuerySql;
+        this.onSqlChange();
+        if (this.savedConnectionId) {
+            this.connectionSelect.value = this.savedConnectionId;
+            this.loadTables(parseInt(this.savedConnectionId));
+        } else {
+            this.connectionSelect.value = '';
+            this.tableListEl.innerHTML = '<p class="text-muted" style="font-size:12px;padding:2px 0">Select a connection</p>';
+        }
+        this.setStatus('Query reset to saved version', '');
     }
 
     updateParameter(index, field, value) {

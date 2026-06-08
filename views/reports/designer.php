@@ -103,6 +103,7 @@
                         <div style="display:flex;gap:4px">
                             <button class="btn btn-sm" onclick="queryEditor.runQuery()"><i class="ph-play"></i> Run</button>
                             <button class="btn btn-sm" onclick="queryEditor.applyFields()"><i class="ph-check"></i> Apply Fields</button>
+                            <button class="btn btn-sm" onclick="queryEditor.resetQuery()" style="margin-left:auto;color:var(--color-text-muted)"><i class="ph-arrow-counter-clockwise"></i> Reset</button>
                         </div>
                         <div id="query-status" style="font-size:11px;color:var(--color-text-muted);margin-top:4px"></div>
                     </div>
