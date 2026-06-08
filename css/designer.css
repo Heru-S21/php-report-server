@@ -322,6 +322,23 @@
     color: var(--color-primary);
 }
 
+.table-select-sql {
+    margin-left: auto;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.table-item:hover .table-select-sql {
+    opacity: 1;
+}
+
+.table-select-sql:hover {
+    color: var(--color-primary);
+}
+
 .table-caret.open {
     transform: rotate(90deg);
 }

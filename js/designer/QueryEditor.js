@@ -92,7 +92,8 @@ class QueryEditor {
             return `<div class="table-item" data-table-name="${safeName}">
                 <i class="ph-caret-right table-caret" onclick="queryEditor.toggleTableColumns('${safeName}', this)"></i>
                 <i class="ph-table"></i>
-                <span class="table-name-link" onclick="queryEditor.selectTable('${safeName}')">${name}</span>
+                <span class="table-name-link" onclick="queryEditor.toggleTableColumns('${safeName}')">${name}</span>
+                <i class="ph-code-block table-select-sql" onclick="queryEditor.selectTable('${safeName}')" title="Generate SELECT query"></i>
             </div>
             <div class="table-columns" id="tcols-${safeName}" style="display:none"></div>`;
         }).join('');
@@ -114,32 +115,32 @@ class QueryEditor {
         } catch (e) {
             this.setStatus('Failed to load columns', 'error');
         }
-        // Also expand columns
-        const tableItem = this.tableListEl.querySelector(`.table-item[data-table-name="${tableName}"]`);
-        if (tableItem) {
-            const caret = tableItem.querySelector('.table-caret');
-            if (caret) this.toggleTableColumns(tableName, caret);
-        }
     }
 
     async toggleTableColumns(tableName, caretEl) {
         const colsDiv = document.getElementById('tcols-' + tableName);
         if (!colsDiv) return;
 
+        // Find caret if not provided
+        if (!caretEl) {
+            const tableItem = this.tableListEl.querySelector(`.table-item[data-table-name="${tableName}"]`);
+            if (tableItem) caretEl = tableItem.querySelector('.table-caret');
+        }
+
         if (colsDiv.style.display === 'block') {
             colsDiv.style.display = 'none';
-            caretEl.classList.remove('open');
+            if (caretEl) caretEl.classList.remove('open');
             return;
         }
 
         if (this._tableColumnCache[tableName]) {
             colsDiv.style.display = 'block';
-            caretEl.classList.add('open');
+            if (caretEl) caretEl.classList.add('open');
             colsDiv.innerHTML = this._tableColumnCache[tableName];
             return;
         }
 
-        caretEl.classList.add('open');
+        if (caretEl) caretEl.classList.add('open');
         colsDiv.style.display = 'block';
         colsDiv.innerHTML = '<div class="table-col-loading">Loading...</div>';
 
