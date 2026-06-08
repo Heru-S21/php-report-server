@@ -248,6 +248,9 @@ class Designer {
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
+            // Don't intercept when editing form controls
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
             if (e.ctrlKey && e.key === 'z') { e.preventDefault(); this.undo(); }
             if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); this.redo(); }
             if ((e.key === 'Delete' || e.key === 'Backspace') && window.ReportingEngine.state.selectedElement) {
