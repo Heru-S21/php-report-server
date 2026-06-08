@@ -94,6 +94,7 @@ class PdfRenderer implements RendererInterface
             $html .= '<p>No data returned.</p>';
         } else {
             $groupValues = array_fill(0, count($groups), null);
+            $groupRowCounters = array_fill(0, count($groups), 0);
             $groupAggregates = [];
             for ($g = 0; $g < count($groups); $g++) {
                 $groupAggregates[$g] = new AggregateAccumulator();
@@ -113,6 +114,7 @@ class PdfRenderer implements RendererInterface
                                 $html .= $this->renderBandHtml($footerBand, $definition, $groups[$inner], $groupAggregates[$inner]);
                             }
                             $groupAggregates[$inner]->reset();
+                            $groupRowCounters[$inner] = 0;
                         }
                         for ($outer = $g; $outer < count($groups); $outer++) {
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;
@@ -142,6 +144,15 @@ class PdfRenderer implements RendererInterface
                 if ($groupChanged && !$columnRendered && $hasElements($columnHeaderBand)) {
                     $html .= $this->renderBandHtml($columnHeaderBand, $definition, null, null);
                     $columnRendered = true;
+                }
+
+                // Increment group row counters (deepest active group)
+                for ($g = count($groups) - 1; $g >= 0; $g--) {
+                    if ($groupValues[$g] !== null) {
+                        $groupRowCounters[$g]++;
+                        $row['_rowno'] = $groupRowCounters[$g];
+                        break;
+                    }
                 }
 
                 // Accumulate aggregates

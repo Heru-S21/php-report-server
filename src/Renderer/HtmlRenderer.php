@@ -141,6 +141,7 @@ class HtmlRenderer implements RendererInterface
             $currentPageY += $noDataHeight;
         } else {
             $groupValues = array_fill(0, count($groups), null);
+            $groupRowCounters = array_fill(0, count($groups), 0);
             $groupAggregates = [];
             for ($g = 0; $g < count($groups); $g++) {
                 $groupAggregates[$g] = new AggregateAccumulator();
@@ -164,6 +165,7 @@ class HtmlRenderer implements RendererInterface
                                 $currentPageY += $footerBand->height;
                             }
                             $groupAggregates[$inner]->reset();
+                            $groupRowCounters[$inner] = 0;
                         }
                         // Reopen outer groups
                         for ($outer = $g; $outer < count($groups); $outer++) {
@@ -200,6 +202,15 @@ class HtmlRenderer implements RendererInterface
                     $currentPageHtml .= $this->renderBandElement($columnHeaderBand, $definition, null, null, $pageNum);
                     $currentPageY += $columnHeaderBand->height;
                     $columnRenderedOnPage = true;
+                }
+
+                // Increment group row counters (deepest active group)
+                for ($g = count($groups) - 1; $g >= 0; $g--) {
+                    if ($groupValues[$g] !== null) {
+                        $groupRowCounters[$g]++;
+                        $row['_rowno'] = $groupRowCounters[$g];
+                        break;
+                    }
                 }
 
                 // Accumulate aggregates
