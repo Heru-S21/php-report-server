@@ -50,6 +50,13 @@
                             <button class="btn btn-sm" onclick="queryEditor.applyFields()"><i class="ph-check"></i> Apply Fields</button>
                         </div>
                         <div id="query-status" style="font-size:11px;color:var(--color-text-muted);margin-top:4px"></div>
+                        <div id="parameters-section" style="margin-top:8px;border-top:1px solid var(--color-border);padding-top:8px">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                                <label style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:600">Parameters</label>
+                                <button class="btn btn-sm btn-outline" onclick="queryEditor.addParameter()" title="Add parameter"><i class="ph-plus"></i></button>
+                            </div>
+                            <div id="parameter-list"></div>
+                        </div>
                     </div>
                 </div>
                 <!-- Fields -->

@@ -16,6 +16,7 @@ class QueryEditor {
         if (this.designer.reportId) {
             await this.loadReportQuery();
         }
+        this.renderParameters();
     }
 
     async loadConnections() {
@@ -114,6 +115,85 @@ class QueryEditor {
         window.ReportingEngine.state.definition.query = window.ReportingEngine.state.definition.query || {};
         window.ReportingEngine.state.definition.query.sql = sql;
         window.ReportingEngine.state.definition.sqlQuery = sql;
+        this.detectParameters(sql);
+    }
+
+    detectParameters(sql) {
+        const def = window.ReportingEngine.state.definition;
+        def.query = def.query || {};
+        const existing = def.query.parameters || [];
+        const namedParams = [...sql.matchAll(/:\b([a-zA-Z_]\w*)\b/g)].map(m => m[1]);
+        const existingNames = new Set(existing.map(p => typeof p === 'string' ? p : p.name));
+        let changed = false;
+        for (const name of namedParams) {
+            if (!existingNames.has(name)) {
+                existing.push({ name, type: 'string', defaultValue: '' });
+                existingNames.add(name);
+                changed = true;
+            }
+        }
+        if (changed) {
+            def.query.parameters = existing;
+            this.renderParameters();
+        }
+    }
+
+    getParameters() {
+        const def = window.ReportingEngine.state.definition;
+        def.query = def.query || {};
+        if (!def.query.parameters) def.query.parameters = [];
+        return def.query.parameters;
+    }
+
+    renderParameters() {
+        const container = document.getElementById('parameter-list');
+        if (!container) return;
+        const params = this.getParameters();
+        if (params.length === 0) {
+            container.innerHTML = '<p class="text-muted" style="font-size:11px;padding:2px 0">No parameters defined. Use <code>:name</code> in SQL to auto-detect.</p>';
+            return;
+        }
+        container.innerHTML = params.map((p, i) => {
+            const name = typeof p === 'string' ? p : (p.name || '');
+            const type = typeof p === 'string' ? 'string' : (p.type || 'string');
+            const defaultValue = typeof p === 'string' ? '' : (p.defaultValue || '');
+            return `<div class="param-row" style="display:flex;gap:4px;align-items:center;margin-bottom:4px">
+                <input class="prop-control param-name" style="flex:2;min-width:0;font-family:var(--font-mono);font-size:11px" type="text" value="${escapeHtml(name)}" placeholder="name" onchange="queryEditor.updateParameter(${i},'name',this.value)">
+                <select class="prop-control param-type" style="flex:1;min-width:0;font-size:11px" onchange="queryEditor.updateParameter(${i},'type',this.value)">
+                    <option value="string" ${type === 'string' ? 'selected' : ''}>text</option>
+                    <option value="number" ${type === 'number' ? 'selected' : ''}>number</option>
+                    <option value="date" ${type === 'date' ? 'selected' : ''}>date</option>
+                    <option value="boolean" ${type === 'boolean' ? 'selected' : ''}>bool</option>
+                </select>
+                <input class="prop-control param-default" style="flex:1;min-width:0;font-size:11px" type="text" value="${escapeHtml(defaultValue)}" placeholder="default" onchange="queryEditor.updateParameter(${i},'defaultValue',this.value)">
+                <button class="btn btn-icon btn-sm" style="flex-shrink:0;color:var(--color-danger)" onclick="queryEditor.removeParameter(${i})" title="Remove"><i class="ph-x"></i></button>
+            </div>`;
+        }).join('');
+    }
+
+    addParameter() {
+        const params = this.getParameters();
+        params.push({ name: '', type: 'string', defaultValue: '' });
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.renderParameters();
+    }
+
+    removeParameter(index) {
+        const params = this.getParameters();
+        params.splice(index, 1);
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.renderParameters();
+    }
+
+    updateParameter(index, field, value) {
+        const params = this.getParameters();
+        let p = params[index];
+        if (typeof p === 'string') {
+            p = { name: p, type: 'string', defaultValue: '' };
+            params[index] = p;
+        }
+        p[field] = value;
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     async runQuery() {

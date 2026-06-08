@@ -15,42 +15,133 @@ class HtmlRenderer implements RendererInterface
         $page = $definition->pageSettings;
         $groups = $definition->groups;
 
-        // Sort groups by level
         usort($groups, fn(GroupDefinition $a, GroupDefinition $b) => $a->level <=> $b->level);
+
+        // Calculate usable page dimensions (orientation-aware)
+        $paperW = $page->getPaperWidthMm();
+        $paperH = $page->getPaperHeightMm();
+        if ($page->orientation === 'landscape') {
+            [$paperW, $paperH] = [$paperH, $paperW];
+        }
+        $usableWidth = $paperW - $page->marginLeft - $page->marginRight;
+        $usableHeight = $paperH - $page->marginTop - $page->marginBottom;
 
         $html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">';
         $html .= '<style>';
-        $html .= $this->getBaseStyles($page);
+        $html .= $this->getBaseStyles($usableWidth);
         $html .= '</style></head><body>';
-        $html .= '<div class="report-container">';
 
-        // Helper to check if a band has child elements
         $hasElements = function(?Band $b): bool {
             return $b && $b->visible && !empty($b->elements);
         };
 
-        // Page header
+        // Locate bands
         $pageHeaderBand = $definition->bands->get('page_header');
+        $pageFooterBand = $definition->bands->get('page_footer');
+        $reportHeaderBand = $definition->bands->get('report_header');
+        $reportFooterBand = $definition->bands->get('report_footer');
+        $columnHeaderBand = $definition->bands->get('column_header');
+
+        $pageNum = 1;
+        $currentPageHtml = '';
+        $currentPageY = 0;
+        $pages = [];
+
+        // Open a new page div
+        $openPage = function() use (&$currentPageHtml, &$currentPageY, $usableWidth, $usableHeight) {
+            $currentPageHtml = sprintf(
+                '<div class="report-page" style="width:%.1fmm; min-height:%.1fmm; position:relative;">',
+                $usableWidth, $usableHeight
+            );
+            $currentPageY = 0;
+        };
+
+        // Close current page and store it
+        $closePage = function() use (&$currentPageHtml, &$currentPageY, &$pages, &$pageNum, $hasElements, $pageFooterBand, $definition) {
+            if ($hasElements($pageFooterBand)) {
+                $footerHtml = $this->renderBandElement($pageFooterBand, $definition, null, null, $pageNum);
+                $currentPageHtml .= $footerHtml;
+                $currentPageY += $pageFooterBand->height;
+            }
+            $currentPageHtml .= '</div>';
+            $pages[] = $currentPageHtml;
+            $pageNum++;
+        };
+
+        // Render repeating bands at top of a page
+        $renderPageTop = function() use (&$currentPageHtml, &$currentPageY, $hasElements, $pageHeaderBand, $columnHeaderBand, $definition, &$pageNum) {
+            if ($hasElements($pageHeaderBand) && $pageHeaderBand->printOnEveryPage) {
+                $currentPageHtml .= $this->renderBandElement($pageHeaderBand, $definition, null, null, $pageNum);
+                $currentPageY += $pageHeaderBand->height;
+            }
+            if ($hasElements($columnHeaderBand)) {
+                $currentPageHtml .= $this->renderBandElement($columnHeaderBand, $definition, null, null, $pageNum);
+                $currentPageY += $columnHeaderBand->height;
+            }
+        };
+
+        // Render page header on page 1 (even if not printOnEveryPage)
+        $renderInitialPageHeader = function() use (&$currentPageHtml, &$currentPageY, $hasElements, $pageHeaderBand, $definition, &$pageNum) {
+            if ($hasElements($pageHeaderBand) && !$pageHeaderBand->printOnEveryPage) {
+                $currentPageHtml .= $this->renderBandElement($pageHeaderBand, $definition, null, null, $pageNum);
+                $currentPageY += $pageHeaderBand->height;
+            }
+        };
+
+        // Ensure a band fits on the current page; if not, start a new page
+        $ensureFits = function(Band $band) use (&$currentPageHtml, &$currentPageY, $usableHeight, &$closePage, &$openPage, &$renderPageTop, &$pageNum) {
+            $bandHeight = $band->height;
+            if ($bandHeight <= 0) {
+                return;
+            }
+            if ($currentPageY + $bandHeight > $usableHeight) {
+                // If the band itself is taller than a page, just render it (can't break within)
+                if ($bandHeight <= $usableHeight) {
+                    $closePage();
+                    $openPage();
+                    $renderPageTop();
+                }
+            }
+        };
+
+        // --- Rendering ---
+        $openPage();
+
+        // Page header on page 1
         if ($hasElements($pageHeaderBand)) {
-            $html .= $this->renderBandElement($pageHeaderBand, $definition, null, null);
+            if ($pageHeaderBand->printOnEveryPage) {
+                $renderPageTop();
+            } else {
+                $renderInitialPageHeader();
+                if ($hasElements($columnHeaderBand)) {
+                    $currentPageHtml .= $this->renderBandElement($columnHeaderBand, $definition, null, null, $pageNum);
+                    $currentPageY += $columnHeaderBand->height;
+                }
+            }
+        } else {
+            if ($hasElements($columnHeaderBand)) {
+                $currentPageHtml .= $this->renderBandElement($columnHeaderBand, $definition, null, null, $pageNum);
+                $currentPageY += $columnHeaderBand->height;
+            }
         }
 
         // Report header
-        $reportHeaderBand = $definition->bands->get('report_header');
         if ($hasElements($reportHeaderBand)) {
-            $html .= $this->renderBandElement($reportHeaderBand, $definition, null, null);
-        }
-
-        // Column header
-        $columnHeaderBand = $definition->bands->get('column_header');
-        if ($hasElements($columnHeaderBand)) {
-            $html .= $this->renderBandElement($columnHeaderBand, $definition, null, null);
+            $ensureFits($reportHeaderBand);
+            $currentPageHtml .= $this->renderBandElement($reportHeaderBand, $definition, null, null, $pageNum);
+            $currentPageY += $reportHeaderBand->height;
         }
 
         if (empty($data)) {
-            $html .= '<div class="band band-detail" style="height:20px;padding:8px;">No data returned.</div>';
+            $noDataHeight = 20;
+            if ($currentPageY + $noDataHeight > $usableHeight && $noDataHeight <= $usableHeight) {
+                $closePage();
+                $openPage();
+                $renderPageTop();
+            }
+            $currentPageHtml .= '<div class="band band-detail" style="height:20px;padding:8px;">No data returned.</div>';
+            $currentPageY += $noDataHeight;
         } else {
-            // Group tracking
             $groupValues = array_fill(0, count($groups), null);
             $groupAggregates = [];
             for ($g = 0; $g < count($groups); $g++) {
@@ -67,7 +158,9 @@ class HtmlRenderer implements RendererInterface
                         for ($inner = count($groups) - 1; $inner >= $g; $inner--) {
                             $footerBand = $this->findGroupFooter($definition, $groups[$inner]);
                             if ($footerBand && $hasElements($footerBand)) {
-                                $html .= $this->renderBandElement($footerBand, $definition, $groups[$inner], $groupAggregates[$inner]);
+                                $ensureFits($footerBand);
+                                $currentPageHtml .= $this->renderBandElement($footerBand, $definition, $groups[$inner], $groupAggregates[$inner], $pageNum);
+                                $currentPageY += $footerBand->height;
                             }
                             $groupAggregates[$inner]->reset();
                         }
@@ -76,7 +169,9 @@ class HtmlRenderer implements RendererInterface
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;
                             $headerBand = $this->findGroupHeader($definition, $groups[$outer]);
                             if ($headerBand && $hasElements($headerBand)) {
-                                $html .= $this->renderBandElement($headerBand, $definition, $groups[$outer], $row);
+                                $ensureFits($headerBand);
+                                $currentPageHtml .= $this->renderBandElement($headerBand, $definition, $groups[$outer], $row, $pageNum);
+                                $currentPageY += $headerBand->height;
                             }
                         }
                         break;
@@ -89,7 +184,9 @@ class HtmlRenderer implements RendererInterface
                         $groupValues[$g] = $row[$groups[$g]->fieldName] ?? null;
                         $headerBand = $this->findGroupHeader($definition, $groups[$g]);
                         if ($headerBand && $hasElements($headerBand)) {
-                            $html .= $this->renderBandElement($headerBand, $definition, $groups[$g], $row);
+                            $ensureFits($headerBand);
+                            $currentPageHtml .= $this->renderBandElement($headerBand, $definition, $groups[$g], $row, $pageNum);
+                            $currentPageY += $headerBand->height;
                         }
                     }
                 }
@@ -105,7 +202,9 @@ class HtmlRenderer implements RendererInterface
                 // Detail band
                 $detailBand = $definition->bands->get('detail');
                 if ($hasElements($detailBand)) {
-                    $html .= $this->renderBandElement($detailBand, $definition, null, $row);
+                    $ensureFits($detailBand);
+                    $currentPageHtml .= $this->renderBandElement($detailBand, $definition, null, $row, $pageNum);
+                    $currentPageY += $detailBand->height;
                 }
             }
 
@@ -113,29 +212,30 @@ class HtmlRenderer implements RendererInterface
             for ($g = count($groups) - 1; $g >= 0; $g--) {
                 $footerBand = $this->findGroupFooter($definition, $groups[$g]);
                 if ($footerBand && $hasElements($footerBand)) {
-                    $html .= $this->renderBandElement($footerBand, $definition, $groups[$g], $groupAggregates[$g]);
+                    $ensureFits($footerBand);
+                    $currentPageHtml .= $this->renderBandElement($footerBand, $definition, $groups[$g], $groupAggregates[$g], $pageNum);
+                    $currentPageY += $footerBand->height;
                 }
                 $groupAggregates[$g]->reset();
             }
 
             // Report footer
-            $reportFooterBand = $definition->bands->get('report_footer');
             if ($hasElements($reportFooterBand)) {
-                $html .= $this->renderBandElement($reportFooterBand, $definition, null, $reportAggregates);
+                $ensureFits($reportFooterBand);
+                $currentPageHtml .= $this->renderBandElement($reportFooterBand, $definition, null, $reportAggregates, $pageNum);
+                $currentPageY += $reportFooterBand->height;
             }
         }
 
-        // Page footer
-        $pageFooterBand = $definition->bands->get('page_footer');
-        if ($hasElements($pageFooterBand)) {
-            $html .= $this->renderBandElement($pageFooterBand, $definition, null, null);
-        }
+        // Close last page
+        $closePage();
 
-        $html .= '</div></body></html>';
+        $html .= implode("\n", $pages);
+        $html .= '</body></html>';
         return $html;
     }
 
-    private function renderBandElement(Band $band, ReportDefinition $def, $group, $data): string
+    private function renderBandElement(Band $band, ReportDefinition $def, $group, $data, int $pageNum = 1): string
     {
         $borderStyle = $band->border ? $band->border->toHtmlStyle() : '';
         $style = sprintf(
@@ -152,16 +252,16 @@ class HtmlRenderer implements RendererInterface
         );
 
         foreach ($band->elements as $element) {
-            $html .= $this->renderSingleElement($element, $def, $group, $data);
+            $html .= $this->renderSingleElement($element, $def, $group, $data, $pageNum);
         }
 
         $html .= '</div>';
         return $html;
     }
 
-    private function renderSingleElement(BandElement $el, ReportDefinition $def, $group, $data): string
+    private function renderSingleElement(BandElement $el, ReportDefinition $def, $group, $data, int $pageNum = 1): string
     {
-        $value = $this->getElementValue($el, $def, $group, $data);
+        $value = $this->getElementValue($el, $def, $group, $data, $pageNum);
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
 
         $style = sprintf(
@@ -185,7 +285,7 @@ class HtmlRenderer implements RendererInterface
         return sprintf('<div class="element" style="%s">%s</div>', $style, $value);
     }
 
-    private function getElementValue(BandElement $el, ReportDefinition $def, $group, $data): string
+    private function getElementValue(BandElement $el, ReportDefinition $def, $group, $data, int $pageNum = 1): string
     {
         return match ($el->type) {
             'label' => htmlspecialchars($el->text ?? ''),
@@ -196,7 +296,7 @@ class HtmlRenderer implements RendererInterface
             'image' => $el->imageUrl ? '<img src="' . htmlspecialchars($el->imageUrl) . '" style="max-width:100%;max-height:100%">' : '',
             'line' => '<hr style="border:none;border-top:1px solid #000;margin:0;width:100%">',
             'rect' => '',
-            'pageno' => '1',
+            'pageno' => (string)$pageNum,
             'rowno' => $data && is_array($data) && isset($data['_rowno']) ? (string)$data['_rowno'] : '1',
             'datetime' => date($el->format ?? 'Y-m-d'),
             default => htmlspecialchars($el->text ?? ''),
@@ -222,11 +322,9 @@ class HtmlRenderer implements RendererInterface
             return (string)$value;
         }
         if (is_numeric($value)) {
-            // Custom format handling
             if (str_contains($format, '%')) {
                 return sprintf($format, (float)$value);
             }
-            // Simple number format
             $decimals = 2;
             $decPoint = '.';
             $thousandsSep = ',';
@@ -255,11 +353,12 @@ class HtmlRenderer implements RendererInterface
         return null;
     }
 
-    private function getBaseStyles($page): string
+    private function getBaseStyles(float $usableWidth): string
     {
         return '
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-            .report-container { max-width: ' . $page->getPaperWidthMm() . 'mm; margin: 0 auto; background: white; padding: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #e2e8f0; }
+            .report-page { width: ' . $usableWidth . 'mm; margin: 0 auto 24px auto; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.12); page-break-after: always; position: relative; }
+            .report-page:last-child { page-break-after: auto; margin-bottom: 0; }
             .band { padding: 2px 4px; border-bottom: 1px solid #eee; overflow: hidden; }
             .element { overflow: hidden; white-space: nowrap; }
             .band-page_header { background: #fee2e2; }
@@ -270,6 +369,11 @@ class HtmlRenderer implements RendererInterface
             .band-group_footer { background: #fef3c7; }
             .band-column_header { background: #fef9c3; }
             .band-detail { background: #f0fdf4; }
+            @media print {
+                body { background: white; padding: 0; }
+                .report-page { box-shadow: none; margin: 0; page-break-after: always; }
+                .report-page:last-child { page-break-after: auto; }
+            }
         ';
     }
 }

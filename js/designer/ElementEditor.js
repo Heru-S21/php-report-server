@@ -269,6 +269,7 @@ class ElementEditor {
 
     renderReportProps() {
         const def = window.ReportingEngine.state.definition;
+        const page = def.page || {};
         this.contentEl.innerHTML = `
             <div class="prop-group">
                 <label>Report Name</label>
@@ -279,6 +280,50 @@ class ElementEditor {
                 <label>Description</label>
                 <textarea class="prop-control" rows="2" style="resize:vertical"
                     onchange="window.elementEditor.updateReportField('description', this.value)">${escapeHtml(def.description || '')}</textarea>
+            </div>
+            <div class="prop-group" style="border-top:1px solid var(--color-border);padding-top:12px;margin-top:8px">
+                <label style="font-weight:600;font-size:11px;text-transform:uppercase">Page Setup</label>
+            </div>
+            <div class="prop-row">
+                <div class="prop-group">
+                    <label>Paper Size</label>
+                    <select class="prop-control" onchange="window.elementEditor.updatePageSetting('paperSize', this.value)">
+                        <option value="A4" ${(page.paperSize||'A4') === 'A4' ? 'selected' : ''}>A4 (210 × 297 mm)</option>
+                        <option value="Letter" ${(page.paperSize||'A4') === 'Letter' ? 'selected' : ''}>Letter (216 × 279 mm)</option>
+                        <option value="Legal" ${(page.paperSize||'A4') === 'Legal' ? 'selected' : ''}>Legal (216 × 356 mm)</option>
+                    </select>
+                </div>
+                <div class="prop-group">
+                    <label>Orientation</label>
+                    <select class="prop-control" onchange="window.elementEditor.updatePageSetting('orientation', this.value)">
+                        <option value="portrait" ${(page.orientation||'portrait') === 'portrait' ? 'selected' : ''}>Portrait</option>
+                        <option value="landscape" ${(page.orientation||'portrait') === 'landscape' ? 'selected' : ''}>Landscape</option>
+                    </select>
+                </div>
+            </div>
+            <div class="prop-row">
+                <div class="prop-group">
+                    <label>Top (mm)</label>
+                    <input class="prop-control" type="number" value="${page.marginTop ?? 20}" min="0" step="1"
+                           onchange="window.elementEditor.updatePageSetting('marginTop', parseFloat(this.value) || 0)">
+                </div>
+                <div class="prop-group">
+                    <label>Bottom (mm)</label>
+                    <input class="prop-control" type="number" value="${page.marginBottom ?? 20}" min="0" step="1"
+                           onchange="window.elementEditor.updatePageSetting('marginBottom', parseFloat(this.value) || 0)">
+                </div>
+            </div>
+            <div class="prop-row">
+                <div class="prop-group">
+                    <label>Left (mm)</label>
+                    <input class="prop-control" type="number" value="${page.marginLeft ?? 15}" min="0" step="1"
+                           onchange="window.elementEditor.updatePageSetting('marginLeft', parseFloat(this.value) || 0)">
+                </div>
+                <div class="prop-group">
+                    <label>Right (mm)</label>
+                    <input class="prop-control" type="number" value="${page.marginRight ?? 15}" min="0" step="1"
+                           onchange="window.elementEditor.updatePageSetting('marginRight', parseFloat(this.value) || 0)">
+                </div>
             </div>
             <div class="prop-group" style="border-top:1px solid var(--color-border);padding-top:12px;margin-top:8px">
                 <label style="font-weight:400;text-transform:none">
@@ -305,6 +350,15 @@ class ElementEditor {
     updateReportField(field, value) {
         const def = window.ReportingEngine.state.definition;
         def[field] = value;
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.designer.renderCanvas();
+        this.renderReportProps();
+    }
+
+    updatePageSetting(field, value) {
+        const def = window.ReportingEngine.state.definition;
+        if (!def.page) def.page = {};
+        def.page[field] = value;
         window.ReportingEngine.dispatch('SET_DIRTY', true);
         this.designer.renderCanvas();
         this.renderReportProps();
