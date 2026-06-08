@@ -89,13 +89,37 @@ class QueryEditor {
         this.tableListEl.innerHTML = this.tables.map(t => {
             const name = t.name || t.table_name || t;
             const safeName = name.replace(/'/g, "\\'");
-            return `<div class="table-item">
+            return `<div class="table-item" data-table-name="${safeName}">
                 <i class="ph-caret-right table-caret" onclick="queryEditor.toggleTableColumns('${safeName}', this)"></i>
                 <i class="ph-table"></i>
-                <span>${name}</span>
+                <span class="table-name-link" onclick="queryEditor.selectTable('${safeName}')">${name}</span>
             </div>
             <div class="table-columns" id="tcols-${safeName}" style="display:none"></div>`;
         }).join('');
+    }
+
+    async selectTable(tableName) {
+        const connId = this.connectionSelect.value;
+        if (!connId) return;
+        try {
+            const res = await window.ReportingEngine.api('GET', `/api/connections/${connId}/tables/${encodeURIComponent(tableName)}/columns`);
+            const columns = res.data || [];
+            const colNames = columns.map(c => c.name || c.column_name).filter(Boolean);
+            if (colNames.length > 0) {
+                this.sqlTextarea.value = `SELECT ${colNames.join(', ')}\nFROM ${tableName}`;
+            } else {
+                this.sqlTextarea.value = `SELECT *\nFROM ${tableName}`;
+            }
+            this.onSqlChange();
+        } catch (e) {
+            this.setStatus('Failed to load columns', 'error');
+        }
+        // Also expand columns
+        const tableItem = this.tableListEl.querySelector(`.table-item[data-table-name="${tableName}"]`);
+        if (tableItem) {
+            const caret = tableItem.querySelector('.table-caret');
+            if (caret) this.toggleTableColumns(tableName, caret);
+        }
     }
 
     async toggleTableColumns(tableName, caretEl) {
