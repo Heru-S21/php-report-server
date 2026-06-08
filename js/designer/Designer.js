@@ -44,7 +44,7 @@ class Designer {
                         def.bands.splice(idx >= 0 ? idx + 1 : def.bands.length, 0, {
                             type: 'column_header',
                             height: 16,
-                            backgroundColor: '#fef9c3',
+                            backgroundColor: 'transparent',
                             border: {},
                             elements: [],
                         });
@@ -95,12 +95,12 @@ class Designer {
 
     getDefaultBands() {
         return [
-            { type: 'page_header', height: 30, printOnEveryPage: true, backgroundColor: '#fee2e2', border: {}, elements: [] },
-            { type: 'report_header', height: 20, backgroundColor: '#e9d5ff', border: {}, elements: [] },
-            { type: 'column_header', height: 16, backgroundColor: '#fef9c3', border: {}, elements: [] },
-            { type: 'detail', height: 16, backgroundColor: '#f0fdf4', border: {}, elements: [] },
-            { type: 'report_footer', height: 22, backgroundColor: '#e9d5ff', border: {}, elements: [] },
-            { type: 'page_footer', height: 16, printOnEveryPage: true, backgroundColor: '#fee2e2', border: {}, elements: [] },
+            { type: 'page_header', height: 30, printOnEveryPage: true, backgroundColor: 'transparent', border: {}, elements: [] },
+            { type: 'report_header', height: 20, backgroundColor: 'transparent', border: {}, elements: [] },
+            { type: 'column_header', height: 16, backgroundColor: 'transparent', border: {}, elements: [] },
+            { type: 'detail', height: 16, backgroundColor: 'transparent', border: {}, elements: [] },
+            { type: 'report_footer', height: 22, backgroundColor: 'transparent', border: {}, elements: [] },
+            { type: 'page_footer', height: 16, printOnEveryPage: true, backgroundColor: 'transparent', border: {}, elements: [] },
         ];
     }
 

@@ -20,7 +20,7 @@ class BandManager {
             printOnEveryPage: false,
             visible: true,
             keepTogether: false,
-            backgroundColor: '#fff8e1',
+            backgroundColor: 'transparent',
             border: {},
             elements: [],
         };
@@ -33,7 +33,7 @@ class BandManager {
             printOnEveryPage: false,
             visible: true,
             keepTogether: false,
-            backgroundColor: '#fef9c3',
+            backgroundColor: 'transparent',
             border: {},
             elements: [],
         };

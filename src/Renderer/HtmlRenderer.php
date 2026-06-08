@@ -447,14 +447,7 @@ class HtmlRenderer implements RendererInterface
             .report-page:last-child { page-break-after: auto; margin-bottom: 0; }
             .band { padding: 2px 4px; border-bottom: 1px solid #eee; overflow: hidden; }
             .element { overflow: hidden; white-space: nowrap; }
-            .band-page_header { background: #fee2e2; }
-            .band-page_footer { background: #fee2e2; }
-            .band-report_header { background: #e9d5ff; }
-            .band-report_footer { background: #e9d5ff; }
-            .band-group_header { background: #fef3c7; }
-            .band-group_footer { background: #fef3c7; }
-            .band-column_header { background: #fef9c3; }
-            .band-detail { background: #f0fdf4; }
+
             @media print {
                 body { background: white; padding: 0; }
                 .report-page { box-shadow: none; margin: 0; page-break-after: always; }
