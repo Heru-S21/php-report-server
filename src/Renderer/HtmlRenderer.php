@@ -296,8 +296,10 @@ class HtmlRenderer implements RendererInterface
     {
         $value = $this->getElementValue($el, $def, $group, $data, $pageNum);
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
+        $va = $el->verticalAlign ?? 'top';
+        $alignItems = match ($va) { 'middle' => 'center', 'bottom' => 'flex-end', default => 'flex-start' };
         $style = sprintf(
-            'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; vertical-align:%s; background:%s; %s',
+            'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; display:flex; align-items:%s; background:%s; %s',
             $el->top, $el->left, $el->width, $el->height,
             $el->fontFamily ?: 'Arial',
             $el->fontSize ?: 10,
@@ -306,7 +308,7 @@ class HtmlRenderer implements RendererInterface
             $el->underline ? 'underline' : 'none',
             $el->color ?: '#000000',
             $el->textAlign ?: 'left',
-            $el->verticalAlign ?? 'top',
+            $alignItems,
             $el->backgroundColor ?: 'transparent',
             $borderStyle
         );

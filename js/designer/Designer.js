@@ -175,7 +175,7 @@ class Designer {
             text-decoration: ${el.underline ? 'underline' : 'none'};
             color: ${el.color || '#000000'};
             text-align: ${el.textAlign || 'left'};
-            vertical-align: ${el.verticalAlign || 'top'};
+            ${(!el.verticalAlign || el.verticalAlign === 'top') ? '' : `display: flex; align-items: ${el.verticalAlign === 'middle' ? 'center' : 'flex-end'};`}
             background-color: ${el.backgroundColor || 'transparent'};
             ${el.border ? this.borderToStyle(el.border) : ''}
         `;
