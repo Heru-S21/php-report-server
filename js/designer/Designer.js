@@ -303,8 +303,8 @@ class Designer {
             // Use X ratio from canvas (usableWidth in mm / visual width in pixels)
             const mmPerPxY = bandData.height / bandRect.height;
             const mmPerPxX = this.canvasUsableWidth / canvasRect.width;
-            const x_mm = (e.clientX - bandRect.left) * mmPerPxX;
-            const y_mm = (e.clientY - bandRect.top) * mmPerPxY;
+            const x_mm = Math.max(0, (e.clientX - bandRect.left) * mmPerPxX);
+            const y_mm = Math.max(0, (e.clientY - bandRect.top) * mmPerPxY);
 
             const fieldName = e.dataTransfer.getData('field-name') || null;
             this.addElement(type, bandType, this.snapValue(x_mm), this.snapValue(y_mm), fieldName);
@@ -342,20 +342,19 @@ class Designer {
                 const onMove = (me) => {
                     const dx = (me.clientX - startX) * pxToMm;
                     const dy = (me.clientY - startY) * pxToMm;
-                    el.style.left = this.snapValue(origLeft + dx) + 'mm';
-                    el.style.top = this.snapValue(origTop + dy) + 'mm';
+                    el.style.left = Math.max(0, this.snapValue(origLeft + dx)) + 'mm';
+                    el.style.top = Math.max(0, this.snapValue(origTop + dy)) + 'mm';
                 };
 
                 const onUp = () => {
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
-                    // Update definition
                     const band = this.findBandForElement(elId);
                     if (band) {
                         const elem = band.elements.find(e => e.id === elId);
                         if (elem) {
-                            elem.top = parseFloat(el.style.top);
-                            elem.left = parseFloat(el.style.left);
+                            elem.top = Math.max(0, parseFloat(el.style.top));
+                            elem.left = Math.max(0, parseFloat(el.style.left));
                         }
                     }
                 };
