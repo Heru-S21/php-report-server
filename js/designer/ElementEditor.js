@@ -1,3 +1,79 @@
+function getInstalledFonts() {
+    const fonts = [
+        'Arial', 'Arial Black', 'Arial Narrow', 'Arial Rounded MT Bold',
+        'Bahnschrift', 'Bauhaus 93', 'Bell MT', 'Berlin Sans FB', 'Bernard MT Condensed',
+        'Blackadder ITC', 'Bodoni MT', 'Book Antiqua', 'Bookman Old Style',
+        'Bradley Hand ITC', 'Calibri', 'Californian FB', 'Calisto MT', 'Cambria',
+        'Candara', 'Castellar', 'Centaur', 'Century', 'Century Gothic', 'Century Schoolbook',
+        'Chiller', 'Colonna MT', 'Comic Sans MS', 'Consolas', 'Constantia', 'Cooper Black',
+        'Copperplate Gothic', 'Corbel', 'Cordia New', 'Courier New', 'Curlz MT',
+        'DejaVu Sans', 'DejaVu Sans Mono', 'DejaVu Serif',
+        'Ebrima', 'Edwardian Script ITC', 'Elephant', 'Engravers MT', 'Eras ITC',
+        'Felix Titling', 'Footlight MT', 'Franklin Gothic', 'Freestyle Script', 'French Script MT',
+        'Gabriola', 'Gadugi', 'Garamond', 'Gigi', 'Gill Sans', 'Gill Sans MT',
+        'Gloucester MT', 'Goudy Old Style', 'Goudy Stout', 'Great Vibes',
+        'Haettenschweiler', 'Harlow Solid', 'Harrington', 'HoloLens MDL2 Assets',
+        'Impact', 'Imprint MT Shadow', 'Informal Roman', 'Ink Free', 'Italian Old Style',
+        'Javanese Text', 'Jokerman', 'Juice ITC',
+        'Kristen ITC', 'Kunstler Script',
+        'Lao UI', 'Leelawadee', 'Leelawadee UI', 'Liberation Mono', 'Liberation Sans',
+        'Liberation Sans Narrow', 'Liberation Serif', 'Lucida Bright', 'Lucida Calligraphy',
+        'Lucida Console', 'Lucida Fax', 'Lucida Handwriting', 'Lucida Sans',
+        'Lucida Sans Typewriter', 'Lucida Sans Unicode',
+        'Magneto', 'Maiandra GD', 'Malgun Gothic', 'Marlett', 'Matura MT Script Capitals',
+        'Microsoft Himalaya', 'Microsoft JhengHei', 'Microsoft New Tai Lue',
+        'Microsoft PhagsPa', 'Microsoft Sans Serif', 'Microsoft Tai Le',
+        'Microsoft YaHei', 'Microsoft Yi Baiti', 'MingLiU', 'Mistral', 'Modern No. 20',
+        'Mongolian Baiti', 'Monotype Corsiva', 'MS Gothic', 'MS Outlook', 'MS Reference Sans Serif',
+        'MS Reference Specialty', 'MT Extra', 'MV Boli',
+        'Myanmar Text', 'Narkisim', 'Niagara Engraved', 'Niagara Solid',
+        'Noto Sans', 'Noto Sans Mono', 'Noto Serif', 'NSimSun',
+        'OCR A Extended', 'Old English Text MT', 'Onyx', 'Open Sans', 'Optima',
+        'Palace Script MT', 'Palatino Linotype', 'Papyrus', 'Parchment', 'Perpetua',
+        'Perpetua Titling MT', 'Playbill', 'Poor Richard', 'Pristina', 'PT Sans', 'PT Serif',
+        'Quicksand', 'Rage Italic', 'Ravie', 'Roboto', 'Roboto Mono', 'Roboto Slab',
+        'Rockwell', 'Rockwell Extra Bold', 'Script MT Bold', 'Segoe MDL2 Assets',
+        'Segoe Print', 'Segoe Script', 'Segoe UI', 'Segoe UI Emoji', 'Segoe UI Historic',
+        'Segoe UI Symbol', 'Showcard Gothic', 'SimSun', 'Sitka', 'Snap ITC', 'Source Code Pro',
+        'Source Sans Pro', 'Source Serif Pro', 'Stencil', 'Sylfaen', 'Symbol',
+        'Tahoma', 'Tempus Sans ITC', 'Times New Roman', 'Trebuchet MS', 'Tw Cen MT',
+        'Ubuntu', 'Ubuntu Condensed', 'Ubuntu Mono',
+        'Verdana', 'Viner Hand ITC', 'Vivaldi', 'Vladimir Script', 'Webdings',
+        'Wide Latin', 'Wingdings', 'Wingdings 2', 'Wingdings 3',
+    ];
+    if (typeof document === 'undefined') return fonts;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const testStr = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    ctx.font = '72px serif';
+    const base = ctx.measureText(testStr).width;
+    return fonts.filter(name => {
+        ctx.font = `72px "${name}", serif`;
+        return ctx.measureText(testStr).width !== base;
+    });
+}
+
+function renderFontOptions(selected) {
+    const standard = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana'];
+    const selectedFont = selected || 'Arial';
+    const installed = getInstalledFonts().filter(f => !standard.includes(f));
+    let html = '<optgroup label="Standard Fonts">';
+    for (const name of standard) {
+        const sel = selectedFont === name ? ' selected' : '';
+        html += `<option value="${name}"${sel}>${name}</option>`;
+    }
+    html += '</optgroup>';
+    if (installed.length) {
+        html += '<optgroup label="System Fonts">';
+        for (const name of installed) {
+            const sel = selectedFont === name ? ' selected' : '';
+            html += `<option value="${name}"${sel}>${name}</option>`;
+        }
+        html += '</optgroup>';
+    }
+    return html;
+}
+
 class ElementEditor {
     constructor(designer) {
         this.designer = designer;
@@ -162,12 +238,7 @@ class ElementEditor {
                 <div class="prop-group">
                     <label>Font</label>
                     <select class="prop-control" onchange="window.elementEditor.updateField('fontFamily', this.value)">
-                        <option value="Arial" ${el.fontFamily === 'Arial' ? 'selected' : ''}>Arial</option>
-                        <option value="Helvetica" ${el.fontFamily === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-                        <option value="Times New Roman" ${el.fontFamily === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
-                        <option value="Courier New" ${el.fontFamily === 'Courier New' ? 'selected' : ''}>Courier New</option>
-                        <option value="Georgia" ${el.fontFamily === 'Georgia' ? 'selected' : ''}>Georgia</option>
-                        <option value="Verdana" ${el.fontFamily === 'Verdana' ? 'selected' : ''}>Verdana</option>
+                        ${renderFontOptions(el.fontFamily)}
                     </select>
                 </div>
                 <div class="prop-group">
@@ -340,12 +411,7 @@ class ElementEditor {
                 <div class="prop-group">
                     <label>Font</label>
                     <select class="prop-control" onchange="window.elementEditor.updateDefaultStyle('fontFamily', this.value)">
-                        <option value="Arial" ${(ds.fontFamily||'Arial') === 'Arial' ? 'selected' : ''}>Arial</option>
-                        <option value="Helvetica" ${(ds.fontFamily||'Arial') === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
-                        <option value="Times New Roman" ${(ds.fontFamily||'Arial') === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
-                        <option value="Courier New" ${(ds.fontFamily||'Arial') === 'Courier New' ? 'selected' : ''}>Courier New</option>
-                        <option value="Georgia" ${(ds.fontFamily||'Arial') === 'Georgia' ? 'selected' : ''}>Georgia</option>
-                        <option value="Verdana" ${(ds.fontFamily||'Arial') === 'Verdana' ? 'selected' : ''}>Verdana</option>
+                        ${renderFontOptions(ds.fontFamily || 'Arial')}
                     </select>
                 </div>
                 <div class="prop-group">
