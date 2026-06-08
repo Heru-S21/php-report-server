@@ -289,11 +289,22 @@ class ElementEditor {
 
     renderReportGeneralTab() {
         const def = window.ReportingEngine.state.definition;
+        const guid = def.guid;
+        const extLink = guid ? `/api/render/${guid}` : null;
         this.contentEl.innerHTML = `
             <div class="prop-group">
                 <label>Report ID (GUID)</label>
                 <input class="prop-control" type="text" value="${def.guid || (window.ReportingEngine.state.activeReportId ? '—' : 'Not saved yet')}" readonly style="font-family:var(--font-mono, monospace);font-size:12px;cursor:default;user-select:all">
             </div>
+            ${extLink ? `
+            <div class="prop-group">
+                <label>External Access Link</label>
+                <div style="display:flex;gap:6px;align-items:stretch">
+                    <input class="prop-control" type="text" value="${window.location.origin}${extLink}" readonly style="flex:1;font-family:var(--font-mono,monospace);font-size:11px;cursor:default;user-select:all">
+                    <button class="btn btn-sm" onclick="var b=this;navigator.clipboard.writeText('${window.location.origin}${extLink}').then(function(){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy'},1500)}).catch(function(){})" style="flex-shrink:0">Copy</button>
+                    <a href="${extLink}" target="_blank" class="btn btn-sm btn-primary" style="flex-shrink:0;text-decoration:none">Open</a>
+                </div>
+            </div>` : ''}
             <div class="prop-group">
                 <label>Report Name</label>
                 <input class="prop-control" type="text" value="${escapeHtml(def.name || '')}"
