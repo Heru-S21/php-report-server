@@ -36,6 +36,8 @@ body {
     background: var(--color-surface-2);
     line-height: 1.5;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 a {
@@ -63,6 +65,9 @@ a:hover {
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
     box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .navbar-brand {
@@ -133,7 +138,7 @@ a:hover {
     overflow-y: auto;
 }
 
-/* Navbar */
+/* Navbar (applied — overwrites the generic .navbar above) */
 .navbar {
     display: flex;
     align-items: center;
@@ -143,6 +148,9 @@ a:hover {
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
     box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .navbar-brand {
