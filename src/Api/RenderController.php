@@ -27,10 +27,12 @@ class RenderController
     public function render(Request $request): Response
     {
         try {
-            $id = (int)$request->getParam('id');
+            $idParam = $request->getParam('id');
             $format = $request->query['format'] ?? 'html';
 
-            $report = $this->reportRepository->find($id);
+            $report = is_numeric($idParam)
+                ? $this->reportRepository->find((int)$idParam)
+                : $this->reportRepository->findByGuid($idParam);
             if (!$report) {
                 return Response::error('Report not found', 404);
             }
@@ -130,6 +132,7 @@ class RenderController
             $definitionData = json_decode($definitionData, true);
         }
         $definitionData['id'] = $report['id'];
+        $definitionData['guid'] = $report['guid'] ?? Database::generateGuid();
         $definitionData['name'] = $report['name'];
         $definitionData['description'] = $report['description'];
         $definitionData['connectionId'] = (int)$report['connection_id'];

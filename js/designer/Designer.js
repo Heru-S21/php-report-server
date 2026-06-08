@@ -3,6 +3,7 @@ class Designer {
         this.container = document.getElementById(containerId);
         this.canvasInner = document.getElementById('canvas-inner');
         this.reportId = window.ReportingEngine.state.activeReportId;
+        this.reportGuid = window.ReportingEngine.state.activeReportGuid || null;
         this.elements = {};
         this.bands = [];
         this.zoom = 1;
@@ -48,8 +49,10 @@ class Designer {
                         });
                     }
                 }
+                def.guid = res.data.guid || null;
                 window.ReportingEngine.dispatch('SET_DEFINITION', def);
                 this.bands = def.bands || this.getDefaultBands();
+                this.reportGuid = res.data.guid || null;
                 window.ReportingEngine.state.queryColumns = def.queryColumns || [];
             }
         } catch (e) {
@@ -607,11 +610,20 @@ class Designer {
                 res = await window.ReportingEngine.api('POST', '/api/reports', payload);
                 if (res.data && res.data.id) {
                     this.reportId = res.data.id;
+                    this.reportGuid = res.data.guid || null;
                     window.ReportingEngine.state.activeReportId = this.reportId;
+                    window.ReportingEngine.state.activeReportGuid = this.reportGuid;
                     history.replaceState(null, '', `/reports/designer/${this.reportId}`);
                 }
             }
-            window.ReportingEngine.dispatch('SET_DIRTY', false);
+                    if (res.data && res.data.guid) {
+                        def.guid = res.data.guid;
+                        if (!this.reportGuid) {
+                            this.reportGuid = res.data.guid;
+                            window.ReportingEngine.state.activeReportGuid = this.reportGuid;
+                        }
+                    }
+                    window.ReportingEngine.dispatch('SET_DIRTY', false);
             if (res.success) {
                 this.showToast('Report saved successfully');
             }
@@ -621,17 +633,20 @@ class Designer {
     }
 
     preview() {
-        window.location.href = `/reports/preview/${this.reportId || ''}`;
+        const id = this.reportGuid || this.reportId || '';
+        window.location.href = `/reports/preview/${id}`;
     }
 
     exportPdf() {
         if (!this.reportId) { this.showToast('Save the report first', 'error'); return; }
-        window.open(`/api/render/${this.reportId}?format=pdf`, '_blank');
+        const id = this.reportGuid || this.reportId;
+        window.open(`/api/render/${id}?format=pdf`, '_blank');
     }
 
     exportHtml() {
         if (!this.reportId) { this.showToast('Save the report first', 'error'); return; }
-        window.open(`/api/render/${this.reportId}?format=html`, '_blank');
+        const id = this.reportGuid || this.reportId;
+        window.open(`/api/render/${id}?format=html`, '_blank');
     }
 
     undo() {

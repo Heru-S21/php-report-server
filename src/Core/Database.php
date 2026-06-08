@@ -89,6 +89,19 @@ class Database
             );
         ");
 
+        // Add guid column to reports if not exists
+        try {
+            $pdo->exec("ALTER TABLE reports ADD COLUMN guid TEXT UNIQUE");
+        } catch (\Exception $e) {
+            // Column already exists
+        }
+        // Backfill GUIDs for existing reports that don't have one
+        $stmt = $pdo->query("SELECT id FROM reports WHERE guid IS NULL");
+        $backfill = $pdo->prepare("UPDATE reports SET guid = ? WHERE id = ?");
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $backfill->execute([self::generateGuid(), $row['id']]);
+        }
+
         $stmt = $pdo->query("SELECT COUNT(*) FROM app_settings WHERE key = 'app_key'");
         if ($stmt->fetchColumn() == 0) {
             $key = bin2hex(random_bytes(16));
@@ -106,6 +119,14 @@ class Database
         foreach ($defaults as [$key, $value]) {
             $pdo->prepare("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)")->execute([$key, $value]);
         }
+    }
+
+    public static function generateGuid(): string
+    {
+        $data = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
     public static function getAppKey(): string

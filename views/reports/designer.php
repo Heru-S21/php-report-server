@@ -225,6 +225,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     window.ReportingEngine.state.activeReportId = <?= json_encode($reportId) ?>;
+    window.ReportingEngine.state.activeReportGuid = null;
     window.designer = new Designer('canvas-inner');
     window.bandManager = new BandManager(window.designer);
     window.elementEditor = new ElementEditor(window.designer);

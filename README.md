@@ -97,13 +97,15 @@ Elements are positioned absolutely within bands using mm coordinates. Types:
 
 ## External Access
 
-Render reports from external systems via URL:
+Render reports from external systems via URL (use report GUID for secure access):
 
 ```
-GET /api/render/42?format=html
-GET /api/render/42?format=pdf
-GET /api/render/42?format=html&param_status=shipped&param_date=2026-01-01
+GET /api/render/{guid}?format=html
+GET /api/render/{guid}?format=pdf
+GET /api/render/{guid}?format=html&param_status=shipped&param_date=2026-01-01
 ```
+
+The report GUID is shown as a read-only field in the designer's Report properties. Unlike the numeric ID, GUIDs cannot be guessed sequentially.
 
 ## Parameters
 

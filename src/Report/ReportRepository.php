@@ -37,7 +37,6 @@ class ReportRepository
         $report = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report) return null;
 
-        // Decode definition
         if (is_string($report['definition'])) {
             $report['definition'] = json_decode($report['definition'], true);
         }
@@ -45,24 +44,46 @@ class ReportRepository
         return $report;
     }
 
-    public function create(array $data): int
+    public function findByGuid(string $guid): ?array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT r.*, c.name as connection_name
+            FROM reports r
+            LEFT JOIN connections c ON r.connection_id = c.id
+            WHERE r.guid = ?
+        ");
+        $stmt->execute([$guid]);
+        $report = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$report) return null;
+
+        if (is_string($report['definition'])) {
+            $report['definition'] = json_decode($report['definition'], true);
+        }
+
+        return $report;
+    }
+
+    public function create(array $data): array
     {
         $definition = $data['definition'] ?? '{}';
         if (is_array($definition)) {
             $definition = json_encode($definition, JSON_UNESCAPED_UNICODE);
         }
 
+        $guid = Database::generateGuid();
+
         $stmt = $this->pdo->prepare("
-            INSERT INTO reports (name, description, connection_id, definition, created_at, updated_at)
-            VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+            INSERT INTO reports (name, description, connection_id, definition, guid, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         ");
         $stmt->execute([
             $data['name'],
             $data['description'] ?? null,
             $data['connection_id'] ?? null,
             $definition,
+            $guid,
         ]);
-        return (int) $this->pdo->lastInsertId();
+        return ['id' => (int) $this->pdo->lastInsertId(), 'guid' => $guid];
     }
 
     public function update(int $id, array $data): void
@@ -99,7 +120,7 @@ class ReportRepository
         $stmt->execute([$id]);
     }
 
-    public function duplicate(int $id): int
+    public function duplicate(int $id): array
     {
         $original = $this->find($id);
         if (!$original) {
@@ -110,16 +131,19 @@ class ReportRepository
             ? $original['definition']
             : json_encode($original['definition'], JSON_UNESCAPED_UNICODE);
 
+        $guid = Database::generateGuid();
+
         $stmt = $this->pdo->prepare("
-            INSERT INTO reports (name, description, connection_id, definition, created_at, updated_at)
-            VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+            INSERT INTO reports (name, description, connection_id, definition, guid, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
         ");
         $stmt->execute([
             $original['name'] . ' (Copy)',
             $original['description'],
             $original['connection_id'],
             $definition,
+            $guid,
         ]);
-        return (int) $this->pdo->lastInsertId();
+        return ['id' => (int) $this->pdo->lastInsertId(), 'guid' => $guid];
     }
 }

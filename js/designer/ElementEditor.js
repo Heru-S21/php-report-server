@@ -291,6 +291,12 @@ class ElementEditor {
         const def = window.ReportingEngine.state.definition;
         this.contentEl.innerHTML = `
             <div class="prop-group">
+                <label>Report ID (GUID)</label>
+                <div class="prop-control" style="font-size:12px;color:#64748b;background:var(--color-surface-alt, #f1f5f9);padding:6px 10px;border-radius:4px;font-family:var(--font-mono, monospace);cursor:default;user-select:all">
+                    ${def.guid || (window.ReportingEngine.state.activeReportId ? '—' : 'Not saved yet')}
+                </div>
+            </div>
+            <div class="prop-group">
                 <label>Report Name</label>
                 <input class="prop-control" type="text" value="${escapeHtml(def.name || '')}"
                        onchange="window.elementEditor.updateReportField('name', this.value || 'Untitled Report')">
