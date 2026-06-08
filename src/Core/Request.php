@@ -16,8 +16,13 @@ class Request
     {
         $this->method = strtoupper($server['REQUEST_METHOD'] ?? 'GET');
         $uri = parse_url($server['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-        $basePath = dirname($server['SCRIPT_NAME'] ?? '/');
-        $this->uri = $basePath !== '/' && $basePath !== '.'
+        $scriptName = $server['SCRIPT_NAME'] ?? '/';
+        $basePath = dirname($scriptName);
+        // Only strip basePath when SCRIPT_NAME is a PHP entry point.
+        // The PHP built-in server incorrectly sets SCRIPT_NAME to the URI
+        // path (not the router script) when dots are in the URL, which would
+        // corrupt the URI. In that case use the full URI.
+        $this->uri = $basePath !== '/' && $basePath !== '.' && str_ends_with($scriptName, '.php') && str_starts_with($uri, $basePath)
             ? '/' . ltrim(substr($uri, strlen($basePath)), '/')
             : $uri;
         if ($this->uri === '' || $this->uri === false) {

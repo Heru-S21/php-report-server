@@ -14,6 +14,7 @@ $router->delete('/api/connections/{id}', [ConnectionController::class, 'destroy'
 $router->post('/api/connections/{id}/test', [ConnectionController::class, 'test']);
 $router->get('/api/connections/{id}/tables', [ConnectionController::class, 'tables']);
 $router->get('/api/connections/{id}/tables/{table}/columns', [ConnectionController::class, 'columns']);
+$router->get('/api/connections/{id}/table-columns', [ConnectionController::class, 'columns']);
 
 // Reports
 $router->get('/api/reports', [ReportController::class, 'index']);

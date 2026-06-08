@@ -62,7 +62,7 @@ class QueryDesigner {
 
         try {
             const res = await window.ReportingEngine.api('GET',
-                `/api/connections/${this.connectionId}/tables/${tableName}/columns`);
+                `/api/connections/${this.connectionId}/table-columns?table=${encodeURIComponent(tableName)}`);
             const columns = res.data || [];
 
             const card = document.createElement('div');

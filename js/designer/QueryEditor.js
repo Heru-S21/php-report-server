@@ -107,7 +107,7 @@ class QueryEditor {
         const connId = this.connectionSelect.value;
         if (!connId) return;
         try {
-            const res = await window.ReportingEngine.api('GET', `/api/connections/${connId}/tables/${encodeURIComponent(tableName)}/columns`);
+            const res = await window.ReportingEngine.api('GET', `/api/connections/${connId}/table-columns?table=${encodeURIComponent(tableName)}`);
             const columns = res.data || [];
             const colNames = columns.map(c => c.name || c.column_name).filter(Boolean);
             if (colNames.length > 0) {
@@ -152,7 +152,7 @@ class QueryEditor {
         if (!connId) { colsDiv.innerHTML = ''; return; }
 
         try {
-            const res = await window.ReportingEngine.api('GET', `/api/connections/${connId}/tables/${encodeURIComponent(tableName)}/columns`);
+            const res = await window.ReportingEngine.api('GET', `/api/connections/${connId}/table-columns?table=${encodeURIComponent(tableName)}`);
             const columns = res.data || [];
             let html = '';
             for (const col of columns) {

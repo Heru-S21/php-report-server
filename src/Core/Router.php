@@ -74,7 +74,7 @@ class Router
 
             array_shift($matches);
             foreach ($route['paramNames'] as $i => $name) {
-                $request->params[$name] = $matches[$i] ?? null;
+                $request->params[$name] = isset($matches[$i]) ? urldecode($matches[$i]) : null;
             }
 
             // Run global middleware
