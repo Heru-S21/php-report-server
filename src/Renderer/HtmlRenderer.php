@@ -45,6 +45,7 @@ class HtmlRenderer implements RendererInterface
         $currentPageY = 0;
         $pages = [];
         $columnRenderedOnPage = false;
+        $lastRowData = null;
 
         $openPage = function() use (&$currentPageHtml, &$currentPageY, &$columnRenderedOnPage, $usableWidth, $usableHeight) {
             $currentPageHtml = sprintf(
@@ -66,7 +67,7 @@ class HtmlRenderer implements RendererInterface
             $pageNum++;
         };
 
-        $renderPageTop = function() use (&$currentPageHtml, &$currentPageY, &$columnRenderedOnPage, $hasElements, $pageHeaderBand, $columnHeaderBand, $definition, &$pageNum, &$groupValues, $groups) {
+        $renderPageTop = function() use (&$currentPageHtml, &$currentPageY, &$columnRenderedOnPage, $hasElements, $pageHeaderBand, $columnHeaderBand, $definition, &$pageNum, &$groupValues, $groups, &$lastRowData) {
             if ($hasElements($pageHeaderBand) && $pageHeaderBand->printOnEveryPage) {
                 $currentPageHtml .= $this->renderBandElement($pageHeaderBand, $definition, null, null, $pageNum);
                 $currentPageY += $pageHeaderBand->height;
@@ -77,7 +78,7 @@ class HtmlRenderer implements RendererInterface
                     if ($groupValues[$g] !== null && $groups[$g]->reprintHeaderOnNewPage) {
                         $headerBand = $this->findGroupHeader($definition, $groups[$g]);
                         if ($headerBand && $hasElements($headerBand)) {
-                            $currentPageHtml .= $this->renderBandElement($headerBand, $definition, $groups[$g], null, $pageNum);
+                            $currentPageHtml .= $this->renderBandElement($headerBand, $definition, $groups[$g], $lastRowData, $pageNum);
                             $currentPageY += $headerBand->height;
                         }
                     }
@@ -147,6 +148,7 @@ class HtmlRenderer implements RendererInterface
             $reportAggregates = new AggregateAccumulator();
 
             foreach ($data as $rowIndex => $row) {
+                $lastRowData = $row;
                 $groupChanged = false;
 
                 // Detect group breaks
@@ -215,6 +217,7 @@ class HtmlRenderer implements RendererInterface
                     $currentPageHtml .= $this->renderBandElement($detailBand, $definition, null, $row, $pageNum);
                     $currentPageY += $detailBand->height;
                 }
+
             }
 
             // Close remaining groups
