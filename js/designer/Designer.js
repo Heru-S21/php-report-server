@@ -407,13 +407,26 @@ class Designer {
                 e.stopPropagation();
                 const band = handle.closest('.band');
                 const bandType = band.dataset.bandType;
+                const bandData = this.bands.find(b => b.type === bandType);
                 const startY = e.clientY;
                 const origH = parseFloat(band.style.height);
                 const pxToMm = getPxToMm();
 
+                // Minimum height that doesn't clip any element
+                const minH = () => {
+                    if (!bandData || !bandData.elements) return 1;
+                    let maxBottom = 0;
+                    for (const el of bandData.elements) {
+                        const bottom = (el.top || 0) + (el.height || 0);
+                        if (bottom > maxBottom) maxBottom = bottom;
+                    }
+                    return Math.max(1, maxBottom);
+                };
+
                 const onMove = (me) => {
                     const dh = (me.clientY - startY) * pxToMm;
-                    band.style.height = Math.max(1, this.snapValue(origH + dh)) + 'mm';
+                    const newH = Math.max(minH(), this.snapValue(origH + dh));
+                    band.style.height = newH + 'mm';
                 };
 
                 const onUp = () => {

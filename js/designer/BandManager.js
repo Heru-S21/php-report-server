@@ -60,9 +60,15 @@ class BandManager {
 
     resizeBand(bandType, height) {
         const band = this.designer.bands.find(b => b.type === bandType);
-        if (band) {
-            band.height = Math.max(8, height);
-            this.designer.renderCanvas();
+        if (!band) return;
+        let minH = 1;
+        if (band.elements) {
+            for (const el of band.elements) {
+                const bottom = (el.top || 0) + (el.height || 0);
+                if (bottom > minH) minH = bottom;
+            }
         }
+        band.height = Math.max(minH, height);
+        this.designer.renderCanvas();
     }
 }

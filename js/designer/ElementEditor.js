@@ -246,6 +246,13 @@ class ElementEditor {
     }
 
     renderBandGeneralTab(band) {
+        let bandMinH = 1;
+        if (band.elements) {
+            for (const el of band.elements) {
+                const bottom = (el.top || 0) + (el.height || 0);
+                if (bottom > bandMinH) bandMinH = bottom;
+            }
+        }
         this.contentEl.innerHTML = `
             <div class="prop-group">
                 <label>Type</label>
@@ -253,7 +260,7 @@ class ElementEditor {
             </div>
             <div class="prop-group">
                 <label>Height (mm)</label>
-                <input class="prop-control" type="number" value="${band.height}" min="4" step="0.5"
+                <input class="prop-control" type="number" value="${band.height}" min="${bandMinH}" step="0.5"
                        onchange="window.bandManager.resizeBand('${band.type}', parseFloat(this.value))">
             </div>
             <div class="prop-group">
