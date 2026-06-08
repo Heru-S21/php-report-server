@@ -80,36 +80,75 @@ class QueryEditor {
         }
     }
 
-    async loadTableColumns(tableName) {
-        const connId = this.connectionSelect.value;
-        if (!connId) return;
-        try {
-            const res = await window.ReportingEngine.api('GET', `/api/connections/${connId}/tables/${encodeURIComponent(tableName)}/columns`);
-            const columns = res.data || [];
-            const colNames = columns.map(c => c.name || c.column_name).filter(Boolean);
-            if (colNames.length > 0) {
-                this.sqlTextarea.value = `SELECT ${colNames.join(', ')}\nFROM ${tableName}`;
-            } else {
-                this.sqlTextarea.value = `SELECT *\nFROM ${tableName}`;
-            }
-            this.onSqlChange();
-        } catch (e) {
-            this.setStatus('Failed to load columns', 'error');
-        }
-    }
-
     renderTableList() {
         if (!this.tables || this.tables.length === 0) {
             this.tableListEl.innerHTML = '<p class="text-muted" style="font-size:12px;padding:2px 0">No tables found</p>';
             return;
         }
+        if (!this._tableColumnCache) this._tableColumnCache = {};
         this.tableListEl.innerHTML = this.tables.map(t => {
             const name = t.name || t.table_name || t;
-            return `<div class="table-item" onclick="queryEditor.loadTableColumns('${name.replace(/'/g, "\\'")}')">
+            const safeName = name.replace(/'/g, "\\'");
+            return `<div class="table-item">
+                <i class="ph-caret-right table-caret" onclick="queryEditor.toggleTableColumns('${safeName}', this)"></i>
                 <i class="ph-table"></i>
                 <span>${name}</span>
-            </div>`;
+            </div>
+            <div class="table-columns" id="tcols-${safeName}" style="display:none"></div>`;
         }).join('');
+    }
+
+    async toggleTableColumns(tableName, caretEl) {
+        const colsDiv = document.getElementById('tcols-' + tableName);
+        if (!colsDiv) return;
+
+        if (colsDiv.style.display === 'block') {
+            colsDiv.style.display = 'none';
+            caretEl.classList.remove('open');
+            return;
+        }
+
+        if (this._tableColumnCache[tableName]) {
+            colsDiv.style.display = 'block';
+            caretEl.classList.add('open');
+            colsDiv.innerHTML = this._tableColumnCache[tableName];
+            return;
+        }
+
+        caretEl.classList.add('open');
+        colsDiv.style.display = 'block';
+        colsDiv.innerHTML = '<div class="table-col-loading">Loading...</div>';
+
+        const connId = this.connectionSelect.value;
+        if (!connId) { colsDiv.innerHTML = ''; return; }
+
+        try {
+            const res = await window.ReportingEngine.api('GET', `/api/connections/${connId}/tables/${encodeURIComponent(tableName)}/columns`);
+            const columns = res.data || [];
+            let html = '';
+            for (const col of columns) {
+                const colName = col.name || col.column_name || '';
+                const colType = col.type || '';
+                html += `<div class="table-col-item" draggable="true" data-field-name="${colName}">
+                    <i class="ph-${colType.toLowerCase().includes('int') || colType.toLowerCase().includes('float') ? 'hash' : 'text-aa'}"></i>
+                    <span class="table-col-name">${colName}</span>
+                    <span class="table-col-type">${colType}</span>
+                </div>`;
+            }
+            if (!html) html = '<div class="text-muted" style="font-size:11px;padding:4px 8px">No columns</div>';
+            this._tableColumnCache[tableName] = html;
+            colsDiv.innerHTML = html;
+
+            // Enable drag from column items
+            colsDiv.querySelectorAll('.table-col-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', 'field');
+                    e.dataTransfer.setData('field-name', item.dataset.fieldName);
+                });
+            });
+        } catch (e) {
+            colsDiv.innerHTML = '<div class="text-muted" style="font-size:11px;padding:4px 8px;color:var(--color-danger)">Failed to load</div>';
+        }
     }
 
     onSqlChange() {

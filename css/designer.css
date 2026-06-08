@@ -307,6 +307,56 @@
     flex-shrink: 0;
 }
 
+.table-caret {
+    cursor: pointer;
+    transition: transform 0.15s;
+    font-size: 12px;
+}
+
+.table-caret.open {
+    transform: rotate(90deg);
+}
+
+.table-columns {
+    background: var(--color-surface-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.table-col-loading {
+    padding: 4px 8px;
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+.table-col-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px 3px 28px;
+    font-size: 12px;
+    cursor: grab;
+    transition: background 0.1s;
+}
+
+.table-col-item:hover {
+    background: var(--color-surface);
+}
+
+.table-col-item i {
+    font-size: 12px;
+}
+
+.table-col-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+.table-col-type {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--color-text-muted);
+}
+
 .field-item {
     display: flex;
     align-items: center;
