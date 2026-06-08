@@ -93,7 +93,7 @@ class QueryEditor {
                 <i class="ph-caret-right table-caret" onclick="queryEditor.toggleTableColumns('${safeName}', this)"></i>
                 <i class="ph-table"></i>
                 <span class="table-name-link" onclick="queryEditor.toggleTableColumns('${safeName}')">${name}</span>
-                <i class="ph-code-block table-select-sql" onclick="queryEditor.selectTable('${safeName}')" title="Generate SELECT query"></i>
+                <i class="ph-play table-select-sql" onclick="queryEditor.selectTable('${safeName}')" title="Generate SELECT query"></i>
             </div>
             <div class="table-columns" id="tcols-${safeName}" style="display:none"></div>`;
         }).join('');
