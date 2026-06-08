@@ -376,11 +376,47 @@ class PdfRenderer implements RendererInterface
 
     private function formatValue(mixed $value, ?string $format): string
     {
-        if ($format === null || $format === '') return (string)$value;
-        if (is_numeric($value)) {
-            return number_format((float)$value, 2, '.', ',');
+        if ($format === null || $format === '' || !is_numeric($value)) {
+            return (string)$value;
         }
-        return (string)$value;
+        $v = (float)$value;
+
+        if (str_contains($format, '%')) {
+            return sprintf($format, $v);
+        }
+
+        if (preg_match('/^\d+$/', $format)) {
+            return number_format($v, (int)$format, '.', ',');
+        }
+
+        $decPos = -1;
+        $decSep = null;
+        foreach (['.', ','] as $sep) {
+            $pos = strrpos($format, $sep);
+            if ($pos === false) continue;
+            $tail = substr($format, $pos + 1);
+            if (preg_match('/^0/', $tail)) {
+                if ($pos > $decPos) {
+                    $decPos = $pos;
+                    $decSep = $sep;
+                }
+            }
+        }
+
+        $decimals     = 0;
+        $decPoint     = '.';
+        $thousandsSep = ',';
+
+        if ($decSep !== null) {
+            $decPoint     = $decSep;
+            $thousandsSep = $decSep === '.' ? ',' : '.';
+            $tail = substr($format, $decPos + 1);
+            if (preg_match('/^[0#]+/', $tail, $m)) {
+                $decimals = strlen($m[0]);
+            }
+        }
+
+        return number_format($v, $decimals, $decPoint, $thousandsSep);
     }
 
     private function findGroupHeader(ReportDefinition $def, GroupDefinition $group): ?Band
