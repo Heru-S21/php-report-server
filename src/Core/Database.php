@@ -59,6 +59,7 @@ class Database
                 description   TEXT,
                 connection_id INTEGER NOT NULL REFERENCES connections(id) ON DELETE RESTRICT,
                 definition    TEXT NOT NULL,
+                guid          TEXT,
                 created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
             );
@@ -89,17 +90,21 @@ class Database
             );
         ");
 
-        // Add guid column to reports if not exists
+        // Add guid column to reports if not exists (no UNIQUE — SQLite ALTER TABLE doesn't support it)
         try {
-            $pdo->exec("ALTER TABLE reports ADD COLUMN guid TEXT UNIQUE");
-        } catch (\Exception $e) {
-            // Column already exists
+            $pdo->exec("ALTER TABLE reports ADD COLUMN guid TEXT");
+        } catch (\PDOException $e) {
+            // Column already exists — ignore
         }
         // Backfill GUIDs for existing reports that don't have one
-        $stmt = $pdo->query("SELECT id FROM reports WHERE guid IS NULL");
-        $backfill = $pdo->prepare("UPDATE reports SET guid = ? WHERE id = ?");
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $backfill->execute([self::generateGuid(), $row['id']]);
+        try {
+            $stmt = $pdo->query("SELECT id FROM reports WHERE guid IS NULL");
+            $backfill = $pdo->prepare("UPDATE reports SET guid = ? WHERE id = ?");
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $backfill->execute([self::generateGuid(), $row['id']]);
+            }
+        } catch (\PDOException $e) {
+            // Column doesn't exist yet — skip backfill
         }
 
         $stmt = $pdo->query("SELECT COUNT(*) FROM app_settings WHERE key = 'app_key'");
