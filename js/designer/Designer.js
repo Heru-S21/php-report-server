@@ -335,15 +335,30 @@ class Designer {
                 const startX = e.clientX;
                 const startY = e.clientY;
                 const elId = el.dataset.elementId;
+                const bandEl = el.closest('.band');
+                const bandType = bandEl.dataset.bandType;
+                const bandData = this.bands.find(b => b.type === bandType);
                 const origTop = parseFloat(el.style.top);
                 const origLeft = parseFloat(el.style.left);
+                const origHeight = parseFloat(el.style.height);
                 const pxToMm = getPxToMm();
+
+                const expandBand = () => {
+                    if (!bandData || !bandEl) return;
+                    const newTop = parseFloat(el.style.top);
+                    const bottom = newTop + origHeight;
+                    if (bottom > bandData.height) {
+                        bandData.height = this.snapValue(bottom);
+                        bandEl.style.height = bandData.height + 'mm';
+                    }
+                };
 
                 const onMove = (me) => {
                     const dx = (me.clientX - startX) * pxToMm;
                     const dy = (me.clientY - startY) * pxToMm;
                     el.style.left = Math.max(0, this.snapValue(origLeft + dx)) + 'mm';
                     el.style.top = Math.max(0, this.snapValue(origTop + dy)) + 'mm';
+                    expandBand();
                 };
 
                 const onUp = () => {
@@ -370,17 +385,30 @@ class Designer {
                 e.stopPropagation();
                 const el = handle.closest('.canvas-element');
                 const elId = el.dataset.elementId;
-                const startX = e.clientX;
-                const startY = e.clientY;
+                const bandEl = el.closest('.band');
+                const bandType = bandEl.dataset.bandType;
+                const bandData = this.bands.find(b => b.type === bandType);
+                const origTop = parseFloat(el.style.top);
                 const origW = parseFloat(el.style.width);
                 const origH = parseFloat(el.style.height);
                 const pxToMm = getPxToMm();
+
+                const expandBand = () => {
+                    if (!bandData || !bandEl) return;
+                    const newH = parseFloat(el.style.height);
+                    const bottom = origTop + newH;
+                    if (bottom > bandData.height) {
+                        bandData.height = this.snapValue(bottom);
+                        bandEl.style.height = bandData.height + 'mm';
+                    }
+                };
 
                 const onMove = (me) => {
                     const dw = (me.clientX - startX) * pxToMm;
                     const dh = (me.clientY - startY) * pxToMm;
                     el.style.width = Math.max(1, this.snapValue(origW + dw)) + 'mm';
                     el.style.height = Math.max(1, this.snapValue(origH + dh)) + 'mm';
+                    expandBand();
                 };
 
                 const onUp = () => {
@@ -583,6 +611,10 @@ class Designer {
         if (!elem) return;
         elem.top = Math.max(0, this.snapValue(elem.top + dy));
         elem.left = Math.max(0, this.snapValue(elem.left + dx));
+        const bottom = (elem.top || 0) + (elem.height || 0);
+        if (bottom > band.height) {
+            band.height = this.snapValue(bottom);
+        }
         this.renderCanvas();
         if (window.ReportingEngine.state.selectedElement === id) {
             this.selectElement(id);

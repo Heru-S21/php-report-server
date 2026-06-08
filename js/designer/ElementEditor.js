@@ -472,6 +472,15 @@ class ElementEditor {
             if (field === 'width' || field === 'height') value = Math.max(1, value);
         }
         el[field] = value;
+
+        // Expand band when element top/height exceeds it
+        if ((field === 'top' || field === 'height') && this.currentBand) {
+            const bottom = (el.top || 0) + (el.height || 0);
+            if (bottom > this.currentBand.height) {
+                this.currentBand.height = this.designer.snapValue(bottom);
+            }
+        }
+
         // If a style field is manually changed, mark element as no longer inheriting
         if (['fontFamily', 'fontSize', 'color', 'backgroundColor'].includes(field)) {
             el.inheritStyle = false;
