@@ -120,7 +120,7 @@ class Designer {
         this.canvasInner.style.transformOrigin = 'top center';
 
         let html = '';
-        const bandOrder = ['page_header', 'report_header', 'column_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
+        const bandOrder = ['page_header', 'report_header', 'group_header', 'column_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
 
         const sortedBands = [...this.bands].sort((a, b) => {
             return bandOrder.indexOf(a.type) - bandOrder.indexOf(b.type);
@@ -680,7 +680,7 @@ class Designer {
         const container = document.getElementById('object-tree');
         if (!container) return;
         const reportSelected = !window.ReportingEngine.state.selectedBand && !window.ReportingEngine.state.selectedElement;
-        const bandOrder = ['page_header', 'report_header', 'column_header', 'group_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
+        const bandOrder = ['page_header', 'report_header', 'group_header', 'column_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
         const sortedBands = [...this.bands].sort((a, b) => bandOrder.indexOf(a.type) - bandOrder.indexOf(b.type));
 
         let html = `<div class="tree-item report-tree-item ${reportSelected ? 'selected' : ''}"

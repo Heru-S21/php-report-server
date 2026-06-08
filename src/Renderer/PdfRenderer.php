@@ -30,7 +30,6 @@ class PdfRenderer implements RendererInterface
             return $b && $b->visible && !empty($b->elements);
         };
 
-        // Page header
         $pageHeaderBand = $definition->bands->get('page_header');
         $inlineHeader = null;
         if ($hasElements($pageHeaderBand)) {
@@ -42,7 +41,6 @@ class PdfRenderer implements RendererInterface
             }
         }
 
-        // Page footer
         $pageFooterBand = $definition->bands->get('page_footer');
         $inlineFooter = null;
         if ($hasElements($pageFooterBand)) {
@@ -54,7 +52,6 @@ class PdfRenderer implements RendererInterface
             }
         }
 
-        // Build body content
         $html = $this->buildBody($definition, $data, $inlineHeader, $inlineFooter);
 
         $mpdf->WriteHTML($html);
@@ -85,27 +82,16 @@ class PdfRenderer implements RendererInterface
             $html .= $this->renderBandHtml($reportHeaderBand, $definition, null, null);
         }
 
-        // Column header — enables table wrapping for repeating on pages 2+
+        // Column header (rendered as regular band, after group headers in the data loop)
         $columnHeaderBand = $definition->bands->get('column_header');
-        $useTable = $hasElements($columnHeaderBand);
-
-        if ($useTable) {
-            $html .= '<table style="width:100%; border-collapse:collapse;">';
-            $html .= '<thead><tr><td style="padding:0; border:none;">';
-            $html .= $this->renderBandHtml($columnHeaderBand, $definition, null, null);
-            $html .= '</td></tr></thead><tbody>';
-        }
-
-        $wrap = function (string $h) use ($useTable): string {
-            return $useTable
-                ? '<tr><td style="padding:0; border:none;">' . $h . '</td></tr>'
-                : $h;
-        };
+        $columnRendered = false;
 
         if (empty($data)) {
-            if (!$useTable) {
-                $html .= '<p>No data returned.</p>';
+            // Output column header even when no data
+            if ($hasElements($columnHeaderBand)) {
+                $html .= $this->renderBandHtml($columnHeaderBand, $definition, null, null);
             }
+            $html .= '<p>No data returned.</p>';
         } else {
             $groupValues = array_fill(0, count($groups), null);
             $groupAggregates = [];
@@ -115,13 +101,16 @@ class PdfRenderer implements RendererInterface
             $reportAggregates = new AggregateAccumulator();
 
             foreach ($data as $rowIndex => $row) {
+                $groupChanged = false;
+
+                // Detect group breaks
                 for ($g = 0; $g < count($groups); $g++) {
                     $field = $groups[$g]->fieldName;
                     if ($groupValues[$g] !== null && $groupValues[$g] !== ($row[$field] ?? null)) {
                         for ($inner = count($groups) - 1; $inner >= $g; $inner--) {
                             $footerBand = $this->findGroupFooter($definition, $groups[$inner]);
                             if ($footerBand && $hasElements($footerBand)) {
-                                $html .= $wrap($this->renderBandHtml($footerBand, $definition, $groups[$inner], $groupAggregates[$inner]));
+                                $html .= $this->renderBandHtml($footerBand, $definition, $groups[$inner], $groupAggregates[$inner]);
                             }
                             $groupAggregates[$inner]->reset();
                         }
@@ -129,23 +118,33 @@ class PdfRenderer implements RendererInterface
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;
                             $headerBand = $this->findGroupHeader($definition, $groups[$outer]);
                             if ($headerBand && $hasElements($headerBand)) {
-                                $html .= $wrap($this->renderBandHtml($headerBand, $definition, $groups[$outer], $row));
+                                $html .= $this->renderBandHtml($headerBand, $definition, $groups[$outer], $row);
                             }
                         }
+                        $groupChanged = true;
                         break;
                     }
                 }
 
+                // Open groups on first row
                 if ($rowIndex === 0) {
                     for ($g = 0; $g < count($groups); $g++) {
                         $groupValues[$g] = $row[$groups[$g]->fieldName] ?? null;
                         $headerBand = $this->findGroupHeader($definition, $groups[$g]);
                         if ($headerBand && $hasElements($headerBand)) {
-                            $html .= $wrap($this->renderBandHtml($headerBand, $definition, $groups[$g], $row));
+                            $html .= $this->renderBandHtml($headerBand, $definition, $groups[$g], $row);
                         }
                     }
+                    $groupChanged = true;
                 }
 
+                // Render column header once, after group headers, before first detail row
+                if ($groupChanged && !$columnRendered && $hasElements($columnHeaderBand)) {
+                    $html .= $this->renderBandHtml($columnHeaderBand, $definition, null, null);
+                    $columnRendered = true;
+                }
+
+                // Accumulate aggregates
                 foreach ($row as $field => $value) {
                     for ($g = 0; $g < count($groups); $g++) {
                         $groupAggregates[$g]->accumulate((string)$field, $value);
@@ -155,14 +154,14 @@ class PdfRenderer implements RendererInterface
 
                 $detailBand = $definition->bands->get('detail');
                 if ($hasElements($detailBand)) {
-                    $html .= $wrap($this->renderBandHtml($detailBand, $definition, null, $row));
+                    $html .= $this->renderBandHtml($detailBand, $definition, null, $row);
                 }
             }
 
             for ($g = count($groups) - 1; $g >= 0; $g--) {
                 $footerBand = $this->findGroupFooter($definition, $groups[$g]);
                 if ($footerBand && $hasElements($footerBand)) {
-                    $html .= $wrap($this->renderBandHtml($footerBand, $definition, $groups[$g], $groupAggregates[$g]));
+                    $html .= $this->renderBandHtml($footerBand, $definition, $groups[$g], $groupAggregates[$g]);
                 }
                 $groupAggregates[$g]->reset();
             }
@@ -171,10 +170,6 @@ class PdfRenderer implements RendererInterface
             if ($hasElements($reportFooterBand)) {
                 $html .= $this->renderBandHtml($reportFooterBand, $definition, null, $reportAggregates);
             }
-        }
-
-        if ($useTable) {
-            $html .= '</tbody></table>';
         }
 
         if ($inlineFooter) {

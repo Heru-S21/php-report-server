@@ -17,7 +17,6 @@ class HtmlRenderer implements RendererInterface
 
         usort($groups, fn(GroupDefinition $a, GroupDefinition $b) => $a->level <=> $b->level);
 
-        // Calculate usable page dimensions (orientation-aware)
         $paperW = $page->getPaperWidthMm();
         $paperH = $page->getPaperHeightMm();
         if ($page->orientation === 'landscape') {
@@ -35,7 +34,6 @@ class HtmlRenderer implements RendererInterface
             return $b && $b->visible && !empty($b->elements);
         };
 
-        // Locate bands
         $pageHeaderBand = $definition->bands->get('page_header');
         $pageFooterBand = $definition->bands->get('page_footer');
         $reportHeaderBand = $definition->bands->get('report_header');
@@ -46,17 +44,17 @@ class HtmlRenderer implements RendererInterface
         $currentPageHtml = '';
         $currentPageY = 0;
         $pages = [];
+        $columnRenderedOnPage = false;
 
-        // Open a new page div
-        $openPage = function() use (&$currentPageHtml, &$currentPageY, $usableWidth, $usableHeight) {
+        $openPage = function() use (&$currentPageHtml, &$currentPageY, &$columnRenderedOnPage, $usableWidth, $usableHeight) {
             $currentPageHtml = sprintf(
                 '<div class="report-page" style="width:%.1fmm; min-height:%.1fmm; position:relative;">',
                 $usableWidth, $usableHeight
             );
             $currentPageY = 0;
+            $columnRenderedOnPage = false;
         };
 
-        // Close current page and store it
         $closePage = function() use (&$currentPageHtml, &$currentPageY, &$pages, &$pageNum, $hasElements, $pageFooterBand, $definition) {
             if ($hasElements($pageFooterBand)) {
                 $footerHtml = $this->renderBandElement($pageFooterBand, $definition, null, null, $pageNum);
@@ -68,19 +66,30 @@ class HtmlRenderer implements RendererInterface
             $pageNum++;
         };
 
-        // Render repeating bands at top of a page
-        $renderPageTop = function() use (&$currentPageHtml, &$currentPageY, $hasElements, $pageHeaderBand, $columnHeaderBand, $definition, &$pageNum) {
+        $renderPageTop = function() use (&$currentPageHtml, &$currentPageY, &$columnRenderedOnPage, $hasElements, $pageHeaderBand, $columnHeaderBand, $definition, &$pageNum, &$groupValues, $groups) {
             if ($hasElements($pageHeaderBand) && $pageHeaderBand->printOnEveryPage) {
                 $currentPageHtml .= $this->renderBandElement($pageHeaderBand, $definition, null, null, $pageNum);
                 $currentPageY += $pageHeaderBand->height;
             }
+            // Reprint open group headers
+            if (!empty($groupValues)) {
+                for ($g = 0; $g < count($groups); $g++) {
+                    if ($groupValues[$g] !== null && $groups[$g]->reprintHeaderOnNewPage) {
+                        $headerBand = $this->findGroupHeader($definition, $groups[$g]);
+                        if ($headerBand && $hasElements($headerBand)) {
+                            $currentPageHtml .= $this->renderBandElement($headerBand, $definition, $groups[$g], null, $pageNum);
+                            $currentPageY += $headerBand->height;
+                        }
+                    }
+                }
+            }
             if ($hasElements($columnHeaderBand)) {
                 $currentPageHtml .= $this->renderBandElement($columnHeaderBand, $definition, null, null, $pageNum);
                 $currentPageY += $columnHeaderBand->height;
+                $columnRenderedOnPage = true;
             }
         };
 
-        // Render page header on page 1 (even if not printOnEveryPage)
         $renderInitialPageHeader = function() use (&$currentPageHtml, &$currentPageY, $hasElements, $pageHeaderBand, $definition, &$pageNum) {
             if ($hasElements($pageHeaderBand) && !$pageHeaderBand->printOnEveryPage) {
                 $currentPageHtml .= $this->renderBandElement($pageHeaderBand, $definition, null, null, $pageNum);
@@ -88,14 +97,10 @@ class HtmlRenderer implements RendererInterface
             }
         };
 
-        // Ensure a band fits on the current page; if not, start a new page
         $ensureFits = function(Band $band) use (&$currentPageHtml, &$currentPageY, $usableHeight, &$closePage, &$openPage, &$renderPageTop, &$pageNum) {
             $bandHeight = $band->height;
-            if ($bandHeight <= 0) {
-                return;
-            }
+            if ($bandHeight <= 0) return;
             if ($currentPageY + $bandHeight > $usableHeight) {
-                // If the band itself is taller than a page, just render it (can't break within)
                 if ($bandHeight <= $usableHeight) {
                     $closePage();
                     $openPage();
@@ -107,21 +112,13 @@ class HtmlRenderer implements RendererInterface
         // --- Rendering ---
         $openPage();
 
-        // Page header on page 1
+        // Page header on page 1 (not via renderPageTop — no group/column headers yet)
         if ($hasElements($pageHeaderBand)) {
             if ($pageHeaderBand->printOnEveryPage) {
-                $renderPageTop();
+                $currentPageHtml .= $this->renderBandElement($pageHeaderBand, $definition, null, null, $pageNum);
+                $currentPageY += $pageHeaderBand->height;
             } else {
                 $renderInitialPageHeader();
-                if ($hasElements($columnHeaderBand)) {
-                    $currentPageHtml .= $this->renderBandElement($columnHeaderBand, $definition, null, null, $pageNum);
-                    $currentPageY += $columnHeaderBand->height;
-                }
-            }
-        } else {
-            if ($hasElements($columnHeaderBand)) {
-                $currentPageHtml .= $this->renderBandElement($columnHeaderBand, $definition, null, null, $pageNum);
-                $currentPageY += $columnHeaderBand->height;
             }
         }
 
@@ -150,6 +147,8 @@ class HtmlRenderer implements RendererInterface
             $reportAggregates = new AggregateAccumulator();
 
             foreach ($data as $rowIndex => $row) {
+                $groupChanged = false;
+
                 // Detect group breaks
                 for ($g = 0; $g < count($groups); $g++) {
                     $field = $groups[$g]->fieldName;
@@ -174,6 +173,7 @@ class HtmlRenderer implements RendererInterface
                                 $currentPageY += $headerBand->height;
                             }
                         }
+                        $groupChanged = true;
                         break;
                     }
                 }
@@ -189,6 +189,15 @@ class HtmlRenderer implements RendererInterface
                             $currentPageY += $headerBand->height;
                         }
                     }
+                    $groupChanged = true;
+                }
+
+                // Render column header once per page, after group headers, before detail
+                if ($groupChanged && !$columnRenderedOnPage && $hasElements($columnHeaderBand)) {
+                    $ensureFits($columnHeaderBand);
+                    $currentPageHtml .= $this->renderBandElement($columnHeaderBand, $definition, null, null, $pageNum);
+                    $currentPageY += $columnHeaderBand->height;
+                    $columnRenderedOnPage = true;
                 }
 
                 // Accumulate aggregates
@@ -227,7 +236,6 @@ class HtmlRenderer implements RendererInterface
             }
         }
 
-        // Close last page
         $closePage();
 
         $html .= implode("\n", $pages);
