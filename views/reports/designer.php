@@ -22,45 +22,13 @@
     <div class="designer-panels">
         <aside class="panel panel-left">
             <div class="left-tabs">
-                <button class="l-tab active" data-lpanel="datasource" onclick="switchLeftPanel('datasource')" title="Data Source"><i class="ph-database"></i><span>Data Source</span></button>
-                <button class="l-tab" data-lpanel="fields" onclick="switchLeftPanel('fields')" title="Fields"><i class="ph-list"></i><span>Fields</span></button>
+                <button class="l-tab active" data-lpanel="fields" onclick="switchLeftPanel('fields')" title="Fields"><i class="ph-list"></i><span>Fields</span></button>
                 <button class="l-tab" data-lpanel="elements" onclick="switchLeftPanel('elements')" title="Elements"><i class="ph-squares-four"></i><span>Elements</span></button>
                 <button class="l-tab" data-lpanel="groups" onclick="switchLeftPanel('groups')" title="Groups"><i class="ph-folder"></i><span>Groups</span></button>
             </div>
             <div class="left-panels">
-                <!-- Data Source -->
-                <div id="lpanel-datasource" class="lpanel-content active">
-                    <div class="panel-section">
-                        <div class="form-group" style="margin-bottom:6px">
-                            <label style="font-size:11px;text-transform:none;letter-spacing:0">Connection</label>
-                            <select id="query-connection" class="prop-control" onchange="queryEditor.onConnectionChange()">
-                                <option value="">Select connection...</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom:6px">
-                            <label style="font-size:11px;text-transform:none;letter-spacing:0">Tables</label>
-                            <div id="table-list" class="table-list"><p class="text-muted" style="font-size:12px;padding:2px 0">Select a connection</p></div>
-                        </div>
-                        <div class="form-group" style="margin-bottom:6px">
-                            <label style="font-size:11px;text-transform:none;letter-spacing:0">SQL Query</label>
-                            <textarea id="query-sql" class="prop-control" rows="6" style="font-family:var(--font-mono);font-size:12px;resize:vertical" placeholder="SELECT * FROM ..." onchange="queryEditor.onSqlChange()"></textarea>
-                        </div>
-                        <div style="display:flex;gap:4px">
-                            <button class="btn btn-sm" onclick="queryEditor.runQuery()"><i class="ph-play"></i> Run</button>
-                            <button class="btn btn-sm" onclick="queryEditor.applyFields()"><i class="ph-check"></i> Apply Fields</button>
-                        </div>
-                        <div id="query-status" style="font-size:11px;color:var(--color-text-muted);margin-top:4px"></div>
-                        <div id="parameters-section" style="margin-top:8px;border-top:1px solid var(--color-border);padding-top:8px">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                                <label style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:600">Parameters</label>
-                                <button class="btn btn-sm btn-outline" onclick="queryEditor.addParameter()" title="Add parameter"><i class="ph-plus"></i></button>
-                            </div>
-                            <div id="parameter-list"></div>
-                        </div>
-                    </div>
-                </div>
                 <!-- Fields -->
-                <div id="lpanel-fields" class="lpanel-content">
+                <div id="lpanel-fields" class="lpanel-content active">
                     <div class="panel-section">
                         <h3><i class="ph-list"></i> Fields</h3>
                         <div id="field-list" class="field-list">
@@ -95,8 +63,65 @@
                 </div>
             </div>
         </aside>
-        <div class="designer-canvas" id="designer-canvas">
-            <div class="canvas-inner" id="canvas-inner"></div>
+        <div class="designer-center">
+            <div class="center-tabs">
+                <button class="c-tab active" data-cpanel="datasource" onclick="switchCenterPanel('datasource')">Data Source</button>
+                <button class="c-tab" data-cpanel="designer" onclick="switchCenterPanel('designer')">Report Designer</button>
+            </div>
+            <div id="cpanel-datasource" class="cpanel-content active">
+                <div class="ds-top-row">
+                    <div class="ds-col-left">
+                        <div class="panel-section">
+                            <div class="form-group" style="margin-bottom:6px">
+                                <label style="font-size:11px;text-transform:none;letter-spacing:0">Connection</label>
+                                <select id="query-connection" class="prop-control" onchange="queryEditor.onConnectionChange()">
+                                    <option value="">Select connection...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:11px;text-transform:none;letter-spacing:0">Tables</label>
+                                <div id="table-list" class="table-list"><p class="text-muted" style="font-size:12px;padding:2px 0">Select a connection</p></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ds-col-right">
+                        <div class="panel-section">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                                <label style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:600">Parameters</label>
+                                <button class="btn btn-sm btn-outline" onclick="queryEditor.addParameter()" title="Add parameter"><i class="ph-plus"></i></button>
+                            </div>
+                            <div id="parameter-list"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ds-query-section">
+                    <div class="panel-section">
+                        <div class="form-group" style="margin-bottom:6px">
+                            <label style="font-size:11px;text-transform:none;letter-spacing:0">SQL Query</label>
+                            <textarea id="query-sql" class="prop-control" rows="10" style="font-family:var(--font-mono);font-size:12px;resize:vertical" placeholder="SELECT * FROM ..." onchange="queryEditor.onSqlChange()"></textarea>
+                        </div>
+                        <div style="display:flex;gap:4px">
+                            <button class="btn btn-sm" onclick="queryEditor.runQuery()"><i class="ph-play"></i> Run</button>
+                            <button class="btn btn-sm" onclick="queryEditor.applyFields()"><i class="ph-check"></i> Apply Fields</button>
+                        </div>
+                        <div id="query-status" style="font-size:11px;color:var(--color-text-muted);margin-top:4px"></div>
+                    </div>
+                </div>
+                <div id="query-result-table" class="ds-result-section" style="display:none">
+                    <div class="panel-section">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                            <label style="font-size:11px;text-transform:none;letter-spacing:0;font-weight:600">Query Results</label>
+                            <button class="btn btn-icon btn-sm" onclick="queryEditor.closeResultTable()" title="Close"><i class="ph-x"></i></button>
+                        </div>
+                        <div id="query-result-body"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="cpanel-designer" class="cpanel-content">
+                <div class="designer-canvas" id="designer-canvas">
+                    <div class="canvas-inner" id="canvas-inner"></div>
+                </div>
+            </div>
         </div>
         <aside class="panel panel-right">
             <div class="right-panel-tabs">
@@ -237,7 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.groupEditor.updateGroupList();
     window.queryEditor.init();
     switchRightPanel('properties');
-    switchLeftPanel('datasource');
+    switchLeftPanel('fields');
+    switchCenterPanel('designer');
 });
 
 function switchRightPanel(name) {
@@ -248,5 +274,10 @@ function switchRightPanel(name) {
 function switchLeftPanel(name) {
     document.querySelectorAll('.l-tab').forEach(t => t.classList.toggle('active', t.dataset.lpanel === name));
     document.querySelectorAll('.lpanel-content').forEach(c => c.classList.toggle('active', c.id === 'lpanel-' + name));
+}
+
+function switchCenterPanel(name) {
+    document.querySelectorAll('.c-tab').forEach(t => t.classList.toggle('active', t.dataset.cpanel === name));
+    document.querySelectorAll('.cpanel-content').forEach(c => c.classList.toggle('active', c.id === 'cpanel-' + name));
 }
 </script>

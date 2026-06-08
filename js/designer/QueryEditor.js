@@ -9,6 +9,8 @@ class QueryEditor {
         this.connections = [];
         this.queryColumns = [];
         this.tables = [];
+        this.lastResultRows = [];
+        this.lastResultColumns = [];
     }
 
     async init() {
@@ -222,6 +224,10 @@ class QueryEditor {
             window.ReportingEngine.dispatch('SET_QUERY_COLUMNS', this.queryColumns);
             this.renderFieldList();
 
+            this.lastResultColumns = this.queryColumns;
+            this.lastResultRows = res.data.rows || [];
+            this.renderResultTable();
+
             const rowCount = res.data.rowCount || 0;
             this.setStatus(`Query OK — ${rowCount} rows, ${this.queryColumns.length} columns`, 'success');
 
@@ -301,6 +307,45 @@ class QueryEditor {
             return 'ph-calendar';
         }
         return 'ph-text-aa';
+    }
+
+    renderResultTable() {
+        const container = document.getElementById('query-result-table');
+        const body = document.getElementById('query-result-body');
+        if (!container || !body) return;
+
+        const cols = this.lastResultColumns;
+        const rows = this.lastResultRows.slice(0, 10);
+
+        if (rows.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        let html = '<div class="query-result-scroll"><table><thead><tr>';
+        for (const col of cols) {
+            html += `<th>${escapeHtml(col.name || '')}</th>`;
+        }
+        html += '</tr></thead><tbody>';
+        for (const row of rows) {
+            html += '<tr>';
+            for (let j = 0; j < cols.length; j++) {
+                const val = row[j] !== null && row[j] !== undefined ? String(row[j]) : '';
+                html += `<td>${escapeHtml(val)}</td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table></div>';
+        if (this.lastResultRows.length > 10) {
+            html += `<div style="font-size:11px;color:var(--color-text-muted);padding:4px 0">Showing 10 of ${this.lastResultRows.length} rows</div>`;
+        }
+        body.innerHTML = html;
+        container.style.display = 'block';
+    }
+
+    closeResultTable() {
+        const container = document.getElementById('query-result-table');
+        if (container) container.style.display = 'none';
     }
 
     setStatus(message, type) {

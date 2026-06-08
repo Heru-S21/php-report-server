@@ -292,9 +292,7 @@ class ElementEditor {
         this.contentEl.innerHTML = `
             <div class="prop-group">
                 <label>Report ID (GUID)</label>
-                <div class="prop-control" style="font-size:12px;color:#64748b;background:var(--color-surface-alt, #f1f5f9);padding:6px 10px;border-radius:4px;font-family:var(--font-mono, monospace);cursor:default;user-select:all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                    ${def.guid || (window.ReportingEngine.state.activeReportId ? '—' : 'Not saved yet')}
-                </div>
+                <input class="prop-control" type="text" value="${def.guid || (window.ReportingEngine.state.activeReportId ? '—' : 'Not saved yet')}" readonly style="font-family:var(--font-mono, monospace);font-size:12px;cursor:default;user-select:all">
             </div>
             <div class="prop-group">
                 <label>Report Name</label>

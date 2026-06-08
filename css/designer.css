@@ -377,12 +377,135 @@
     gap: 2px;
 }
 
+/* Center Panel with tabs */
+.designer-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.center-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+    flex-shrink: 0;
+}
+
+.c-tab {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-family: var(--font-ui);
+    font-weight: 500;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.c-tab:hover {
+    color: var(--color-text);
+}
+
+.c-tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.cpanel-content {
+    display: none;
+    flex: 1;
+    overflow: auto;
+}
+
+.cpanel-content.active {
+    display: block;
+}
+
+#cpanel-datasource.active {
+    padding: 8px 16px;
+}
+
+#cpanel-datasource .panel-section {
+    border-bottom: none;
+}
+
+.ds-top-row {
+    display: flex;
+    gap: 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.ds-col-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.ds-col-right {
+    width: 320px;
+    flex-shrink: 0;
+    border-left: 1px solid var(--color-border);
+}
+
+.ds-query-section .panel-section {
+    padding-bottom: 8px;
+}
+
+.ds-result-section .panel-section {
+    border-top: 1px solid var(--color-border);
+}
+
+.query-result-scroll {
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.query-result-scroll table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.query-result-scroll th {
+    position: sticky;
+    top: 0;
+    background: var(--color-surface-2);
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.query-result-scroll td {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.query-result-scroll tr:last-child td {
+    border-bottom: none;
+}
+
+.query-result-scroll tr:hover td {
+    background: var(--color-surface-2);
+}
+
 /* Designer Canvas */
 .designer-canvas {
     flex: 1;
     overflow: auto;
     background: #E2E8F0;
     padding: 24px;
+    min-height: 100%;
 }
 
 .canvas-inner {
