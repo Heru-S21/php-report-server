@@ -13,6 +13,7 @@ class GroupDefinition
     public bool $showHeader = true;
     public bool $showFooter = true;
     public bool $startCollapsed = false;
+    public bool $resetRowNo = false;
 
     public static function fromArray(array $data): self
     {
@@ -26,6 +27,7 @@ class GroupDefinition
         $g->showHeader = (bool)($data['showHeader'] ?? true);
         $g->showFooter = (bool)($data['showFooter'] ?? true);
         $g->startCollapsed = (bool)($data['startCollapsed'] ?? false);
+        $g->resetRowNo = (bool)($data['resetRowNo'] ?? false);
         return $g;
     }
 
@@ -41,6 +43,7 @@ class GroupDefinition
             'showHeader' => $this->showHeader,
             'showFooter' => $this->showFooter,
             'startCollapsed' => $this->startCollapsed,
+            'resetRowNo' => $this->resetRowNo,
         ];
     }
 }

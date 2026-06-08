@@ -114,7 +114,7 @@ class PdfRenderer implements RendererInterface
                                 $html .= $this->renderBandHtml($footerBand, $definition, $groups[$inner], $groupAggregates[$inner]);
                             }
                             $groupAggregates[$inner]->reset();
-                            $groupRowCounters[$inner] = 0;
+                            if ($groups[$inner]->resetRowNo) $groupRowCounters[$inner] = 0;
                         }
                         for ($outer = $g; $outer < count($groups); $outer++) {
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;

@@ -165,7 +165,7 @@ class HtmlRenderer implements RendererInterface
                                 $currentPageY += $footerBand->height;
                             }
                             $groupAggregates[$inner]->reset();
-                            $groupRowCounters[$inner] = 0;
+                            if ($groups[$inner]->resetRowNo) $groupRowCounters[$inner] = 0;
                         }
                         // Reopen outer groups
                         for ($outer = $g; $outer < count($groups); $outer++) {

@@ -185,6 +185,11 @@
             </div>
             <div class="form-group">
                 <label class="checkbox-label">
+                    <input type="checkbox" id="group-reset-rowno"> Reset Row Number per Group
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
                     <input type="checkbox" id="group-show-header" checked> Show Header
                 </label>
             </div>

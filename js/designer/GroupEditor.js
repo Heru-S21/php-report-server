@@ -19,6 +19,7 @@ class GroupEditor {
         document.getElementById('group-sort-select').value = group ? group.sortDirection : 'ASC';
         document.getElementById('group-page-break').checked = group ? group.pageBreakBefore : false;
         document.getElementById('group-reprint-header').checked = group ? group.reprintHeaderOnNewPage : false;
+        document.getElementById('group-reset-rowno').checked = group ? group.resetRowNo : false;
         document.getElementById('group-show-header').checked = group ? group.showHeader : true;
         document.getElementById('group-show-footer').checked = group ? group.showFooter : true;
         document.getElementById('group-collapsed').checked = group ? group.startCollapsed : false;
@@ -51,6 +52,7 @@ class GroupEditor {
             sortDirection: document.getElementById('group-sort-select').value,
             pageBreakBefore: document.getElementById('group-page-break').checked,
             reprintHeaderOnNewPage: document.getElementById('group-reprint-header').checked,
+            resetRowNo: document.getElementById('group-reset-rowno').checked,
             showHeader: document.getElementById('group-show-header').checked,
             showFooter: document.getElementById('group-show-footer').checked,
             startCollapsed: document.getElementById('group-collapsed').checked,
