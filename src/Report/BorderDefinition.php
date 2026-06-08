@@ -9,9 +9,10 @@ class BorderSide
     public string $style = 'solid';
     public string $color = '#000000';
 
-    public static function fromArray(array $data): self
+    public static function fromArray(mixed $data): self
     {
         $side = new self();
+        if (!is_array($data)) return $side;
         $side->enabled = $data['enabled'] ?? false;
         $side->width = $data['width'] ?? 1;
         $side->style = $data['style'] ?? 'solid';

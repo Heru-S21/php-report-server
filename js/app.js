@@ -180,7 +180,8 @@ async function initConnectionEdit() {
         document.getElementById('conn-port').value = res.data.port || '';
         document.getElementById('conn-database').value = res.data.database || '';
         document.getElementById('conn-username').value = res.data.username || '';
-        document.getElementById('conn-options').value = res.data.options || '';
+        const opts = res.data.options;
+        document.getElementById('conn-options').value = opts ? (typeof opts === 'object' ? JSON.stringify(opts, null, 2) : opts) : '';
         toggleConnectionFields();
     } catch (e) {
         console.error('Load connection error:', e);

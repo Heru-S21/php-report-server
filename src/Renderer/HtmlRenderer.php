@@ -22,7 +22,7 @@ class HtmlRenderer implements RendererInterface
             [$paperW, $paperH] = [$paperH, $paperW];
         }
         $usableWidth  = $paperW - $page->marginLeft - $page->marginRight;
-        $usableHeight = $paperH - $page->marginTop  - $page->marginBottom;
+        $usableHeight = $paperH - $page->marginTop  - $page->marginBottom - 25;
 
         $html  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">';
         $html .= '<title>' . htmlspecialchars($definition->name ?: 'Report') . '</title>';
@@ -93,11 +93,13 @@ class HtmlRenderer implements RendererInterface
         };
 
         // Reserve space for a band – break page if needed.
-        $fit = function(?Band $b) use (&$pageHtml, &$pageY, $usableHeight, &$closePage, &$openPage, &$renderPageTop, &$groupValues): float {
+        // $rowData – current data row, passed for reprinted group-header field values.
+        $contentLimit = $usableHeight - ($has($pfBand) ? $pfBand->height : 0);
+        $fit = function(?Band $b, ?array $rowData = null) use (&$pageHtml, &$pageY, $contentLimit, &$closePage, &$openPage, &$renderPageTop, &$groupValues): float {
             if (!$b || !$b->visible || empty($b->elements)) return 0;
             $h = $b->height;
             if ($h <= 0) return 0;
-            if ($pageY + $h > $usableHeight && $h <= $usableHeight) {
+            if ($pageY + $h > $contentLimit && $h <= $contentLimit) {
                 $reprint = [];
                 if (isset($groupValues)) {
                     foreach ($groupValues as $gi => $v) {
@@ -106,7 +108,7 @@ class HtmlRenderer implements RendererInterface
                 }
                 $closePage();
                 $openPage();
-                $renderPageTop($reprint, null, false);
+                $renderPageTop($reprint, $rowData, false);
             }
             return $h;
         };
@@ -128,7 +130,7 @@ class HtmlRenderer implements RendererInterface
 
         if (empty($data)) {
             $noDataH = 20;
-            if ($pageY + $noDataH > $usableHeight && $noDataH <= $usableHeight) {
+            if ($pageY + $noDataH > $contentLimit && $noDataH <= $contentLimit) {
                 $closePage();
                 $openPage();
                 $renderPageTop([], null, false);
@@ -185,7 +187,7 @@ class HtmlRenderer implements RendererInterface
                         for ($outer = $g; $outer < count($groups); $outer++) {
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;
                             $hdr = $this->findGroupHeader($definition, $groups[$outer]);
-                            $pageY += $fit($hdr);
+                            $pageY += $fit($hdr, $row);
                             if ($hdr && $has($hdr)) {
                                 $pageHtml .= $this->renderBandElement($hdr, $definition, $groups[$outer], $row, $pageNum);
                             }
@@ -210,7 +212,7 @@ class HtmlRenderer implements RendererInterface
                     for ($g = 0; $g < count($groups); $g++) {
                         $groupValues[$g] = $row[$groups[$g]->fieldName] ?? null;
                         $hdr = $this->findGroupHeader($definition, $groups[$g]);
-                        $pageY += $fit($hdr);
+                        $pageY += $fit($hdr, $row);
                         if ($hdr && $has($hdr)) {
                             $pageHtml .= $this->renderBandElement($hdr, $definition, $groups[$g], $row, $pageNum);
                         }
@@ -244,7 +246,7 @@ class HtmlRenderer implements RendererInterface
                 }
 
                 // ------ detail band ------
-                $pageY += $fit($dtBand);
+                $pageY += $fit($dtBand, $row);
                 if ($has($dtBand)) {
                     $pageHtml .= $this->renderBandElement($dtBand, $definition, null, $row, $pageNum);
                 }
@@ -445,9 +447,8 @@ class HtmlRenderer implements RendererInterface
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #e2e8f0; }
             .report-page { width: ' . $usableWidth . 'mm; margin: 0 auto 24px auto; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.12); page-break-after: always; position: relative; }
             .report-page:last-child { page-break-after: auto; margin-bottom: 0; }
-            .band { padding: 2px 4px; border-bottom: 1px solid #eee; overflow: hidden; }
+            .band { padding: 2px 4px; overflow: hidden; }
             .element { overflow: hidden; white-space: nowrap; }
-
             @media print {
                 body { background: white; padding: 0; }
                 .report-page { box-shadow: none; margin: 0; page-break-after: always; }

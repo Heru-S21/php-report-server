@@ -12,6 +12,15 @@
             <link rel="stylesheet" href="<?= htmlspecialchars($css) ?>">
         <?php endforeach; ?>
     <?php endif; ?>
+    <style>
+        @media print {
+            .navbar { display: none !important; }
+            .main-content { padding: 0 !important; }
+            .page-header { display: none !important; }
+            .preview-params { display: none !important; }
+            .preview-container { border: none !important; box-shadow: none !important; border-radius: 0 !important; min-height: 0 !important; }
+        }
+    </style>
 </head>
 <body>
     <?php include __DIR__ . '/partials/navbar.php'; ?>

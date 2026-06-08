@@ -12,6 +12,11 @@ class BorderEditor {
             if (!b[side]) b[side] = { enabled: false, width: 1, style: 'solid', color: '#000000' };
         });
 
+        const curSide = b.top.enabled ? b.top : b.right.enabled ? b.right : b.bottom.enabled ? b.bottom : b.left.enabled ? b.left : b.top;
+        const curStyle = curSide.style;
+        const curWidth = curSide.width;
+        const curColor = curSide.color;
+
         container.innerHTML = `
             <div class="border-editor">
                 <div class="border-sides">
@@ -31,23 +36,23 @@ class BorderEditor {
                     <div id="border-preview" class="border-preview-box">Preview</div>
                     <div class="prop-group">
                         <label>Width (px)</label>
-                        <input class="prop-control" type="number" value="1" min="0" max="10"
+                        <input class="prop-control" type="number" value="${curWidth}" min="0" max="10"
                                id="border-width" onchange="window.borderEditor.updateStyle('width', parseInt(this.value) || 1)">
                     </div>
                     <div class="prop-group">
                         <label>Style</label>
                         <select class="prop-control" id="border-style"
                                 onchange="window.borderEditor.updateStyle('style', this.value)">
-                            <option value="solid">Solid</option>
-                            <option value="dashed">Dashed</option>
-                            <option value="dotted">Dotted</option>
-                            <option value="double">Double</option>
-                            <option value="none">None</option>
+                            <option value="solid" ${curStyle === 'solid' ? 'selected' : ''}>Solid</option>
+                            <option value="dashed" ${curStyle === 'dashed' ? 'selected' : ''}>Dashed</option>
+                            <option value="dotted" ${curStyle === 'dotted' ? 'selected' : ''}>Dotted</option>
+                            <option value="double" ${curStyle === 'double' ? 'selected' : ''}>Double</option>
+                            <option value="none" ${curStyle === 'none' ? 'selected' : ''}>None</option>
                         </select>
                     </div>
                     <div class="prop-group">
                         <label>Color</label>
-                        <input class="prop-control" type="color" value="#000000"
+                        <input class="prop-control" type="color" value="${curColor}"
                                id="border-color" onchange="window.borderEditor.updateStyle('color', this.value)">
                     </div>
                 </div>
