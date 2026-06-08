@@ -62,3 +62,7 @@ $router->get('/connections/edit/{id}', function ($request) {
 $router->get('/connections/new', function () {
     return Response::view('layout', ['content' => 'connections/edit', 'connectionId' => null]);
 });
+
+$router->get('/readme', function () {
+    return Response::view('layout', ['content' => 'reports/readme']);
+});

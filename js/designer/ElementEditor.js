@@ -277,9 +277,18 @@ class ElementEditor {
     }
 
     renderReportProps() {
+        switch (this.activeTab) {
+            case 'general': this.renderReportGeneralTab(); break;
+            case 'style': this.renderReportStyleTab(); break;
+            case 'advanced': this.renderReportAdvancedTab(); break;
+            default:
+                this.contentEl.innerHTML = '';
+                break;
+        }
+    }
+
+    renderReportGeneralTab() {
         const def = window.ReportingEngine.state.definition;
-        const page = def.page || {};
-        const ds = def.defaultStyle || {};
         this.contentEl.innerHTML = `
             <div class="prop-group">
                 <label>Report Name</label>
@@ -291,9 +300,13 @@ class ElementEditor {
                 <textarea class="prop-control" rows="2" style="resize:vertical"
                     onchange="window.elementEditor.updateReportField('description', this.value)">${escapeHtml(def.description || '')}</textarea>
             </div>
-            <div class="prop-group" style="border-top:1px solid var(--color-border);padding-top:12px;margin-top:8px">
-                <label style="font-weight:600;font-size:11px;text-transform:uppercase">Default Style</label>
-            </div>
+        `;
+    }
+
+    renderReportStyleTab() {
+        const def = window.ReportingEngine.state.definition;
+        const ds = def.defaultStyle || {};
+        this.contentEl.innerHTML = `
             <div class="prop-row">
                 <div class="prop-group">
                     <label>Font</label>
@@ -324,7 +337,14 @@ class ElementEditor {
                            onchange="window.elementEditor.updateDefaultStyle('backgroundColor', this.value === '#ffffff' ? 'transparent' : this.value)">
                 </div>
             </div>
-            <div class="prop-group" style="border-top:1px solid var(--color-border);padding-top:12px;margin-top:8px">
+        `;
+    }
+
+    renderReportAdvancedTab() {
+        const def = window.ReportingEngine.state.definition;
+        const page = def.page || {};
+        this.contentEl.innerHTML = `
+            <div class="prop-group">
                 <label style="font-weight:600;font-size:11px;text-transform:uppercase">Page Setup</label>
             </div>
             <div class="prop-row">
