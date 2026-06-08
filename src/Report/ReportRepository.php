@@ -37,10 +37,6 @@ class ReportRepository
         $report = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report) return null;
 
-        if (is_string($report['definition'])) {
-            $report['definition'] = json_decode($report['definition'], true);
-        }
-
         return $report;
     }
 
@@ -55,10 +51,6 @@ class ReportRepository
         $stmt->execute([$guid]);
         $report = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$report) return null;
-
-        if (is_string($report['definition'])) {
-            $report['definition'] = json_decode($report['definition'], true);
-        }
 
         return $report;
     }

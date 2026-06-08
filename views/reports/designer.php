@@ -260,7 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.designer = new Designer('canvas-inner');
     window.bandManager = new BandManager(window.designer);
     window.elementEditor = new ElementEditor(window.designer);
-    window.borderEditor = new BorderEditor(window.designer);
     window.groupEditor = new GroupEditor(window.designer);
     window.aggregateEditor = new AggregateEditor(window.designer);
     window.dragDrop = new DragDrop(window.designer);

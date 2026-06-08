@@ -6,6 +6,7 @@ class ElementEditor {
         this.currentBand = null;
         this.activeTab = 'general';
         this.borderEditor = new BorderEditor(designer);
+        window.borderEditor = this.borderEditor;
     }
 
     loadElement(element) {

@@ -6,7 +6,7 @@ class BorderEditor {
 
     render(container, target) {
         this.target = target;
-        if (!target.border) target.border = {};
+        if (!target.border || Array.isArray(target.border)) target.border = {};
         const b = target.border;
         ['top', 'right', 'bottom', 'left'].forEach(side => {
             if (!b[side]) b[side] = { enabled: false, width: 1, style: 'solid', color: '#000000' };
