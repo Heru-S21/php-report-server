@@ -829,6 +829,15 @@ a:hover {
     background: var(--color-surface-2);
 }
 
+[data-theme="dark"] .readme-content pre {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+}
+
+[data-theme="dark"] .readme-content pre code {
+    color: inherit;
+}
+
 [data-theme="dark"] .readme-content blockquote {
     background: rgba(148, 163, 184, 0.08);
 }
