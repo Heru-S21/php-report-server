@@ -163,10 +163,72 @@ Labels support dynamic content via expressions in the designer's properties pane
 - Comparators: `>`, `<`, `>=`, `<=`, `==`, `!=`
 - Ternary: `condition ? value_if_true : value_if_false`
 - Math: `-`, `*`, `/`
-- Logical: `&&`, `||`, unary `!`
+- Division by zero returns 0 (silent)
 - Parentheses for grouping
 
-The same expression syntax also powers **Conditional Visibility** — set a visibility expression on any element to show/hide it based on data.
+### Aggregate Functions in Expressions
+
+Inside **group footer** and **report footer** bands, label expressions can use aggregate functions:
+
+```
+count([field_name])
+sum([field_name])
+avg([field_name])
+min([field_name])
+max([field_name])
+```
+
+Examples:
+
+```
+"Total orders: " + count([order_id])
+"Average: " + avg([line_total])
+customer_count > 1 ? customer_count + " customers" : "1 customer"
+```
+
+These resolve to the accumulated aggregate value for the current group or report scope (the element's band determines the scope). The `[field_name]` inside the parentheses refers to the data field name, not its value.
+
+The same aggregate functions are also available in **conditional expressions** within footers.
+
+### Advanced Tab: Conditional Expression
+
+Every element has an **Advanced** tab in the properties panel with a **Conditional Expression** field. This is a boolean expression evaluated for each data row:
+
+```
+[amount] > 1000
+[status] == "overdue"
+[total] > 500 && count([items]) > 3
+```
+
+- If the expression evaluates to `true`, the element is rendered normally
+- If `false`, the element is **hidden** (not rendered at all)
+- Uses the same expression syntax as labels (field references, comparisons, ternary, etc.)
+- Leave the field empty for the element to always show
+
+### Advanced Tab: Conditional Style
+
+The **Conditional Style** field accepts a JSON object of style overrides applied when the **Conditional Expression** evaluates to `true`:
+
+```
+{"color":"#ff0000","bold":true}
+{"color":"#16a34a","fontSize":14,"italic":true}
+{"backgroundColor":"#fef2f2","bold":true,"color":"#dc2626"}
+```
+
+Supported style keys:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `color` | string | Text color (hex, e.g. `#ff0000`) |
+| `backgroundColor` | string | Background color |
+| `bold` | boolean | Bold text |
+| `italic` | boolean | Italic text |
+| `fontSize` | number | Font size in points |
+| `fontFamily` | string | Font family name |
+| `textAlign` | string | `left`, `center`, or `right` |
+| `verticalAlign` | string | `top`, `middle`, or `bottom` |
+
+Only the keys specified in the JSON are overridden; all other element styles remain unchanged.
 
 ## Database Connections
 

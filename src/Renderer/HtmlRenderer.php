@@ -316,25 +316,37 @@ class HtmlRenderer implements RendererInterface
         $va = $el->verticalAlign ?? 'top';
         $ta = $el->textAlign ?: 'left';
 
+        $condStyle = $this->resolveConditionalStyle($el, $data);
+
+        $bold = $condStyle['bold'] ?? $el->bold;
+        $italic = $condStyle['italic'] ?? $el->italic;
+        $underline = $condStyle['underline'] ?? $el->underline;
+        $color = $condStyle['color'] ?? $el->color ?: '#000000';
+        $backgroundColor = $condStyle['backgroundColor'] ?? $el->backgroundColor ?: 'transparent';
+        $fontFamily = $condStyle['fontFamily'] ?? $el->fontFamily ?: 'Arial';
+        $fontSize = $condStyle['fontSize'] ?? $el->fontSize ?: 10;
+        $textAlign = $condStyle['textAlign'] ?? $ta;
+        $verticalAlign = $condStyle['verticalAlign'] ?? $va;
+
         $isTextType = !in_array($el->type, ['image', 'line', 'rect']);
 
-        if ($va === 'top') {
+        if ($verticalAlign === 'top') {
             $style = sprintf(
                 'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:%s; %s',
                 $el->top, $el->left, $el->width, $el->height,
-                $el->fontFamily ?: 'Arial',
-                $el->fontSize ?: 10,
-                $el->bold ? 'bold' : 'normal',
-                $el->italic ? 'italic' : 'normal',
-                $el->underline ? 'underline' : 'none',
-                $el->color ?: '#000000',
-                $ta,
-                $el->backgroundColor ?: 'transparent',
+                $fontFamily,
+                $fontSize,
+                $bold ? 'bold' : 'normal',
+                $italic ? 'italic' : 'normal',
+                $underline ? 'underline' : 'none',
+                $color,
+                $textAlign,
+                $backgroundColor,
                 $borderStyle
             );
         } else {
-            $alignItems = $va === 'middle' ? 'center' : 'flex-end';
-            $justify = match ($ta) {
+            $alignItems = $verticalAlign === 'middle' ? 'center' : 'flex-end';
+            $justify = match ($textAlign) {
                 'center' => 'center',
                 'right' => 'flex-end',
                 default => 'flex-start',
@@ -342,15 +354,15 @@ class HtmlRenderer implements RendererInterface
             $style = sprintf(
                 'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; display:flex; align-items:%s; justify-content:%s; overflow:hidden; background:%s; %s',
                 $el->top, $el->left, $el->width, $el->height,
-                $el->fontFamily ?: 'Arial',
-                $el->fontSize ?: 10,
-                $el->bold ? 'bold' : 'normal',
-                $el->italic ? 'italic' : 'normal',
-                $el->underline ? 'underline' : 'none',
-                $el->color ?: '#000000',
+                $fontFamily,
+                $fontSize,
+                $bold ? 'bold' : 'normal',
+                $italic ? 'italic' : 'normal',
+                $underline ? 'underline' : 'none',
+                $color,
                 $alignItems,
                 $justify,
-                $el->backgroundColor ?: 'transparent',
+                $backgroundColor,
                 $borderStyle
             );
         }
@@ -358,7 +370,7 @@ class HtmlRenderer implements RendererInterface
         if ($isTextType) {
             $value = sprintf(
                 '<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; width:100%%; min-width:0; text-align:%s">%s</span>',
-                $ta,
+                $textAlign,
                 $value
             );
         }
@@ -366,10 +378,26 @@ class HtmlRenderer implements RendererInterface
         return sprintf('<div class="element" style="%s">%s</div>', $style, $value);
     }
 
+    private function resolveConditionalStyle(BandElement $el, $data): array
+    {
+        if (!$el->conditionalExpression || !$el->conditionalStyle) return [];
+        $bool = ExpressionEvaluator::evaluateBool(
+            $el->conditionalExpression,
+            $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: [])
+        );
+        if (!$bool) return [];
+        $parsed = json_decode($el->conditionalStyle, true);
+        return is_array($parsed) ? $parsed : [];
+    }
+
     private function getElementValue(BandElement $el, ReportDefinition $def, $group, $data, int $pageNum = 1): string
     {
         return match ($el->type) {
-            'label' => htmlspecialchars($el->expression ? ExpressionEvaluator::evaluate($el->expression, $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: [])) : ($el->text ?? '')),
+            'label' => htmlspecialchars($el->expression
+                ? ExpressionEvaluator::evaluate($el->expression,
+                    $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []),
+                    $data instanceof AggregateAccumulator ? $data : null)
+                : ($el->text ?? '')),
             'field' => $data && $el->fieldName
                 ? (is_array($data) && isset($data[$el->fieldName])
                     ? htmlspecialchars($this->formatValue($data[$el->fieldName], $el->format))

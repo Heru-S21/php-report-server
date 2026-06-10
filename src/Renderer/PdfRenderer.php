@@ -368,24 +368,36 @@ class PdfRenderer implements RendererInterface
     {
         $value = $this->getElementValue($el, $def, $group, $data);
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
+
+        $condStyle = $this->resolveConditionalStyle($el, $data);
+
+        $bold = $condStyle['bold'] ?? $el->bold;
+        $italic = $condStyle['italic'] ?? $el->italic;
+        $color = $condStyle['color'] ?? $el->color ?: '#000';
+        $backgroundColor = $condStyle['backgroundColor'] ?? $el->backgroundColor ?: 'transparent';
+        $fontFamily = $condStyle['fontFamily'] ?? $el->fontFamily ?: 'Arial';
+        $fontSize = $condStyle['fontSize'] ?? $el->fontSize ?: 10;
+        $textAlign = $condStyle['textAlign'] ?? $el->textAlign ?: 'left';
+        $verticalAlign = $condStyle['verticalAlign'] ?? $el->verticalAlign ?? 'top';
+
         $style = sprintf(
             'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; overflow:hidden; background:%s; %s',
             $marginLeft, $el->width, $el->height,
-            $el->fontFamily ?: 'Arial',
-            $el->fontSize ?: 10,
-            $el->bold ? 'bold' : 'normal',
-            $el->italic ? 'italic' : 'normal',
-            $el->color ?: '#000',
-            $el->textAlign ?: 'left',
-            $el->verticalAlign ?? 'top',
-            $el->backgroundColor ?: 'transparent',
+            $fontFamily,
+            $fontSize,
+            $bold ? 'bold' : 'normal',
+            $italic ? 'italic' : 'normal',
+            $color,
+            $textAlign,
+            $verticalAlign,
+            $backgroundColor,
             $borderStyle
         );
 
         if (!in_array($el->type, ['image', 'line', 'rect'])) {
             $value = sprintf(
                 '<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; width:100%%; min-width:0; text-align:%s">%s</span>',
-                $el->textAlign ?: 'left',
+                $textAlign,
                 $value
             );
         }
@@ -393,10 +405,26 @@ class PdfRenderer implements RendererInterface
         return sprintf('<div class="element" style="%s">%s</div>', $style, $value);
     }
 
+    private function resolveConditionalStyle(BandElement $el, $data): array
+    {
+        if (!$el->conditionalExpression || !$el->conditionalStyle) return [];
+        $bool = ExpressionEvaluator::evaluateBool(
+            $el->conditionalExpression,
+            $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: [])
+        );
+        if (!$bool) return [];
+        $parsed = json_decode($el->conditionalStyle, true);
+        return is_array($parsed) ? $parsed : [];
+    }
+
     private function getElementValue(BandElement $el, ReportDefinition $def, $group, $data): string
     {
         return match ($el->type) {
-            'label' => htmlspecialchars($el->expression ? ExpressionEvaluator::evaluate($el->expression, $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: [])) : ($el->text ?? '')),
+            'label' => htmlspecialchars($el->expression
+                ? ExpressionEvaluator::evaluate($el->expression,
+                    $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []),
+                    $data instanceof AggregateAccumulator ? $data : null)
+                : ($el->text ?? '')),
             'field' => $data && $el->fieldName
                 ? (is_array($data) && isset($data[$el->fieldName])
                     ? htmlspecialchars($this->formatValue($data[$el->fieldName], $el->format))

@@ -2,12 +2,15 @@
 
 namespace ReportingEngine\Renderer;
 
+use ReportingEngine\Report\AggregateAccumulator;
+
 class ExpressionEvaluator
 {
     private string $input;
     private int $pos;
     private int $len;
     private array $data;
+    private ?AggregateAccumulator $accumulator = null;
 
     public function __construct(string $expression, array $data)
     {
@@ -17,9 +20,15 @@ class ExpressionEvaluator
         $this->data = $data;
     }
 
-    public static function evaluate(string $expression, array $data): string
+    public function setAccumulator(?AggregateAccumulator $accumulator): void
+    {
+        $this->accumulator = $accumulator;
+    }
+
+    public static function evaluate(string $expression, array $data, ?AggregateAccumulator $accumulator = null): string
     {
         $parser = new self($expression, $data);
+        $parser->setAccumulator($accumulator);
         $result = $parser->parseExpression();
         return $parser->toString($result);
     }
@@ -158,14 +167,56 @@ class ExpressionEvaluator
         if ($ch === '-' || $ch === '.' || ctype_digit($ch)) {
             return $this->parseNumber();
         }
-        // Logical operators as words
         $word = $this->parseWord();
+
+        // Function call — word followed by (
+        $this->skipWhitespace();
+        if ($this->peek() === '(') {
+            return $this->parseFunction($word);
+        }
+
         $lower = strtolower($word);
         if ($lower === 'true') return true;
         if ($lower === 'false') return false;
         if ($lower === 'null') return null;
         // Return the word as a string literal fallback
         return $word;
+    }
+
+    private function parseFunction(string $name): mixed
+    {
+        $this->expect('(');
+        $this->skipWhitespace();
+
+        $lower = strtolower($name);
+        $aggregateFuncs = ['sum', 'count', 'avg', 'min', 'max'];
+
+        if (in_array($lower, $aggregateFuncs)) {
+            $fieldName = '';
+            if ($this->peek() === '[') {
+                $this->expect('[');
+                while ($this->pos < $this->len && $this->peek() !== ']') {
+                    $fieldName .= $this->advance();
+                }
+                $this->expect(']');
+            } else {
+                $fieldName = $this->parseWord();
+            }
+
+            $this->skipWhitespace();
+            $this->expect(')');
+
+            if ($this->accumulator !== null) {
+                return $this->accumulator->resolve($lower, $fieldName);
+            }
+            return 0;
+        }
+
+        // Non-aggregate function: evaluate argument as expression
+        $arg = $this->parseExpression();
+        $this->skipWhitespace();
+        $this->expect(')');
+        return $arg;
     }
 
     private function parseFieldRef(): mixed
