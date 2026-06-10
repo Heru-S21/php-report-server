@@ -389,7 +389,7 @@ class PdfRenderer implements RendererInterface
                 ? htmlspecialchars($this->formatValue($data[$el->fieldName], $el->format))
                 : '',
             'aggregate' => $this->renderAggValue($el, $data),
-            'image' => $el->imageUrl ? '<img src="' . $el->imageUrl . '" style="max-width:100%">' : '',
+            'image' => $el->imageUrl ? '<img src="' . $el->imageUrl . '" style="width:100%;height:100%;object-fit:' . $this->imageFit($el->imageDisplay) . '">' : '',
             'line' => '<hr style="border:none;border-top:1px solid #000">',
             'rect' => '',
             'pageno' => '{PAGENO}',
@@ -455,6 +455,15 @@ class PdfRenderer implements RendererInterface
         }
 
         return number_format($v, $decimals, $decPoint, $thousandsSep);
+    }
+
+    private function imageFit(?string $display): string
+    {
+        return match ($display) {
+            'original' => 'none',
+            'stretch' => 'fill',
+            default => 'contain',
+        };
     }
 
     private function findGroupHeader(ReportDefinition $def, GroupDefinition $group): ?Band

@@ -359,7 +359,7 @@ class HtmlRenderer implements RendererInterface
                 ? htmlspecialchars($this->formatValue($data[$el->fieldName], $el->format))
                 : '',
             'aggregate' => $this->renderAggregate($el, $data),
-            'image' => $el->imageUrl ? '<img src="' . htmlspecialchars($el->imageUrl) . '" style="max-width:100%;max-height:100%">' : '',
+            'image' => $el->imageUrl ? '<img src="' . htmlspecialchars($el->imageUrl) . '" style="width:100%;height:100%;object-fit:' . $this->imageFit($el->imageDisplay) . '">' : '',
             'line' => '<hr style="border:none;border-top:1px solid #000;margin:0;width:100%">',
             'rect' => '',
             'pageno' => (string)$pageNum,
@@ -438,6 +438,15 @@ class HtmlRenderer implements RendererInterface
             }
         }
         return null;
+    }
+
+    private function imageFit(?string $display): string
+    {
+        return match ($display) {
+            'original' => 'none',
+            'stretch' => 'fill',
+            default => 'contain',
+        };
     }
 
     private function findGroupFooter(ReportDefinition $def, GroupDefinition $group): ?Band

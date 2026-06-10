@@ -206,7 +206,10 @@ class Designer {
                 const func = (el.aggregateFunc || 'SUM').toUpperCase();
                 return el.fieldName ? `{${func}(${el.fieldName})}` : '{AGGREGATE}';
             }
-            case 'image': return el.imageUrl ? `<img src="${el.imageUrl}" style="max-width:100%;max-height:100%">` : '[Image]';
+            case 'image': {
+                const imgFit = el.imageDisplay === 'original' ? 'none' : el.imageDisplay === 'stretch' ? 'fill' : 'contain';
+                return el.imageUrl ? `<img src="${el.imageUrl}" style="width:100%;height:100%;object-fit:${imgFit}">` : '[Image]';
+            }
             case 'line': return '<hr style="border:none;border-top:1px solid #000;margin:0">';
             case 'rect': return '';
             case 'pageno': return el.text || '{PAGENO}';
@@ -272,8 +275,33 @@ class Designer {
         // Toolbox drag
         document.querySelectorAll('.toolbox-item').forEach(item => {
             item.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', item.dataset.type);
+                const type = item.dataset.type;
+                e.dataTransfer.setData('text/plain', type);
                 e.dataTransfer.effectAllowed = 'copy';
+
+                const defs = this.getElementDefaults(type);
+                e.dataTransfer.setData('element-width', String(defs.width));
+                e.dataTransfer.setData('element-height', String(defs.height));
+
+                const dragEl = document.createElement('div');
+                dragEl.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+                dragEl.style.cssText = `
+                    width: ${Math.max(defs.width * 2, 60)}px;
+                    height: ${Math.max(defs.height * 2, 24)}px;
+                    background: ${type === 'image' ? '#e2e8f0' : type === 'line' ? '#94a3b8' : type === 'rect' ? '#f1f5f9' : '#fff'};
+                    border: 2px solid ${type === 'line' ? 'none' : '#3b82f6'};
+                    ${type === 'line' ? 'border-top: 3px solid #3b82f6;' : ''}
+                    border-radius: 4px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font: bold 12px/1 Arial, sans-serif;
+                    color: #1e293b;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                `;
+                document.body.appendChild(dragEl);
+                e.dataTransfer.setDragImage(dragEl, dragEl.offsetWidth / 2, dragEl.offsetHeight / 2);
+                setTimeout(() => document.body.removeChild(dragEl), 0);
             });
         });
 
@@ -312,8 +340,10 @@ class Designer {
             const x_mm = Math.max(0, (e.clientX - bandRect.left) * mmPerPxX);
             const y_mm = Math.max(0, (e.clientY - bandRect.top) * mmPerPxY);
 
+            const elWidth = parseFloat(e.dataTransfer.getData('element-width')) || null;
+            const elHeight = parseFloat(e.dataTransfer.getData('element-height')) || null;
             const fieldName = e.dataTransfer.getData('field-name') || null;
-            this.addElement(type, bandType, this.snapValue(x_mm), this.snapValue(y_mm), fieldName);
+            this.addElement(type, bandType, this.snapValue(x_mm), this.snapValue(y_mm), fieldName, elWidth, elHeight);
         });
     }
 
@@ -530,7 +560,22 @@ class Designer {
         return Math.max(0, Math.round(val / grid)) * grid;
     }
 
-    addElement(type, bandType, x, y, fieldName) {
+    getElementDefaults(type) {
+        const sizes = {
+            label:     { width: 50, height: 8, text: 'Label' },
+            field:     { width: 60, height: 8, text: null, fieldText: '[Field]' },
+            aggregate: { width: 60, height: 8, text: null, fieldText: '{AGG}' },
+            image:     { width: 50, height: 50, text: null },
+            line:      { width: 100, height: 1, text: null },
+            rect:      { width: 60, height: 40, text: null },
+            pageno:    { width: 40, height: 8, text: '{PAGENO}' },
+            rowno:     { width: 30, height: 8, text: '{ROWNO}' },
+            datetime:  { width: 50, height: 8, text: null },
+        };
+        return sizes[type] || { width: 40, height: 12, text: null };
+    }
+
+    addElement(type, bandType, x, y, fieldName, elWidth, elHeight) {
         const band = this.bands.find(b => b.type === bandType);
         if (!band) return;
 
@@ -538,14 +583,17 @@ class Designer {
 
         const def = window.ReportingEngine.state.definition;
         const ds = def.defaultStyle || {};
+        const defaults = this.getElementDefaults(type);
+        const w = elWidth || defaults.width;
+        const h = elHeight || defaults.height;
         const isTextEl = ['label', 'field', 'pageno', 'rowno', 'datetime'].includes(type);
         const el = {
             id: 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
             type: type,
             top: y,
             left: x,
-            width: type === 'line' ? 80 : 40,
-            height: type === 'line' ? 1 : 12,
+            width: w,
+            height: h,
             text: type === 'label' ? 'Label' : null,
             fieldName: type === 'field' ? (fieldName || '') : null,
             fontFamily: ds.fontFamily || 'Arial',

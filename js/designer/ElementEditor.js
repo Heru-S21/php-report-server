@@ -211,6 +211,14 @@ class ElementEditor {
                 <div style="border:1px solid var(--color-border);border-radius:4px;padding:4px;background:#fff;text-align:center;max-height:120px;overflow:hidden">
                     <img src="${escapeHtml(el.imageUrl || '')}" style="max-width:100%;max-height:110px;object-fit:contain" onerror="this.parentElement.innerHTML='<span style=color:#dc2626;font-size:12px>Failed to load</span>'">
                 </div>
+            </div>
+            <div class="prop-group">
+                <label>Display</label>
+                <select class="prop-control" onchange="window.elementEditor.updateField('imageDisplay', this.value)">
+                    <option value="proportional" ${(el.imageDisplay||'proportional') === 'proportional' ? 'selected' : ''}>Proportional</option>
+                    <option value="stretch" ${el.imageDisplay === 'stretch' ? 'selected' : ''}>Stretch</option>
+                    <option value="original" ${el.imageDisplay === 'original' ? 'selected' : ''}>Original</option>
+                </select>
             </div>` : ''}
             <div class="prop-row">
                 <div class="prop-group">

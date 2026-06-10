@@ -16,6 +16,7 @@ class BandElement
     public ?string $aggregateScope = null;
     public ?string $format = null;
     public ?string $imageUrl = null;
+    public ?string $imageDisplay = null;
     public string $fontFamily = 'Arial';
     public int $fontSize = 10;
     public bool $bold = false;
@@ -50,6 +51,7 @@ class BandElement
         $el->aggregateScope = $data['aggregateScope'] ?? null;
         $el->format = $data['format'] ?? null;
         $el->imageUrl = $data['imageUrl'] ?? null;
+        $el->imageDisplay = $data['imageDisplay'] ?? null;
         $el->fontFamily = $data['fontFamily'] ?? 'Arial';
         $el->fontSize = (int)($data['fontSize'] ?? 10);
         $el->bold = (bool)($data['bold'] ?? false);
@@ -81,6 +83,7 @@ class BandElement
             'aggregateScope' => $this->aggregateScope,
             'format' => $this->format,
             'imageUrl' => $this->imageUrl,
+            'imageDisplay' => $this->imageDisplay,
             'fontFamily' => $this->fontFamily,
             'fontSize' => $this->fontSize,
             'bold' => $this->bold,
