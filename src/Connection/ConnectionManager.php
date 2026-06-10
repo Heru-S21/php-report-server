@@ -27,6 +27,21 @@ class ConnectionManager
         return $connections;
     }
 
+    public function findByName(string $name): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM connections WHERE name = ?");
+        $stmt->execute([$name]);
+        $conn = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$conn) return null;
+        if ($conn['password']) {
+            $conn['password'] = $this->decrypt($conn['password']);
+        }
+        if ($conn['options']) {
+            $conn['options'] = json_decode($conn['options'], true);
+        }
+        return $conn;
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare("SELECT * FROM connections WHERE id = ?");

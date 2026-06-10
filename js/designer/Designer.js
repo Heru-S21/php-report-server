@@ -231,8 +231,8 @@ class Designer {
 
     bindEvents() {
         document.addEventListener('click', (e) => {
-            // Ignore clicks in panels (left toolbox, right properties/tree)
-            if (e.target.closest('.panel-left') || e.target.closest('.panel-right')) return;
+            // Ignore clicks in panels (left toolbox, right properties/tree) and modals
+            if (e.target.closest('.panel-left') || e.target.closest('.panel-right') || e.target.closest('.modal')) return;
             const el = e.target.closest('.canvas-element');
             if (el) {
                 this.selectElement(el.dataset.elementId);
@@ -679,10 +679,39 @@ class Designer {
                     window.ReportingEngine.dispatch('SET_DIRTY', false);
             if (res.success) {
                 this.showToast('Report saved successfully');
+            } else {
+                this.showToast(res.message || 'Failed to save report', 'error');
             }
         } catch (e) {
             this.showToast('Failed to save report', 'error');
         }
+    }
+
+    async saveAsTemplate() {
+        const name = prompt('Template name:', this.getReportName() + ' (Template)');
+        if (!name) return;
+        const description = prompt('Description (optional):', '');
+        const def = window.ReportingEngine.state.definition;
+        def.bands = this.bands;
+        try {
+            const res = await window.ReportingEngine.api('POST', '/api/report-templates', {
+                name,
+                description: description || '',
+                definition: JSON.stringify(def),
+            });
+            if (res.success) {
+                this.showToast('Template saved successfully');
+            } else {
+                this.showToast('Failed to save template: ' + (res.message || 'Unknown error'), 'error');
+            }
+        } catch (e) {
+            this.showToast('Failed to save template', 'error');
+        }
+    }
+
+    getReportName() {
+        const def = window.ReportingEngine.state.definition;
+        return def.name || 'Untitled Report';
     }
 
     preview() {
@@ -700,6 +729,56 @@ class Designer {
         if (!this.reportId) { this.showToast('Save the report first', 'error'); return; }
         const id = this.reportGuid || this.reportId;
         window.open(`/api/render/${id}?format=html`, '_blank');
+    }
+
+    async exportDesign() {
+        const id = this.reportGuid || this.reportId;
+        if (!id) { this.showToast('Save the report first', 'error'); return; }
+        try {
+            const res = await window.ReportingEngine.api('GET', `/api/reports/${id}/export`);
+            if (res.success && res.data) {
+                const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (res.data.name || 'report').replace(/[^a-zA-Z0-9_-]/g, '_') + '_report.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                this.showToast('Report design exported');
+            } else {
+                this.showToast('Export failed: ' + (res.message || 'Unknown error'), 'error');
+            }
+        } catch (e) {
+            this.showToast('Failed to export design', 'error');
+        }
+    }
+
+    importDesign() {
+        document.getElementById('import-file-input').click();
+    }
+
+    async handleImportFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        event.target.value = '';
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            if (data.type !== 'report-export') {
+                this.showToast('Invalid export file', 'error');
+                return;
+            }
+            const res = await window.ReportingEngine.api('POST', '/api/reports/import', data);
+            if (res.success && res.data) {
+                window.location.href = `/reports/designer/${res.data.id}`;
+            } else {
+                this.showToast('Import failed: ' + (res.message || 'Unknown error'), 'error');
+            }
+        } catch (e) {
+            this.showToast('Failed to import design: ' + e.message, 'error');
+        }
     }
 
     undo() {

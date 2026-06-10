@@ -13,19 +13,7 @@ $router->get('/reports', function () {
 
 $router->get('/reports/new', function () {
     return Response::view('layout', [
-        'content' => 'reports/designer',
-        'reportId' => null,
-        'extraCss' => ['/css/designer.css'],
-        'extraScripts' => [
-            '/js/designer/QueryEditor.js',
-            '/js/designer/BorderEditor.js',
-            '/js/designer/BandManager.js',
-            '/js/designer/ElementEditor.js',
-            '/js/designer/GroupEditor.js',
-            '/js/designer/AggregateEditor.js',
-            '/js/designer/DragDrop.js',
-            '/js/designer/Designer.js',
-        ],
+        'content' => 'reports/templates',
     ]);
 });
 
@@ -33,16 +21,17 @@ $router->get('/reports/designer/{id}', function ($request) {
     return Response::view('layout', [
         'content' => 'reports/designer',
         'reportId' => $request->getParam('id'),
-        'extraCss' => ['/css/designer.css'],
+        'extraCss' => ['/css/designer.css?v=2'],
         'extraScripts' => [
-            '/js/designer/QueryEditor.js',
-            '/js/designer/BorderEditor.js',
-            '/js/designer/BandManager.js',
-            '/js/designer/ElementEditor.js',
-            '/js/designer/GroupEditor.js',
-            '/js/designer/AggregateEditor.js',
-            '/js/designer/DragDrop.js',
-            '/js/designer/Designer.js',
+            '/js/designer/QueryEditor.js?v=2',
+            '/js/designer/BorderEditor.js?v=2',
+            '/js/designer/BandManager.js?v=2',
+            '/js/designer/ElementEditor.js?v=2',
+            '/js/designer/GroupEditor.js?v=2',
+            '/js/designer/AggregateEditor.js?v=2',
+            '/js/designer/DragDrop.js?v=2',
+            '/js/designer/Designer.js?v=2',
+            '/js/designer/ImagePicker.js?v=1',
         ],
     ]);
 });
@@ -65,4 +54,22 @@ $router->get('/connections/new', function () {
 
 $router->get('/readme', function () {
     return Response::view('layout', ['content' => 'reports/readme']);
+});
+
+$router->get('/templates', function () {
+    return Response::view('layout', ['content' => 'reports/template-list']);
+});
+
+$router->get('/templates/edit/{id}', function ($request) {
+    return Response::view('layout', [
+        'content' => 'reports/template-edit',
+        'templateId' => $request->getParam('id'),
+    ]);
+});
+
+$router->get('/settings', function () {
+    return Response::view('layout', [
+        'content' => 'settings/index',
+        'extraScripts' => ['/js/settings.js'],
+    ]);
 });

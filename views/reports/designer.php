@@ -6,6 +6,12 @@
             <button class="btn" onclick="designer.exportPdf()"><i class="ph-file-pdf"></i> Export PDF</button>
             <button class="btn" onclick="designer.exportHtml()"><i class="ph-file-html"></i> Export HTML</button>
         </div>
+        <div class="toolbar-center">
+            <button class="btn btn-sm" onclick="designer.saveAsTemplate()" title="Save current report as a reusable template"><i class="ph-bookmark"></i> Save as Template</button>
+            <button class="btn btn-sm" onclick="designer.exportDesign()" title="Export report design as JSON"><i class="ph-download"></i> Export Design</button>
+            <button class="btn btn-sm" onclick="designer.importDesign()" title="Import report design from JSON"><i class="ph-upload"></i> Import Design</button>
+            <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="designer.handleImportFile(event)">
+        </div>
         <div class="toolbar-center"></div>
         <div class="toolbar-right">
             <button class="btn btn-icon" onclick="designer.undo()" title="Undo (Ctrl+Z)"><i class="ph-arrow-counter-clockwise"></i></button>
@@ -58,7 +64,7 @@
                     <div class="panel-section">
                         <h3><i class="ph-folder"></i> Groups</h3>
                         <button class="btn btn-sm btn-outline" onclick="groupEditor.open()"><i class="ph-plus"></i> Add Group</button>
-                        <ul id="group-list" class="group-list"></ul>
+                        <div id="group-list" class="group-list"></div>
                     </div>
                 </div>
             </div>
@@ -253,6 +259,29 @@
     </div>
 </div>
 
+<!-- Image Picker Modal -->
+<div id="image-picker-modal" class="modal" style="display:none">
+    <div class="modal-backdrop" onclick="window.imagePicker.close()"></div>
+    <div class="modal-content" style="max-width:640px">
+        <div class="modal-header">
+            <h3>Image Library</h3>
+            <button class="btn btn-icon" onclick="window.imagePicker.close()"><i class="ph-x"></i></button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+                <button class="btn btn-primary" id="image-picker-upload-btn"><i class="ph-upload"></i> Upload Image</button>
+                <input type="file" id="image-picker-file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
+                <div style="flex:1"></div>
+                <button class="btn" id="image-picker-select-btn" disabled><i class="ph-check"></i> Select</button>
+            </div>
+            <div id="image-picker-status" class="image-picker-status"></div>
+            <div id="image-picker-grid" class="image-picker-grid">
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     window.ReportingEngine.state.activeReportId = <?= json_encode($reportId) ?>;
@@ -265,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.dragDrop = new DragDrop(window.designer);
     window.queryEditor = new QueryEditor(window.designer);
     window.queryEditor.init();
+    window.imagePicker = new ImagePicker();
     switchRightPanel('properties');
     switchLeftPanel('fields');
     switchCenterPanel('designer');

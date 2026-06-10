@@ -198,9 +198,19 @@ class ElementEditor {
             </div>
             ${el.type === 'image' ? `
             <div class="prop-group">
-                <label>Image URL</label>
-                <input class="prop-control" type="text" value="${escapeHtml(el.imageUrl || '')}"
-                       onchange="window.elementEditor.updateField('imageUrl', this.value)">
+                <label>Image Source</label>
+                <div style="display:flex;gap:4px;align-items:stretch">
+                    <input class="prop-control" type="text" value="${escapeHtml(el.imageUrl || '')}"
+                           onchange="window.elementEditor.updateField('imageUrl', this.value)"
+                           placeholder="External URL or select from library" style="flex:1">
+                    <button class="btn btn-sm" onclick="window.imagePicker.open(function(url){ window.elementEditor.updateField('imageUrl', url); window.elementEditor.render(); })" title="Browse images"><i class="ph-image"></i></button>
+                </div>
+            </div>
+            <div class="prop-group" id="image-preview-container" style="${el.imageUrl ? '' : 'display:none'}">
+                <label>Preview</label>
+                <div style="border:1px solid var(--color-border);border-radius:4px;padding:4px;background:#fff;text-align:center;max-height:120px;overflow:hidden">
+                    <img src="${escapeHtml(el.imageUrl || '')}" style="max-width:100%;max-height:110px;object-fit:contain" onerror="this.parentElement.innerHTML='<span style=color:#dc2626;font-size:12px>Failed to load</span>'">
+                </div>
             </div>` : ''}
             <div class="prop-row">
                 <div class="prop-group">
@@ -565,6 +575,7 @@ class ElementEditor {
         if (window.ReportingEngine.state.selectedElement === el.id) {
             this.designer.selectElement(el.id);
         }
+        this.render();
     }
 
     resetToDefaultStyle() {

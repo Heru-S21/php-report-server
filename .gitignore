@@ -2,6 +2,7 @@
 /data/reporting.sqlite
 /data/reporting.sqlite-wal
 /data/reporting.sqlite-shm
+/data/images/
 composer.lock
 .env
 *.log

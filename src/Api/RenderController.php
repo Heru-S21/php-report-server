@@ -46,7 +46,7 @@ class RenderController
 
                 return new Response($pdfContent, 200, [
                     'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'inline; filename="report-' . $id . '.pdf"',
+                    'Content-Disposition' => 'inline; filename="report-' . $report['id'] . '.pdf"',
                     'Content-Length' => strlen($pdfContent),
                 ]);
             }

@@ -43,13 +43,10 @@ class PdfRenderer implements RendererInterface
         }
 
         $pfBand = $definition->bands->get('page_footer');
-        $inlineFooter = null;
         if ($has($pfBand)) {
             $ftHtml = $this->renderBandsPlainHtml([$pfBand], $definition, null, null);
             if ($pfBand->printOnEveryPage) {
                 $mpdf->SetHTMLFooter($ftHtml);
-            } else {
-                $inlineFooter = $ftHtml;
             }
         }
 
@@ -61,7 +58,7 @@ class PdfRenderer implements RendererInterface
         $usableHeight = $paperH - $page->marginTop - $page->marginBottom;
 
         $phHeight = $has($phBand) ? $phBand->height : 0;
-        $bodyHtml = $this->buildBodies($definition, $data, $inlineHeader, $inlineFooter, $usableHeight, $phHeight);
+        $bodyHtml = $this->buildBodies($definition, $data, $inlineHeader, $usableHeight, $phHeight);
 
         $mpdf->WriteHTML($bodyHtml);
         return $mpdf->Output('', 'S');
@@ -73,7 +70,6 @@ class PdfRenderer implements RendererInterface
         ReportDefinition $definition,
         array $data,
         ?string $inlineHeader,
-        ?string $inlineFooter,
         float $usableHeight,
         float $phHeight = 0
     ): string {
@@ -95,7 +91,17 @@ class PdfRenderer implements RendererInterface
         // mPDF header/footer require a single WriteHTML call. Instead we
         // inject <pagebreak /> into one long HTML string whenever content
         // would exceed the page.
-        $html = '<html><head><style>' . $this->getStyles() . '</style></head><body>';
+        $page = $definition->pageSettings;
+        $paperW = $page->getPaperWidthMm();
+        if ($page->orientation === 'landscape') {
+            $paperW = $page->getPaperHeightMm();
+        }
+        $usableWidth = $paperW - $page->marginLeft - $page->marginRight;
+        $html = sprintf(
+            '<html><head><style>%s</style></head><body style="width:%.1fmm">',
+            $this->getStyles(),
+            $usableWidth
+        );
 
         // mPDF margin-top = Y=0 start; we track Y from content top.
         $pageY    = 0.0;
@@ -131,7 +137,7 @@ class PdfRenderer implements RendererInterface
 
         // Insert a page break if the given band height does not fit.
         // On break, reprint active group headers + column header on the new page.
-        $ensureFits = function(?Band $b) use (&$html, &$pageY, $usableHeight, &$chOnPage, &$groupValues, $reprintable, $renderPageTop): float {
+        $ensureFits = function(?Band $b, ?array $rowData = null) use (&$html, &$pageY, $usableHeight, &$chOnPage, &$groupValues, $reprintable, $renderPageTop): float {
             if (!$b || !$b->visible || empty($b->elements)) return 0;
             $h = $b->height;
             if ($h <= 0) return 0;
@@ -139,7 +145,7 @@ class PdfRenderer implements RendererInterface
                 $html .= "<pagebreak />\n";
                 $pageY = 0;
                 $chOnPage = false;
-                $renderPageTop($reprintable($groupValues), null);
+                $renderPageTop($reprintable($groupValues), $rowData);
             }
             return $h;
         };
@@ -197,7 +203,7 @@ class PdfRenderer implements RendererInterface
 
                         for ($inner = count($groups) - 1; $inner >= $g; $inner--) {
                             $ft = $this->findGroupFooter($definition, $groups[$inner]);
-                            $pageY += $ensureFits($ft);
+                            $pageY += $ensureFits($ft, $row);
                             if ($ft && $has($ft)) {
                                 $html .= $this->renderSingleBandHtml($ft, $definition, $groups[$inner], $groupAggs[$inner]);
                             }
@@ -208,14 +214,14 @@ class PdfRenderer implements RendererInterface
                         for ($outer = $g; $outer < count($groups); $outer++) {
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;
                             $hdr = $this->findGroupHeader($definition, $groups[$outer]);
-                            $pageY += $ensureFits($hdr);
+                            $pageY += $ensureFits($hdr, $row);
                             if ($hdr && $has($hdr)) {
                                 $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$outer], $row);
                             }
                         }
 
                         if (!$chOnPage && $has($chBand)) {
-                            $pageY += $ensureFits($chBand);
+                            $pageY += $ensureFits($chBand, $row);
                             $html .= $this->renderSingleBandHtml($chBand, $definition, null, null);
                             $chOnPage = true;
                         }
@@ -230,13 +236,13 @@ class PdfRenderer implements RendererInterface
                     for ($g = 0; $g < count($groups); $g++) {
                         $groupValues[$g] = $row[$groups[$g]->fieldName] ?? null;
                         $hdr = $this->findGroupHeader($definition, $groups[$g]);
-                        $pageY += $ensureFits($hdr);
+                        $pageY += $ensureFits($hdr, $row);
                         if ($hdr && $has($hdr)) {
                             $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$g], $row);
                         }
                     }
                     if (!$chOnPage && $has($chBand)) {
-                        $pageY += $ensureFits($chBand);
+                        $pageY += $ensureFits($chBand, $row);
                         $html .= $this->renderSingleBandHtml($chBand, $definition, null, null);
                         $chOnPage = true;
                     }
@@ -261,7 +267,7 @@ class PdfRenderer implements RendererInterface
                 }
 
                 // ------ detail ------
-                $pageY += $ensureFits($dtBand);
+                $pageY += $ensureFits($dtBand, $row);
                 if ($has($dtBand)) {
                     $html .= $this->renderSingleBandHtml($dtBand, $definition, null, $row);
                 }
@@ -270,7 +276,7 @@ class PdfRenderer implements RendererInterface
             // ------ close remaining groups ------
             for ($g = count($groups) - 1; $g >= 0; $g--) {
                 $ft = $this->findGroupFooter($definition, $groups[$g]);
-                $pageY += $ensureFits($ft);
+                $pageY += $ensureFits($ft, $row);
                 if ($ft && $has($ft)) {
                     $html .= $this->renderSingleBandHtml($ft, $definition, $groups[$g], $groupAggs[$g]);
                 }
@@ -282,10 +288,6 @@ class PdfRenderer implements RendererInterface
             if ($has($rfBand)) {
                 $html .= $this->renderSingleBandHtml($rfBand, $definition, null, $reportAggs);
             }
-        }
-
-        if ($inlineFooter) {
-            $html .= $inlineFooter;
         }
 
         $html .= '</body></html>';
@@ -311,26 +313,61 @@ class PdfRenderer implements RendererInterface
     private function renderSingleBandHtml(Band $band, ReportDefinition $def, $group, $data): string
     {
         $style = sprintf(
-            'style="height:%dpt; background:%s; %s"',
+            'style="position:relative; height:%.1fmm; background:%s; %s"',
             $band->height,
             $band->backgroundColor ?: 'transparent',
             $band->border ? $band->border->toHtmlStyle() : ''
         );
         $html = sprintf('<div class="band band-%s" %s>', $band->type, $style);
+
+        // Group elements by top position into visual rows
+        $rows = [];
         foreach ($band->elements as $element) {
-            $html .= $this->renderElementHtml($element, $def, $group, $data);
+            $rows[(string)$element->top][] = $element;
         }
+        ksort($rows, SORT_NUMERIC);
+
+        $prevBottom = 0.0;
+        foreach ($rows as $top => $elements) {
+            // Vertical spacer to position this row at the correct top
+            $gap = (float)$top - $prevBottom;
+            if ($gap > 0) {
+                $html .= sprintf('<div style="height:%.1fmm"></div>', $gap);
+            }
+
+            // Compute row height as max element height in this row
+            $rowH = 0.0;
+            foreach ($elements as $el) {
+                $rowH = max($rowH, (float)$el->height);
+            }
+
+            $html .= sprintf('<div style="overflow:hidden; height:%.1fmm">', $rowH);
+
+            // Sort elements left-to-right
+            usort($elements, fn(BandElement $a, BandElement $b) => $a->left <=> $b->left);
+
+            $prevRight = 0.0;
+            foreach ($elements as $el) {
+                $marginLeft = (float)$el->left - $prevRight;
+                $html .= $this->renderElementHtml($el, $def, $group, $data, $marginLeft);
+                $prevRight = (float)$el->left + (float)$el->width;
+            }
+
+            $html .= '</div>';
+            $prevBottom = (float)$top + $rowH;
+        }
+
         $html .= '</div>';
         return $html;
     }
 
-    private function renderElementHtml(BandElement $el, ReportDefinition $def, $group, $data): string
+    private function renderElementHtml(BandElement $el, ReportDefinition $def, $group, $data, float $marginLeft = 0.0): string
     {
         $value = $this->getElementValue($el, $def, $group, $data);
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
         $style = sprintf(
-            'position:relative; top:%dpt; left:%dpt; width:%dpt; height:%dpt; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; background:%s; %s',
-            $el->top, $el->left, $el->width, $el->height,
+            'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; background:%s; %s',
+            $marginLeft, $el->width, $el->height,
             $el->fontFamily ?: 'Arial',
             $el->fontSize ?: 10,
             $el->bold ? 'bold' : 'normal',
@@ -440,7 +477,7 @@ class PdfRenderer implements RendererInterface
     {
         return '
             body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; padding: 0; }
-            .band { padding: 2px 4px; overflow: hidden; }
+            .band { padding: 0; overflow: hidden; }
             .element { display: inline-block; overflow: hidden; }
 
         ';

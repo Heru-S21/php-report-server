@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": {
+    "phpactor": {
+      "command": ["phpactor", "language-server"],
+      "extensions": [".php"],
+      "initialization": {
+        "language_server_phpstan": { "enabled": true },
+        "language_server_psalm": { "enabled": false }
+      }
+    }
+  }
+}

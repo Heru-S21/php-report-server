@@ -301,20 +301,14 @@ class QueryEditor {
                 return;
             }
 
-            this.queryColumns = res.data.columns || [];
-            window.ReportingEngine.dispatch('SET_QUERY_COLUMNS', this.queryColumns);
-            this.renderFieldList();
-
-            this.lastResultColumns = this.queryColumns;
+            this.lastResultColumns = res.data.columns || [];
             this.lastResultRows = res.data.rows || [];
             this.renderResultTable();
 
             const rowCount = res.data.rowCount || 0;
-            this.setStatus(`Query OK — ${rowCount} rows, ${this.queryColumns.length} columns`, 'success');
+            this.setStatus(`Query OK — ${rowCount} rows, ${this.lastResultColumns.length} columns`, 'success');
 
-            // Update report definition
             this.onSqlChange();
-            window.ReportingEngine.state.definition.queryColumns = this.queryColumns;
 
         } catch (e) {
             this.setStatus('Query error: ' + e.message, 'error');

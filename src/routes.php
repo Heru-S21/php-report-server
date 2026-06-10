@@ -1,9 +1,11 @@
 <?php
 
 use ReportingEngine\Api\ConnectionController;
+use ReportingEngine\Api\ImageController;
 use ReportingEngine\Api\ReportController;
 use ReportingEngine\Api\QueryController;
 use ReportingEngine\Api\RenderController;
+use ReportingEngine\Api\TemplateController;
 
 // Connections
 $router->get('/api/connections', [ConnectionController::class, 'index']);
@@ -23,6 +25,15 @@ $router->get('/api/reports/{id}', [ReportController::class, 'show']);
 $router->put('/api/reports/{id}', [ReportController::class, 'update']);
 $router->delete('/api/reports/{id}', [ReportController::class, 'destroy']);
 $router->post('/api/reports/{id}/duplicate', [ReportController::class, 'duplicate']);
+$router->get('/api/reports/{id}/export', [ReportController::class, 'export']);
+$router->post('/api/reports/import', [ReportController::class, 'import']);
+
+// Images
+$router->get('/api/images', [ImageController::class, 'index']);
+$router->post('/api/images/upload', [ImageController::class, 'upload']);
+$router->get('/api/images/file/{guid}', [ImageController::class, 'file']);
+$router->get('/api/images/{id}', [ImageController::class, 'show']);
+$router->delete('/api/images/{id}', [ImageController::class, 'destroy']);
 
 // Query
 $router->post('/api/query/execute', [QueryController::class, 'execute']);
@@ -34,6 +45,13 @@ $router->post('/api/query/templates', [QueryController::class, 'storeTemplate'])
 // Render
 $router->get('/api/render/{id}', [RenderController::class, 'render']);
 $router->post('/api/render/preview', [RenderController::class, 'preview']);
+
+// Report Templates
+$router->get('/api/report-templates', [TemplateController::class, 'index']);
+$router->post('/api/report-templates', [TemplateController::class, 'store']);
+$router->get('/api/report-templates/{id}', [TemplateController::class, 'show']);
+$router->put('/api/report-templates/{id}', [TemplateController::class, 'update']);
+$router->delete('/api/report-templates/{id}', [TemplateController::class, 'destroy']);
 
 // Settings
 $router->get('/api/settings', [RenderController::class, 'settings']);

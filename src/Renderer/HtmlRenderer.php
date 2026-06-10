@@ -26,7 +26,7 @@ class HtmlRenderer implements RendererInterface
 
         $html  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">';
         $html .= '<title>' . htmlspecialchars($definition->name ?: 'Report') . '</title>';
-        $html .= '<style>' . $this->getBaseStyles($usableWidth) . '</style></head><body>';
+        $html .= '<style>' . $this->getBaseStyles($usableWidth, $paperW) . '</style></head><body>';
 
         $has = function(?Band $b): bool {
             return $b && $b->visible && !empty($b->elements);
@@ -271,7 +271,16 @@ class HtmlRenderer implements RendererInterface
 
         $closePage();
 
-        $html .= implode("\n", $pages);
+        // Wrap each page in a paper-page for word-processor appearance on screen
+        $wrapped = [];
+        foreach ($pages as $pageHtml) {
+            $minH = '';
+            if (preg_match('/min-height:([\d.]+)mm/', $pageHtml, $m)) {
+                $minH = 'min-height:' . ((float)$m[1] + 30) . 'mm;';
+            }
+            $wrapped[] = '<div class="paper-page" style="width:' . $paperW . 'mm;' . $minH . '">' . "\n" . $pageHtml . "\n" . '</div>';
+        }
+        $html .= implode("\n", $wrapped);
         $html .= '</body></html>';
         return $html;
     }
@@ -441,18 +450,22 @@ class HtmlRenderer implements RendererInterface
         return null;
     }
 
-    private function getBaseStyles(float $usableWidth): string
+    private function getBaseStyles(float $usableWidth, float $paperW): string
     {
         return '
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #e2e8f0; }
-            .report-page { width: ' . $usableWidth . 'mm; margin: 0 auto 24px auto; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.12); page-break-after: always; position: relative; }
-            .report-page:last-child { page-break-after: auto; margin-bottom: 0; }
+            .report-page { width: ' . $usableWidth . 'mm; margin: 0 auto; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.12); position: relative; }
             .band { padding: 2px 4px; overflow: hidden; }
             .element { overflow: hidden; white-space: nowrap; }
+            .paper-page { background: #fff; box-shadow: 0 2px 20px rgba(0,0,0,0.18); margin: 0 auto 32px auto; padding: 15mm 0; position: relative; page-break-after: always; }
+            .paper-page:last-child { margin-bottom: 0; page-break-after: auto; }
+            .paper-page .report-page { margin: 0 auto !important; box-shadow: none !important; background: transparent !important; }
             @media print {
                 body { background: white; padding: 0; }
-                .report-page { box-shadow: none; margin: 0; page-break-after: always; }
-                .report-page:last-child { page-break-after: auto; }
+                .report-page { box-shadow: none; margin: 0; }
+                .paper-page { box-shadow: none !important; margin: 0 auto !important; padding: 0 !important; page-break-after: always; }
+                .paper-page:last-child { page-break-after: auto; }
+                .paper-page .report-page { box-shadow: none !important; margin: 0 !important; }
             }
         ';
     }

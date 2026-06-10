@@ -55,6 +55,21 @@ class ReportRepository
         return $report;
     }
 
+    public function findByName(string $name): ?array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT r.*, c.name as connection_name
+            FROM reports r
+            LEFT JOIN connections c ON r.connection_id = c.id
+            WHERE r.name = ?
+        ");
+        $stmt->execute([$name]);
+        $report = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$report) return null;
+
+        return $report;
+    }
+
     public function create(array $data): array
     {
         $definition = $data['definition'] ?? '{}';

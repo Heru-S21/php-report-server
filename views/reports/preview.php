@@ -1,17 +1,28 @@
-<div class="preview-page">
-    <div class="page-header">
-        <h1>Report Preview</h1>
-        <div class="preview-actions">
-            <button class="btn" onclick="window.location.href='/reports/designer/<?= htmlspecialchars($reportId ?? '') ?>'">
-                <i class="ph-arrow-left"></i> Back to Designer
-            </button>
-            <button class="btn" onclick="preview.exportPdf()"><i class="ph-file-pdf"></i> Export PDF</button>
-            <button class="btn" onclick="preview.exportHtml()"><i class="ph-file-html"></i> Export HTML</button>
-        </div>
+<?php
+$contentBefore = '<div class="preview-toolbar">
+    <div class="navbar-brand">
+        <i class="ph-eye"></i>
+        <span>Report Preview</span>
     </div>
+    <div class="navbar-nav" style="flex:0"></div>
+    <div class="navbar-actions">
+        <button class="nav-link" onclick="window.location.href=\'/reports/designer/' . htmlspecialchars($reportId ?? '') . '\'" style="cursor:pointer">
+            <i class="ph-arrow-left"></i> Back
+        </button>
+        <button class="nav-link" onclick="preview.exportPdf()" style="cursor:pointer"><i class="ph-file-pdf"></i> PDF</button>
+        <button class="nav-link" onclick="preview.exportHtml()" style="cursor:pointer"><i class="ph-file-html"></i> HTML</button>
+    </div>
+</div>
+<div class="preview-ruler-wrap" id="preview-ruler-wrap">
+    <div class="preview-ruler" id="preview-ruler"></div>
+</div>';
+?>
+<div class="preview-page">
     <div class="preview-params" id="preview-params" style="display:none"></div>
-    <div class="preview-container" id="preview-container">
-        <div class="loading-spinner" id="preview-spinner">Loading preview...</div>
+    <div class="preview-paper" id="preview-paper">
+        <div class="preview-container" id="preview-container">
+            <div class="loading-spinner" id="preview-spinner">Loading preview...</div>
+        </div>
     </div>
 </div>
 <script>
@@ -19,6 +30,7 @@ const preview = {
     reportId: <?= json_encode($reportId) ?>,
     paramValues: {},
     async init() {
+        this.renderRuler();
         if (!this.reportId) return;
         const res = await window.ReportingEngine.api('GET', `/api/reports/${this.reportId}`);
         if (!res.data) return;
@@ -29,6 +41,32 @@ const preview = {
         } else {
             this.loadPreview();
         }
+    },
+    renderRuler() {
+        const ruler = document.getElementById('preview-ruler');
+        if (!ruler) return;
+        const paperWidth = 210;
+        const marginLeft = 15;
+        const marginRight = 15;
+        const usableWidth = paperWidth - marginLeft - marginRight;
+        const pxPerMm = ruler.offsetWidth / paperWidth;
+        let html = '';
+        for (let mm = 0; mm <= paperWidth; mm += 1) {
+            const x = mm * pxPerMm;
+            if (mm % 10 === 0) {
+                html += `<div class="ruler-mark" style="left:${x}px;height:12px"></div>`;
+                html += `<div class="ruler-label" style="left:${x}px">${mm}</div>`;
+            } else if (mm % 5 === 0) {
+                html += `<div class="ruler-mark" style="left:${x}px;height:8px;top:4px"></div>`;
+            } else {
+                html += `<div class="ruler-mark" style="left:${x}px;height:4px;top:8px;background:#cbd5e1"></div>`;
+            }
+        }
+        // margin indicators
+        const ml = marginLeft * pxPerMm;
+        const mr = (paperWidth - marginRight) * pxPerMm;
+        html += `<div style="position:absolute;top:0;left:${ml}px;width:${mr - ml}px;height:100%;border-left:1px solid #93c5fd;border-right:1px solid #93c5fd;pointer-events:none"></div>`;
+        ruler.innerHTML = html;
     },
     renderParamForm(params) {
         const container = document.getElementById('preview-params');
@@ -77,6 +115,8 @@ const preview = {
     },
     async loadPreview() {
         const container = document.getElementById('preview-container');
+        const oldStyles = document.getElementById('preview-styles');
+        if (oldStyles) oldStyles.remove();
         container.innerHTML = '<div class="loading-spinner">Loading preview...</div>';
         const queryStr = Object.entries(this.paramValues)
             .filter(([,v]) => v !== '')
@@ -85,8 +125,26 @@ const preview = {
         try {
             const url = `/api/render/${this.reportId}?format=html${queryStr ? '&' + queryStr : ''}`;
             const res = await fetch(url);
-            const html = await res.text();
+            let html = await res.text();
+            // Extract <style> from <head>
+            const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+            if (styleMatch) {
+                // Strip body rules — they'd leak onto the outer page
+                const cleanCss = styleMatch[1].replace(/body\s*\{[^}]*\}/g, '');
+                const styleEl = document.createElement('style');
+                styleEl.id = 'preview-styles';
+                styleEl.textContent = cleanCss;
+                document.head.appendChild(styleEl);
+            }
+            // Strip outer wrappers, keep only body content
+            html = html.replace(/^<!DOCTYPE[^>]*>/i, '');
+            html = html.replace(/<html[^>]*>/gi, '');
+            html = html.replace(/<\/html>/gi, '');
+            html = html.replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '');
+            html = html.replace(/^[\s\S]*?<body[^>]*>/i, '');
+            html = html.replace(/<\/body>/gi, '');
             container.innerHTML = html;
+            this.renderRuler();
         } catch (e) {
             container.innerHTML = '<div class="error-message">Failed to load preview</div>';
         }

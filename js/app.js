@@ -282,6 +282,28 @@ async function deleteReport(id) {
     initReportsList();
 }
 
+async function importReportFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (data.type !== 'report-export') {
+            alert('Invalid export file. Expected a report export JSON.');
+            return;
+        }
+        const res = await window.ReportingEngine.api('POST', '/api/reports/import', data);
+        if (res.success && res.data) {
+            window.location.href = `/reports/designer/${res.data.id}`;
+        } else {
+            alert('Import failed: ' + (res.message || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Failed to import report: ' + e.message);
+    }
+}
+
 function escapeHtml(str) {
     if (!str) return '';
     const div = document.createElement('div');

@@ -74,6 +74,7 @@ class GroupEditor {
     }
 
     delete(groupId) {
+        if (!confirm('Delete this group?')) return;
         const groups = window.ReportingEngine.state.definition.groups || [];
         const group = groups.find(g => g.id === groupId);
         if (group && window.bandManager) {
@@ -84,21 +85,54 @@ class GroupEditor {
         this.designer.renderCanvas();
     }
 
+    moveUp(groupId) {
+        const groups = window.ReportingEngine.state.definition.groups || [];
+        const idx = groups.findIndex(g => g.id === groupId);
+        if (idx <= 0) return;
+        [groups[idx - 1], groups[idx]] = [groups[idx], groups[idx - 1]];
+        groups.forEach((g, i) => g.level = i);
+        window.ReportingEngine.dispatch('SET_DEFINITION', window.ReportingEngine.state.definition);
+        this.updateGroupList();
+        this.designer.renderCanvas();
+    }
+
+    moveDown(groupId) {
+        const groups = window.ReportingEngine.state.definition.groups || [];
+        const idx = groups.findIndex(g => g.id === groupId);
+        if (idx === -1 || idx >= groups.length - 1) return;
+        [groups[idx], groups[idx + 1]] = [groups[idx + 1], groups[idx]];
+        groups.forEach((g, i) => g.level = i);
+        window.ReportingEngine.dispatch('SET_DEFINITION', window.ReportingEngine.state.definition);
+        this.updateGroupList();
+        this.designer.renderCanvas();
+    }
+
     updateGroupList() {
         const list = document.getElementById('group-list');
         const groups = window.ReportingEngine.state.definition.groups || [];
         if (groups.length === 0) {
-            list.innerHTML = '<li class="text-muted" style="list-style:none;padding:8px;text-align:center">No groups defined</li>';
+            list.innerHTML = '<div class="text-muted" style="padding:12px;text-align:center;font-size:12px">No groups defined</div>';
             return;
         }
-        list.innerHTML = groups.map((g, i) => `
-            <li>
-                <span>${i + 1}. ${g.fieldName} (${g.sortDirection})</span>
-                <span class="group-actions">
-                    <button class="btn btn-icon" onclick="window.groupEditor.open('${g.id}')" title="Edit"><i class="ph-pencil"></i></button>
-                    <button class="btn btn-icon" onclick="window.groupEditor.delete('${g.id}')" title="Delete"><i class="ph-trash"></i></button>
-                </span>
-            </li>
-        `).join('');
+        list.innerHTML = groups.map((g, i) => {
+            const sortIcon = g.sortDirection === 'DESC' ? 'ph-sort-descending' : 'ph-sort-ascending';
+            return `
+            <div class="group-card" data-group-id="${g.id}">
+                <div class="group-card-field">
+                    <i class="ph-folder"></i>
+                    <span>${g.fieldName}</span>
+                </div>
+                <div class="group-card-sort">
+                    <i class="${sortIcon}"></i>
+                    ${g.sortDirection === 'DESC' ? 'Descending' : 'Ascending'}
+                </div>
+                <div class="group-card-actions">
+                    <button class="btn btn-sm" onclick="window.groupEditor.open('${g.id}')" title="Edit"><i class="ph-pencil"></i> Edit</button>
+                    <button class="btn btn-sm" onclick="window.groupEditor.moveUp('${g.id}')" title="Move up" ${i === 0 ? 'disabled' : ''}><i class="ph-caret-up"></i></button>
+                    <button class="btn btn-sm" onclick="window.groupEditor.moveDown('${g.id}')" title="Move down" ${i === groups.length - 1 ? 'disabled' : ''}><i class="ph-caret-down"></i></button>
+                    <button class="btn btn-sm btn-delete" onclick="window.groupEditor.delete('${g.id}')" title="Delete"><i class="ph-trash"></i></button>
+                </div>
+            </div>`;
+        }).join('');
     }
 }
