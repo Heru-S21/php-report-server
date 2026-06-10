@@ -153,12 +153,16 @@ Labels support dynamic content via expressions in the designer's properties pane
 [fieldName] > 3 ? "more than three" : "less or equal three"
 [status] == "active" ? "Active" : "Inactive"
 [score] >= 90 ? "A" : [score] >= 80 ? "B" : "C"
+"Order #" + [order_id]
+[first_name] + " " + [last_name]
 ```
 
 - Field references: `[fieldName]` — replaced with the value from the current data row
+- String literals: `"double"` or `'single'` quotes
+- Concatenation: `+` joins as strings when either operand is a string; otherwise numeric addition
 - Comparators: `>`, `<`, `>=`, `<=`, `==`, `!=`
 - Ternary: `condition ? value_if_true : value_if_false`
-- Math: `+`, `-`, `*`, `/`
+- Math: `-`, `*`, `/`
 - Logical: `&&`, `||`, unary `!`
 - Parentheses for grouping
 
