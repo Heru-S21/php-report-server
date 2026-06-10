@@ -384,7 +384,8 @@ class PdfRenderer implements RendererInterface
 
         if (!in_array($el->type, ['image', 'line', 'rect'])) {
             $value = sprintf(
-                '<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; width:100%%; min-width:0">%s</span>',
+                '<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; width:100%%; min-width:0; text-align:%s">%s</span>',
+                $el->textAlign ?: 'left',
                 $value
             );
         }

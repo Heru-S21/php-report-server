@@ -138,13 +138,13 @@
                 <button class="r-tab" data-rpanel="tree" onclick="switchRightPanel('tree')">Object Tree</button>
             </div>
             <div id="rpanel-properties" class="rpanel-content active">
-                <div class="panel-section">
-                    <div class="properties-tabs">
-                        <button class="tab active" data-tab="general" onclick="elementEditor.switchTab('general')">General</button>
-                        <button class="tab" data-tab="style" onclick="elementEditor.switchTab('style')">Style</button>
-                        <button class="tab" data-tab="border" onclick="elementEditor.switchTab('border')">Border</button>
-                        <button class="tab" data-tab="advanced" onclick="elementEditor.switchTab('advanced')">Advanced</button>
-                    </div>
+                <div class="properties-tabs">
+                    <button class="tab active" data-tab="general" onclick="elementEditor.switchTab('general')">General</button>
+                    <button class="tab" data-tab="style" onclick="elementEditor.switchTab('style')">Style</button>
+                    <button class="tab" data-tab="border" onclick="elementEditor.switchTab('border')">Border</button>
+                    <button class="tab" data-tab="advanced" onclick="elementEditor.switchTab('advanced')">Advanced</button>
+                </div>
+                <div class="properties-scroll">
                     <div id="properties-content" class="properties-content">
                         <p class="text-muted">Select an element or band to edit properties</p>
                     </div>
