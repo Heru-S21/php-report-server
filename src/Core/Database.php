@@ -117,6 +117,13 @@ class Database
         } catch (\PDOException $e) {
             // Column already exists — ignore
         }
+
+        // Add hash column to report_images
+        try {
+            $pdo->exec("ALTER TABLE report_images ADD COLUMN hash TEXT");
+        } catch (\PDOException $e) {
+            // Column already exists — ignore
+        }
         // Backfill GUIDs for existing reports that don't have one
         try {
             $stmt = $pdo->query("SELECT id FROM reports WHERE guid IS NULL");

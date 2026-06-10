@@ -36,11 +36,27 @@ class ImageRepository
         return $row ?: null;
     }
 
+    public function findByGuidOrFilename(string $guid, string $filename): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM report_images WHERE guid = ? OR filename = ?");
+        $stmt->execute([$guid, $filename]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function findByHash(string $hash): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM report_images WHERE hash = ?");
+        $stmt->execute([$hash]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO report_images (filename, original_name, mime_type, file_size, width, height, guid, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            INSERT INTO report_images (filename, original_name, mime_type, file_size, width, height, guid, hash, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
         ");
         $stmt->execute([
             $data['filename'],
@@ -50,6 +66,7 @@ class ImageRepository
             $data['width'] ?? null,
             $data['height'] ?? null,
             $data['guid'],
+            $data['hash'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }

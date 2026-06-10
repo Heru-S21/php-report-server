@@ -6,6 +6,7 @@ use ReportingEngine\Core\Database;
 use ReportingEngine\Core\Request;
 use ReportingEngine\Core\Response;
 use ReportingEngine\Report\ImageRepository;
+use ReportingEngine\Report\ReportRepository;
 
 class ImageController
 {
@@ -79,6 +80,13 @@ class ImageController
                 return Response::error('Invalid file type. Allowed: JPEG, PNG, GIF, WebP', 422);
             }
 
+            // Check for duplicate by hash
+            $hash = hash_file('sha256', $file['tmp_name']);
+            $existing = $this->repository->findByHash($hash);
+            if ($existing) {
+                return Response::json($existing, 200, 'Image already exists');
+            }
+
             $dimensions = @getimagesize($file['tmp_name']);
             $width = $dimensions ? $dimensions[0] : null;
             $height = $dimensions ? $dimensions[1] : null;
@@ -113,6 +121,7 @@ class ImageController
                 'width' => $width,
                 'height' => $height,
                 'guid' => $guid,
+                'hash' => $hash,
             ]);
 
             $created = $this->repository->find($imageId);
@@ -130,6 +139,18 @@ class ImageController
             if (!$image) {
                 return Response::error('Image not found', 404);
             }
+
+            // Check if image is used in any saved report
+            $reportRepo = new ReportRepository();
+            $usedBy = $reportRepo->findByImageGuid($image['guid']);
+            if (!empty($usedBy)) {
+                $names = array_map(fn($r) => "'{$r['name']}'", $usedBy);
+                return Response::error(
+                    'Cannot delete: image is used in report(s): ' . implode(', ', $names),
+                    409
+                );
+            }
+
             $filePath = $this->storageDir . '/' . $image['filename'];
             if (file_exists($filePath)) {
                 unlink($filePath);

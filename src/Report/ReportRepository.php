@@ -121,6 +121,34 @@ class ReportRepository
         $stmt->execute($values);
     }
 
+    public function findByImageGuid(string $guid): array
+    {
+        $stmt = $this->pdo->prepare("SELECT id, name, definition FROM reports WHERE definition LIKE ?");
+        $stmt->execute(['%' . $guid . '%']);
+        $reports = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $def = is_string($row['definition']) ? json_decode($row['definition'], true) : $row['definition'];
+            if ($def && $this->definitionHasImage($def, $guid)) {
+                $reports[] = ['id' => $row['id'], 'name' => $row['name']];
+            }
+        }
+        return $reports;
+    }
+
+    private function definitionHasImage(array $def, string $guid): bool
+    {
+        $bands = $def['bands'] ?? [];
+        foreach ($bands as $band) {
+            $elements = $band['elements'] ?? [];
+            foreach ($elements as $el) {
+                if (($el['type'] ?? '') === 'image' && !empty($el['imageUrl']) && str_contains($el['imageUrl'], $guid)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public function delete(int $id): void
     {
         $stmt = $this->pdo->prepare("DELETE FROM reports WHERE id = ?");

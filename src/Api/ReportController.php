@@ -3,8 +3,10 @@
 namespace ReportingEngine\Api;
 
 use ReportingEngine\Connection\ConnectionManager;
+use ReportingEngine\Core\Database;
 use ReportingEngine\Core\Request;
 use ReportingEngine\Core\Response;
+use ReportingEngine\Report\ImageRepository;
 use ReportingEngine\Report\ReportRepository;
 
 class ReportController
@@ -121,6 +123,42 @@ class ReportController
             $definition = is_string($report['definition'])
                 ? json_decode($report['definition'], true)
                 : $report['definition'];
+
+            // Embed local images
+            $config = Database::getConfig();
+            $storageDir = ($config['data_path'] ?? __DIR__ . '/../../data') . '/images';
+            $embeddedImages = [];
+            $bands = &$definition['bands'];
+            if (is_array($bands)) {
+                foreach ($bands as &$band) {
+                    $elements = &$band['elements'];
+                    if (!is_array($elements)) continue;
+                    foreach ($elements as &$el) {
+                        if (($el['type'] ?? '') === 'image' && !empty($el['imageUrl']) && preg_match('#/api/images/file/([a-f0-9-]+)#i', $el['imageUrl'], $m)) {
+                            $guid = $m[1];
+                            if (isset($embeddedImages[$guid])) continue;
+                            $imgRepo = new ImageRepository();
+                            $img = $imgRepo->findByGuid($guid);
+                            if (!$img) continue;
+                            $filePath = $storageDir . '/' . $img['filename'];
+                            if (!file_exists($filePath)) continue;
+                            $imgData = base64_encode(file_get_contents($filePath));
+                            $embeddedImages[$guid] = [
+                                'filename' => $img['filename'],
+                                'original_name' => $img['original_name'],
+                                'mime_type' => $img['mime_type'],
+                                'file_size' => $img['file_size'],
+                                'width' => $img['width'],
+                                'height' => $img['height'],
+                                'data' => $imgData,
+                            ];
+                        }
+                    }
+                    unset($el);
+                }
+                unset($band);
+            }
+
             $exportData = [
                 'version' => '1.0',
                 'type' => 'report-export',
@@ -128,6 +166,7 @@ class ReportController
                 'description' => $report['description'],
                 'connection_name' => $report['connection_name'] ?? null,
                 'definition' => $definition,
+                '_embeddedImages' => $embeddedImages,
                 'exported_at' => date('c'),
             ];
             return Response::json($exportData, 200, 'Report exported');
@@ -146,6 +185,36 @@ class ReportController
             if (empty($data['name'])) {
                 return Response::error('Report name is required', 422);
             }
+
+            // Import embedded images into library
+            $embeddedImages = $data['_embeddedImages'] ?? [];
+            if (!empty($embeddedImages)) {
+                $config = Database::getConfig();
+                $storageDir = ($config['data_path'] ?? __DIR__ . '/../../data') . '/images';
+                if (!is_dir($storageDir)) {
+                    mkdir($storageDir, 0755, true);
+                }
+                $imgRepo = new ImageRepository();
+                foreach ($embeddedImages as $guid => $imgData) {
+                    $existing = $imgRepo->findByGuid($guid);
+                    if ($existing) continue;
+                    $decoded = base64_decode($imgData['data'], true);
+                    if ($decoded === false) continue;
+                    $filePath = $storageDir . '/' . $imgData['filename'];
+                    file_put_contents($filePath, $decoded);
+                    chmod($filePath, 0644);
+                    $imgRepo->create([
+                        'filename' => $imgData['filename'],
+                        'original_name' => $imgData['original_name'],
+                        'mime_type' => $imgData['mime_type'],
+                        'file_size' => $imgData['file_size'] ?? strlen($decoded),
+                        'width' => $imgData['width'] ?? null,
+                        'height' => $imgData['height'] ?? null,
+                        'guid' => $guid,
+                    ]);
+                }
+            }
+
             $definition = $data['definition'] ?? '{}';
             if (is_array($definition)) {
                 $definition = json_encode($definition, JSON_UNESCAPED_UNICODE);

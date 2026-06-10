@@ -907,6 +907,7 @@
     cursor: pointer;
     overflow: hidden;
     transition: border-color 0.15s;
+    position: relative;
 }
 
 .image-picker-item:hover {
@@ -953,6 +954,30 @@
 .image-picker-meta {
     font-size: 10px;
     color: var(--color-text-muted);
+}
+
+.btn-delete-image {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 2px 6px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--color-danger);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.image-picker-item:hover .btn-delete-image {
+    opacity: 1;
+}
+
+.btn-delete-image:hover {
+    background: #FEF2F2;
+    border-color: #FECACA;
 }
 
 .image-picker-status {

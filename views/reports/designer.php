@@ -3,13 +3,11 @@
         <div class="toolbar-left">
             <button class="btn btn-primary" onclick="designer.save()"><i class="ph-floppy-disk"></i> Save</button>
             <button class="btn" onclick="designer.preview()"><i class="ph-eye"></i> Preview</button>
+            <button class="btn" onclick="designer.exportDesign()" title="Export report design as JSON"><i class="ph-download"></i> Export</button>
+            <button class="btn" onclick="designer.importDesign()" title="Import report design from JSON"><i class="ph-upload"></i> Import</button>
+            <button class="btn" onclick="designer.saveAsTemplate()" title="Save current report as a reusable template"><i class="ph-bookmark"></i> Save as Template</button>
             <button class="btn" onclick="designer.exportPdf()"><i class="ph-file-pdf"></i> Export PDF</button>
             <button class="btn" onclick="designer.exportHtml()"><i class="ph-file-html"></i> Export HTML</button>
-        </div>
-        <div class="toolbar-center">
-            <button class="btn btn-sm" onclick="designer.saveAsTemplate()" title="Save current report as a reusable template"><i class="ph-bookmark"></i> Save as Template</button>
-            <button class="btn btn-sm" onclick="designer.exportDesign()" title="Export report design as JSON"><i class="ph-download"></i> Export Design</button>
-            <button class="btn btn-sm" onclick="designer.importDesign()" title="Import report design from JSON"><i class="ph-upload"></i> Import Design</button>
             <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="designer.handleImportFile(event)">
         </div>
         <div class="toolbar-center"></div>
@@ -18,10 +16,14 @@
             <button class="btn btn-icon" onclick="designer.redo()" title="Redo (Ctrl+Y)"><i class="ph-arrow-clockwise"></i></button>
             <label class="zoom-label">Zoom:</label>
             <select class="zoom-select" onchange="designer.setZoom(+this.value)">
+                <option value="0.25">25%</option>
                 <option value="0.5">50%</option>
                 <option value="0.75">75%</option>
                 <option value="1" selected>100%</option>
                 <option value="1.25">125%</option>
+                <option value="1.5">150%</option>
+                <option value="1.75">175%</option>
+                <option value="2">200%</option>
             </select>
         </div>
     </div>

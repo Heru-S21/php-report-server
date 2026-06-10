@@ -64,6 +64,7 @@ class ImagePicker {
                     <div class="image-picker-info">
                         <span class="image-picker-name" title="${escapeHtml(img.original_name)}">${escapeHtml(img.original_name)}</span>
                         <span class="image-picker-meta">${size}${dims ? ' · ' + dims : ''}</span>
+                        <button class="btn btn-sm btn-delete-image" onclick="event.stopPropagation();window.imagePicker.deleteImage(${img.id},'${escapeHtml(img.original_name)}')" title="Delete image"><i class="ph-trash"></i></button>
                     </div>
                 </div>
             `;
@@ -109,16 +110,47 @@ class ImagePicker {
             });
             const data = await res.json();
             if (data.success) {
-                statusEl.textContent = 'Upload successful';
-                statusEl.className = 'image-picker-status success';
                 fileInput.value = '';
-                await this.loadImages();
+                if (data.message === 'Image already exists' && data.data && data.data.id) {
+                    statusEl.textContent = 'Image already exists — selected';
+                    statusEl.className = 'image-picker-status success';
+                    await this.loadImages();
+                    this.pick(data.data.id);
+                } else {
+                    statusEl.textContent = 'Upload successful';
+                    statusEl.className = 'image-picker-status success';
+                    await this.loadImages();
+                }
             } else {
                 statusEl.textContent = data.message || 'Upload failed';
                 statusEl.className = 'image-picker-status error';
             }
         } catch (e) {
             statusEl.textContent = 'Upload failed: ' + e.message;
+            statusEl.className = 'image-picker-status error';
+        }
+    }
+
+    async deleteImage(id, name) {
+        if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+        const statusEl = document.getElementById('image-picker-status');
+        try {
+            const res = await fetch(`/api/images/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                statusEl.textContent = 'Image deleted';
+                statusEl.className = 'image-picker-status success';
+                if (this.selectedId === id) {
+                    this.selectedId = null;
+                    document.getElementById('image-picker-select-btn').disabled = true;
+                }
+                await this.loadImages();
+            } else {
+                statusEl.textContent = data.message || 'Delete failed';
+                statusEl.className = 'image-picker-status error';
+            }
+        } catch (e) {
+            statusEl.textContent = 'Delete failed: ' + e.message;
             statusEl.className = 'image-picker-status error';
         }
     }
