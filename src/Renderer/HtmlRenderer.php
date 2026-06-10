@@ -369,7 +369,7 @@ class HtmlRenderer implements RendererInterface
     {
         return match ($el->type) {
             'label' => htmlspecialchars($el->expression ? ExpressionEvaluator::evaluate($el->expression, $data ?: []) : ($el->text ?? '')),
-            'field' => $data && isset($data[$el->fieldName])
+            'field' => is_array($data) && isset($data[$el->fieldName])
                 ? htmlspecialchars($this->formatValue($data[$el->fieldName], $el->format))
                 : '',
             'aggregate' => $this->renderAggregate($el, $data),
