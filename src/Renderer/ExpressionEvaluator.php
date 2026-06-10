@@ -88,7 +88,11 @@ class ExpressionEvaluator
         while (true) {
             if ($this->match('+')) {
                 $right = $this->parseTerm();
-                $left = $this->toNumber($left) + $this->toNumber($right);
+                if (is_string($left) || is_string($right)) {
+                    $left = $this->toString($left) . $this->toString($right);
+                } else {
+                    $left = $this->toNumber($left) + $this->toNumber($right);
+                }
             } elseif ($this->match('-')) {
                 $right = $this->parseTerm();
                 $left = $this->toNumber($left) - $this->toNumber($right);
