@@ -1,4 +1,4 @@
-# PHP Reporting Engine
+# PHP Reporting Server
 
 A self-contained web-based reporting application with a visual drag-and-drop report designer. Create, preview, and export reports as HTML or PDF.
 
