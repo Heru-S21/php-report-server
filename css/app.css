@@ -663,6 +663,7 @@ a:hover {
     line-height: 1.7;
     font-size: 15px;
     overflow-x: auto;
+    box-shadow: var(--shadow-sm);
 }
 
 .readme-content h1 { font-size: 28px; margin: 0 0 24px 0; padding-bottom: 12px; border-bottom: 2px solid var(--color-border); }
