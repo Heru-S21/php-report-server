@@ -200,7 +200,7 @@ class Designer {
 
     getElementContent(el) {
         switch (el.type) {
-            case 'label': return el.text || 'Label';
+            case 'label': return el.expression || el.text || 'Label';
             case 'field': return el.fieldName ? `[${el.fieldName}]` : '[Field]';
             case 'aggregate': {
                 const func = (el.aggregateFunc || 'SUM').toUpperCase();

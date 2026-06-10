@@ -17,6 +17,7 @@ class BandElement
     public ?string $format = null;
     public ?string $imageUrl = null;
     public ?string $imageDisplay = null;
+    public ?string $expression = null;
     public string $fontFamily = 'Arial';
     public int $fontSize = 10;
     public bool $bold = false;
@@ -52,6 +53,7 @@ class BandElement
         $el->format = $data['format'] ?? null;
         $el->imageUrl = $data['imageUrl'] ?? null;
         $el->imageDisplay = $data['imageDisplay'] ?? null;
+        $el->expression = $data['expression'] ?? null;
         $el->fontFamily = $data['fontFamily'] ?? 'Arial';
         $el->fontSize = (int)($data['fontSize'] ?? 10);
         $el->bold = (bool)($data['bold'] ?? false);
@@ -84,6 +86,7 @@ class BandElement
             'format' => $this->format,
             'imageUrl' => $this->imageUrl,
             'imageDisplay' => $this->imageDisplay,
+            'expression' => $this->expression,
             'fontFamily' => $this->fontFamily,
             'fontSize' => $this->fontSize,
             'bold' => $this->bold,

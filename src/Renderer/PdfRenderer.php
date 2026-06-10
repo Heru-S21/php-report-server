@@ -323,6 +323,9 @@ class PdfRenderer implements RendererInterface
         // Group elements by top position into visual rows
         $rows = [];
         foreach ($band->elements as $element) {
+            if ($element->conditionalExpression && !ExpressionEvaluator::evaluateBool($element->conditionalExpression, $data ?: [])) {
+                continue;
+            }
             $rows[(string)$element->top][] = $element;
         }
         ksort($rows, SORT_NUMERIC);
@@ -384,7 +387,7 @@ class PdfRenderer implements RendererInterface
     private function getElementValue(BandElement $el, ReportDefinition $def, $group, $data): string
     {
         return match ($el->type) {
-            'label' => htmlspecialchars($el->text ?? ''),
+            'label' => htmlspecialchars($el->expression ? ExpressionEvaluator::evaluate($el->expression, $data ?: []) : ($el->text ?? '')),
             'field' => $data && isset($data[$el->fieldName])
                 ? htmlspecialchars($this->formatValue($data[$el->fieldName], $el->format))
                 : '',

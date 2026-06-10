@@ -164,6 +164,14 @@ class ElementEditor {
                 <input class="prop-control" type="text" value="${escapeHtml(el.text || '')}"
                        onchange="window.elementEditor.updateField('text', this.value)">
             </div>
+            ${el.type === 'label' ? `
+            <div class="prop-group">
+                <label>Expression</label>
+                <textarea class="prop-control" rows="3" style="font-family:var(--font-mono);font-size:12px;resize:vertical"
+                    onchange="window.elementEditor.updateField('expression', this.value)"
+                    placeholder='[field] > 3 ? "more" : "less"'>${escapeHtml(el.expression || '')}</textarea>
+                <small style="color:#64748b;font-size:11px">Use [fieldName] to reference fields. Supports &gt; &lt; == != ? : + - * /</small>
+            </div>` : ''}
             ${el.type === 'field' || el.type === 'aggregate' ? `
             <div class="prop-group">
                 <label>Field Name</label>
@@ -195,6 +203,13 @@ class ElementEditor {
                 <input class="prop-control" type="text" value="${escapeHtml(el.format || '')}"
                        onchange="window.elementEditor.updateField('format', this.value)" placeholder="${el.type === 'datetime' ? 'Y-m-d' : '#,##0.00'}">
                 ${formatHelp}
+            </div>
+            <div class="prop-group">
+                <label>Conditional Visibility</label>
+                <input class="prop-control" type="text" value="${escapeHtml(el.conditionalExpression || '')}"
+                       onchange="window.elementEditor.updateField('conditionalExpression', this.value)"
+                       placeholder='[field] == "active"'>
+                <small style="color:#64748b;font-size:11px">Element hidden when expression is false/empty</small>
             </div>
             ${el.type === 'image' ? `
             <div class="prop-group">

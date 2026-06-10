@@ -60,15 +60,25 @@ Reports are defined as JSON, stored in SQLite. The definition includes:
 
 ### Elements
 Elements are positioned absolutely within bands using mm coordinates. Types:
-- **Label** — static text
+- **Label** — static text or dynamic expression (e.g. `[field] > 3 ? "high" : "low"`)
 - **Field** — data field from query result
 - **Aggregate** — SUM, AVG, COUNT, MIN, MAX (group or report scope)
-- **Image** — external image URL
+- **Image** — from image library or external URL
 - **Line** — horizontal rule
 - **Rectangle** — colored rectangle (placeholder)
 - **Page #** — current page number (`{PAGENO}`)
 - **Row #** — row number within dataset
 - **Date/Time** — current date/time with format string
+
+All elements support **conditional visibility** — set an expression in the properties panel to show/hide elements based on field values.
+
+### Image Library
+Upload, browse, and manage images from the designer's image picker modal. Images are stored in `data/images/` with UUID filenames. The library supports:
+- Upload (JPEG, PNG, GIF, WebP; max size configurable)
+- Browse with thumbnails
+- Delete (refused if the image is used in any saved report)
+- Duplicate detection by SHA256 hash — uploading the same file returns the existing image
+- Embedded in exported report designs (base64) and auto-restored on import
 
 ## Routes
 
@@ -90,10 +100,16 @@ Elements are positioned absolutely within bands using mm coordinates. Types:
 | GET | `/api/reports/{id}` | Get report definition |
 | PUT | `/api/reports/{id}` | Update report |
 | DELETE | `/api/reports/{id}` | Delete report |
+| GET | `/api/reports/{id}/export` | Export report design (embeds images) |
+| POST | `/api/reports/import` | Import report design (restores images) |
 | GET | `/api/render/{id}?format=html\|pdf` | Render report |
 | POST | `/api/render/preview` | Render unsaved definition |
 | POST | `/api/query/execute` | Run SQL query |
 | POST | `/api/query/fields` | Extract columns from SQL |
+| GET | `/api/images` | List image library |
+| POST | `/api/images/upload` | Upload image (hash-dedup) |
+| GET | `/api/images/file/{guid}` | Serve image file |
+| DELETE | `/api/images/{id}` | Delete image (refused if in use) |
 
 ## External Access
 
@@ -110,6 +126,39 @@ The report GUID is shown as a read-only field in the designer's Report propertie
 ## Parameters
 
 Use `:paramName` placeholders in SQL queries. Parameters are auto-detected in the designer and can be edited with name, type (text/number/date/boolean), and default value. When previewing or exporting, the user is prompted for parameter values. Values are passed as `param_<name>` query parameters to the render endpoint.
+
+## Export & Import
+
+Report designs can be exported as JSON and re-imported later. Exported files include:
+- Report name, description, and definition
+- Connection name (matched on import)
+- **Embedded images** — local images from the image library are base64-encoded into the export and auto-restored on import
+
+Use the **Export Design** and **Import Design** buttons in the designer toolbar, or the API endpoints:
+
+```
+GET  /api/reports/{id}/export
+POST /api/reports/import
+```
+
+## Expression Evaluator
+
+Labels support dynamic content via expressions in the designer's properties panel. Syntax:
+
+```
+[fieldName] > 3 ? "more than three" : "less or equal three"
+[status] == "active" ? "Active" : "Inactive"
+[score] >= 90 ? "A" : [score] >= 80 ? "B" : "C"
+```
+
+- Field references: `[fieldName]` — replaced with the value from the current data row
+- Comparators: `>`, `<`, `>=`, `<=`, `==`, `!=`
+- Ternary: `condition ? value_if_true : value_if_false`
+- Math: `+`, `-`, `*`, `/`
+- Logical: `&&`, `||`, unary `!`
+- Parentheses for grouping
+
+The same expression syntax also powers **Conditional Visibility** — set a visibility expression on any element to show/hide it based on data.
 
 ## Export
 
