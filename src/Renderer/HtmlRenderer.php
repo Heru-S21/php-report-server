@@ -300,7 +300,7 @@ class HtmlRenderer implements RendererInterface
         );
         $html = sprintf('<div class="band band-%s" style="%s">', $band->type, $style);
         foreach ($band->elements as $element) {
-            if ($element->conditionalExpression && !ExpressionEvaluator::evaluateBool($element->conditionalExpression, $data ?: [])) {
+            if ($element->conditionalExpression && !ExpressionEvaluator::evaluateBool($element->conditionalExpression, $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []))) {
                 continue;
             }
             $html .= $this->renderSingleElement($element, $def, $group, $data, $pageNum);
@@ -368,7 +368,7 @@ class HtmlRenderer implements RendererInterface
     private function getElementValue(BandElement $el, ReportDefinition $def, $group, $data, int $pageNum = 1): string
     {
         return match ($el->type) {
-            'label' => htmlspecialchars($el->expression ? ExpressionEvaluator::evaluate($el->expression, $data ?: []) : ($el->text ?? '')),
+            'label' => htmlspecialchars($el->expression ? ExpressionEvaluator::evaluate($el->expression, $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: [])) : ($el->text ?? '')),
             'field' => $data && $el->fieldName
                 ? (is_array($data) && isset($data[$el->fieldName])
                     ? htmlspecialchars($this->formatValue($data[$el->fieldName], $el->format))

@@ -38,6 +38,11 @@ class AggregateAccumulator
         return $this->lastValues[$field] ?? null;
     }
 
+    public function getLastValues(): array
+    {
+        return $this->lastValues;
+    }
+
     public function reset(): void
     {
         $this->sums = $this->counts = $this->mins = $this->maxs = $this->lastValues = [];
