@@ -826,7 +826,7 @@ class Designer {
         const id = this.reportGuid || this.reportId || '';
         if (!id) { this.showToast('Save the report first', 'error'); return; }
         this.autosave();
-        window.open('/reports/preview/' + id + '?unsaved=1', '_blank');
+        window.location.href = '/reports/preview/' + id + '?unsaved=1';
     }
 
     postRenderRequest(format) {
