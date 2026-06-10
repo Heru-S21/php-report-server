@@ -369,7 +369,7 @@ class PdfRenderer implements RendererInterface
         $value = $this->getElementValue($el, $def, $group, $data);
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
         $style = sprintf(
-            'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:%s; %s',
+            'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; overflow:hidden; background:%s; %s',
             $marginLeft, $el->width, $el->height,
             $el->fontFamily ?: 'Arial',
             $el->fontSize ?: 10,
@@ -381,6 +381,14 @@ class PdfRenderer implements RendererInterface
             $el->backgroundColor ?: 'transparent',
             $borderStyle
         );
+
+        if (!in_array($el->type, ['image', 'line', 'rect'])) {
+            $value = sprintf(
+                '<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; width:100%%; min-width:0">%s</span>',
+                $value
+            );
+        }
+
         return sprintf('<div class="element" style="%s">%s</div>', $style, $value);
     }
 

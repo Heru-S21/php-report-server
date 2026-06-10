@@ -316,9 +316,11 @@ class HtmlRenderer implements RendererInterface
         $va = $el->verticalAlign ?? 'top';
         $ta = $el->textAlign ?: 'left';
 
+        $isTextType = !in_array($el->type, ['image', 'line', 'rect']);
+
         if ($va === 'top') {
             $style = sprintf(
-                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; background:%s; %s',
+                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:%s; %s',
                 $el->top, $el->left, $el->width, $el->height,
                 $el->fontFamily ?: 'Arial',
                 $el->fontSize ?: 10,
@@ -338,7 +340,7 @@ class HtmlRenderer implements RendererInterface
                 default => 'flex-start',
             };
             $style = sprintf(
-                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; display:flex; align-items:%s; justify-content:%s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:%s; %s',
+                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; display:flex; align-items:%s; justify-content:%s; overflow:hidden; background:%s; %s',
                 $el->top, $el->left, $el->width, $el->height,
                 $el->fontFamily ?: 'Arial',
                 $el->fontSize ?: 10,
@@ -350,6 +352,13 @@ class HtmlRenderer implements RendererInterface
                 $justify,
                 $el->backgroundColor ?: 'transparent',
                 $borderStyle
+            );
+        }
+
+        if ($isTextType) {
+            $value = sprintf(
+                '<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; width:100%%; min-width:0">%s</span>',
+                $value
             );
         }
 
