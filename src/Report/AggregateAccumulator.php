@@ -8,6 +8,7 @@ class AggregateAccumulator
     private array $counts = [];
     private array $mins = [];
     private array $maxs = [];
+    private array $lastValues = [];
 
     public function accumulate(string $field, mixed $value): void
     {
@@ -16,6 +17,7 @@ class AggregateAccumulator
         $this->counts[$field] = ($this->counts[$field] ?? 0) + 1;
         $this->mins[$field] = min($this->mins[$field] ?? $v, $v);
         $this->maxs[$field] = max($this->maxs[$field] ?? $v, $v);
+        $this->lastValues[$field] = $value;
     }
 
     public function resolve(string $func, string $field): float|int
@@ -31,8 +33,13 @@ class AggregateAccumulator
         };
     }
 
+    public function getLastValue(string $field): mixed
+    {
+        return $this->lastValues[$field] ?? null;
+    }
+
     public function reset(): void
     {
-        $this->sums = $this->counts = $this->mins = $this->maxs = [];
+        $this->sums = $this->counts = $this->mins = $this->maxs = $this->lastValues = [];
     }
 }

@@ -396,8 +396,12 @@ class PdfRenderer implements RendererInterface
     {
         return match ($el->type) {
             'label' => htmlspecialchars($el->expression ? ExpressionEvaluator::evaluate($el->expression, $data ?: []) : ($el->text ?? '')),
-            'field' => $data && isset($data[$el->fieldName])
-                ? htmlspecialchars($this->formatValue($data[$el->fieldName], $el->format))
+            'field' => $data && $el->fieldName
+                ? (is_array($data) && isset($data[$el->fieldName])
+                    ? htmlspecialchars($this->formatValue($data[$el->fieldName], $el->format))
+                    : ($data instanceof AggregateAccumulator && ($last = $data->getLastValue($el->fieldName)) !== null
+                        ? htmlspecialchars($this->formatValue($last, $el->format))
+                        : ''))
                 : '',
             'aggregate' => $this->renderAggValue($el, $data),
             'image' => $el->imageUrl ? '<img src="' . $el->imageUrl . '" style="width:100%;height:100%;object-fit:' . $this->imageFit($el->imageDisplay) . '">' : '',
