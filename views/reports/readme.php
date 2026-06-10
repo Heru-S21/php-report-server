@@ -6,7 +6,7 @@
         <div class="loading-spinner">Loading...</div>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+<script src="/js/marked.min.js"></script>
 <script>
 (async function() {
     try {

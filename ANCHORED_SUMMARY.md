@@ -28,6 +28,20 @@
 - Horizontal alignment works with vertical align middle/bottom via `justify-content`
 - HTML `<title>` set to report name in rendered output
 - **Band/element borders**: fixed `window.borderEditor` orphan instance (checkboxes non-functional); fixed `{}`→`[]`→`[]` PHP json round-trip corruption (borders saved as array named-properties → silently dropped by `JSON.stringify`); added `Array.isArray()` guard in BorderEditor for self-healing
+- **Image Display property**: added `imageDisplay` prop (Original/Stretch/Proportional) on image elements; dropdown in ElementEditor, `object-fit` CSS in renders, `fit` option in PdfRenderer
+- **Toolbar redesign**: removed `btn-sm` from toolbar buttons, reordered: Save, Preview, Export, Import, Save as Template, Export PDF, Export HTML
+- **Zoom control**: dropdown from 25% to 200% (was 50–150%)
+- **Image delete guard**: `ImageController::delete()` checks `ReportRepository::findByImageGuid()` — refuses if image is used in any saved report
+- **Export embeds images**: `ReportController::export()` base64-encodes local images into `_embeddedImages` in the exported JSON
+- **Import auto-adds images**: `ReportController::import()` extracts `_embeddedImages`, saves to `data/images/`, creates library entries, rewrites `imageGuid` refs
+- **Hash-based dedup on upload**: `ImageRepository::findByHash()` + SHA256 stored in `images.hash` column; duplicate upload returns existing record
+- **Expression evaluator**: new `src/Report/ExpressionEvaluator.php` — parses `[fieldRef]` substitutions, ternary ops, comparators, math, logical ops; wired into label rendering and conditional visibility in both HtmlRenderer and PdfRenderer
+- **Conditional visibility**: all elements get `visibilityExpression` property; designers shows input in ElementEditor (replaces old static "condition" field)
+- **Max upload size setting**: `/settings` page with `app_settings` table; `max_upload_size` configurable in MB; `ImageController` and designer JS read it; displayed in designer image picker
+- **Print button**: rendered HTML output includes a Print button (hidden during print via `@media print`)
+- **Auto-print script**: added `<script>window.print()</script>` after rendered content for print-on-render workflows
+- **README.md sync**: removed duplicate export section; kept content current
+- **Local marked.js**: downloaded `marked@15.0.7` to `js/marked.min.js`, updated `views/reports/readme.php` to use local copy instead of CDN
 
 ### In Progress
 - (none)

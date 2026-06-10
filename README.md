@@ -141,6 +141,10 @@ GET  /api/reports/{id}/export
 POST /api/reports/import
 ```
 
+Render output formats:
+- **HTML** — multi-page output with page breaks based on paper dimensions, page headers/footers repeat on every page, column headers repeat on every page, proper page numbering. A Print button is included in the rendered view (hidden during print).
+- **PDF** — rendered via mPDF with the same page layout
+
 ## Expression Evaluator
 
 Labels support dynamic content via expressions in the designer's properties panel. Syntax:
@@ -159,11 +163,6 @@ Labels support dynamic content via expressions in the designer's properties pane
 - Parentheses for grouping
 
 The same expression syntax also powers **Conditional Visibility** — set a visibility expression on any element to show/hide it based on data.
-
-## Export
-
-- **HTML** — multi-page output with page breaks based on paper dimensions, page headers/footers repeat on every page, column headers repeat on every page, proper page numbering
-- **PDF** — rendered via mPDF with the same page layout
 
 ## Database Connections
 

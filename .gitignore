@@ -6,3 +6,5 @@
 composer.lock
 .env
 *.log
+generated/
+*.bak
