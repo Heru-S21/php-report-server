@@ -14,51 +14,98 @@ class Designer {
         if (this.reportId) {
             await this.loadReport(this.reportId);
         } else {
-            this.createDefaultDefinition();
+            const stored = localStorage.getItem('designer_draft_new');
+            if (stored) {
+                const def = JSON.parse(stored);
+                def.guid = null;
+                this.bands = def.bands || this.getDefaultBands();
+                window.ReportingEngine.dispatch('SET_DEFINITION', def);
+            } else {
+                this.createDefaultDefinition();
+            }
         }
         this.renderCanvas();
         this.renderObjectTree();
         this.bindEvents();
         this.selectReport();
         if (window.groupEditor) window.groupEditor.updateGroupList();
+        this.updateSaveIndicator();
+
+        window.ReportingEngine.on('stateChange', (e) => {
+            this.updateSaveIndicator();
+            if (e.state.isDirty) this.autosave();
+        });
+    }
+
+    storageKey() {
+        const id = this.reportGuid || this.reportId;
+        return id ? 'designer_draft_' + id : 'designer_draft_new';
+    }
+
+    autosave() {
+        const key = this.storageKey();
+        if (!key) return;
+        const def = window.ReportingEngine.state.definition;
+        def.bands = this.bands;
+        localStorage.setItem(key, JSON.stringify(def));
+        localStorage.setItem(key + '_dirty', window.ReportingEngine.state.isDirty ? '1' : '0');
+
+        // Keep dirty flag in sync on the ID-based key (used after page reload)
+        if (this.reportId && key !== 'designer_draft_' + this.reportId) {
+            localStorage.setItem('designer_draft_' + this.reportId + '_dirty',
+                window.ReportingEngine.state.isDirty ? '1' : '0');
+        }
+    }
+
+    updateSaveIndicator() {
+        const btn = document.getElementById('btn-save');
+        if (!btn) return;
+        const dot = btn.querySelector('.unsaved-dot');
+        if (!dot) return;
+        dot.style.display = window.ReportingEngine.state.isDirty ? 'inline' : 'none';
     }
 
     async loadReport(id) {
         try {
+            const key = this.storageKey();
+            const stored = key ? localStorage.getItem(key) : null;
+
+            if (stored) {
+                const def = JSON.parse(stored);
+                def.guid = null;
+                window.ReportingEngine.dispatch('LOAD_DEFINITION', def);
+                this.bands = def.bands || this.getDefaultBands();
+            }
+
             const res = await window.ReportingEngine.api('GET', `/api/reports/${id}`);
             if (res.data) {
                 const def = typeof res.data.definition === 'string'
                     ? JSON.parse(res.data.definition) : res.data.definition;
-                // Ensure grid defaults for backward compatibility
-                if (def.showGrid === undefined) def.showGrid = true;
-                if (def.snapToGrid === undefined) def.snapToGrid = true;
-                if (!def.gridSize) def.gridSize = 2;
-                if (!def.defaultStyle) def.defaultStyle = {
-                    fontFamily: 'Arial', fontSize: 10, color: '#000000', backgroundColor: 'transparent',
-                };
-                // Ensure column_header band exists (backward compat)
-                if (!def.bands || !def.bands.some(b => b.type === 'column_header')) {
-                    if (!def.bands) def.bands = this.getDefaultBands();
-                    else {
-                        const idx = def.bands.findIndex(b => b.type === 'report_header');
-                        def.bands.splice(idx >= 0 ? idx + 1 : def.bands.length, 0, {
-                            type: 'column_header',
-                            height: 16,
-                            backgroundColor: 'transparent',
-                            border: {},
-                            elements: [],
-                        });
-                    }
-                }
                 def.guid = res.data.guid || null;
-                window.ReportingEngine.dispatch('SET_DEFINITION', def);
-                this.bands = def.bands || this.getDefaultBands();
+
+                if (!stored) {
+                    window.ReportingEngine.dispatch('LOAD_DEFINITION', def);
+                    this.bands = def.bands || this.getDefaultBands();
+                }
+
                 this.reportGuid = res.data.guid || null;
                 window.ReportingEngine.state.queryColumns = def.queryColumns || [];
             }
+
+            // Restore dirty state from localStorage so reloaded pages show unsaved indicator
+            if (stored) {
+                const wasDirty = localStorage.getItem(key + '_dirty') === '1';
+                if (wasDirty) {
+                    window.ReportingEngine.dispatch('SET_DIRTY', true);
+                }
+            }
+
+            this.autosave();
         } catch (e) {
             console.error('Failed to load report:', e);
-            this.createDefaultDefinition();
+            if (!localStorage.getItem(this.storageKey())) {
+                this.createDefaultDefinition();
+            }
         }
     }
 
@@ -89,8 +136,9 @@ class Designer {
                 backgroundColor: 'transparent',
             },
         };
-        window.ReportingEngine.dispatch('SET_DEFINITION', def);
         this.bands = def.bands;
+        window.ReportingEngine.dispatch('SET_DEFINITION', def);
+        this.autosave();
     }
 
     getDefaultBands() {
@@ -406,6 +454,7 @@ class Designer {
                         if (elem) {
                             elem.top = Math.max(0, parseFloat(el.style.top));
                             elem.left = Math.max(0, parseFloat(el.style.left));
+                            window.ReportingEngine.dispatch('SET_DIRTY', true);
                         }
                     }
                 };
@@ -458,6 +507,7 @@ class Designer {
                         if (elem) {
                             elem.width = parseFloat(el.style.width);
                             elem.height = parseFloat(el.style.height);
+                            window.ReportingEngine.dispatch('SET_DIRTY', true);
                         }
                     }
                 };
@@ -499,7 +549,10 @@ class Designer {
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
                     const b = this.bands.find(b => b.type === bandType);
-                    if (b) b.height = parseFloat(band.style.height);
+                    if (b) {
+                        b.height = parseFloat(band.style.height);
+                        window.ReportingEngine.dispatch('SET_DIRTY', true);
+                    }
                 };
 
                 document.addEventListener('mousemove', onMove);
@@ -623,6 +676,7 @@ class Designer {
         if (type === 'aggregate' && window.aggregateEditor) {
             window.aggregateEditor.open(el.id);
         }
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     removeElement(id) {
@@ -638,6 +692,7 @@ class Designer {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
         this.renderCanvas();
         this.renderObjectTree();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     applyDefaultStyleToElements(field, oldVal, newVal) {
@@ -675,6 +730,7 @@ class Designer {
         if (window.ReportingEngine.state.selectedElement === id) {
             this.selectElement(id);
         }
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     setZoom(zoom) {
@@ -708,6 +764,7 @@ class Designer {
             if (this.reportId) {
                 res = await window.ReportingEngine.api('PUT', `/api/reports/${this.reportId}`, payload);
             } else {
+                const oldKey = this.storageKey();
                 res = await window.ReportingEngine.api('POST', '/api/reports', payload);
                 if (res.data && res.data.id) {
                     this.reportId = res.data.id;
@@ -715,16 +772,19 @@ class Designer {
                     window.ReportingEngine.state.activeReportId = this.reportId;
                     window.ReportingEngine.state.activeReportGuid = this.reportGuid;
                     history.replaceState(null, '', `/reports/designer/${this.reportId}`);
+                    localStorage.removeItem(oldKey);
+                    localStorage.removeItem(oldKey + '_dirty');
                 }
             }
-                    if (res.data && res.data.guid) {
-                        def.guid = res.data.guid;
-                        if (!this.reportGuid) {
-                            this.reportGuid = res.data.guid;
-                            window.ReportingEngine.state.activeReportGuid = this.reportGuid;
-                        }
-                    }
-                    window.ReportingEngine.dispatch('SET_DIRTY', false);
+            if (res.data && res.data.guid) {
+                def.guid = res.data.guid;
+                if (!this.reportGuid) {
+                    this.reportGuid = res.data.guid;
+                    window.ReportingEngine.state.activeReportGuid = this.reportGuid;
+                }
+            }
+            window.ReportingEngine.dispatch('SET_DIRTY', false);
+            this.autosave();
             if (res.success) {
                 this.showToast('Report saved successfully');
             } else {
@@ -765,21 +825,39 @@ class Designer {
     preview() {
         const id = this.reportGuid || this.reportId || '';
         if (!id) { this.showToast('Save the report first', 'error'); return; }
-        const def = window.ReportingEngine.state.definition;
-        localStorage.setItem('preview_unsaved_' + id, JSON.stringify(def));
+        this.autosave();
         window.open('/reports/preview/' + id + '?unsaved=1', '_blank');
+    }
+
+    postRenderRequest(format) {
+        const def = window.ReportingEngine.state.definition;
+        def.bands = this.bands;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/api/render/preview';
+        form.target = '_blank';
+        const inputs = [
+            { name: 'json', value: JSON.stringify(def) },
+            { name: 'format', value: format },
+        ];
+        inputs.forEach(({ name, value }) => {
+            const el = document.createElement('input');
+            el.type = 'hidden'; el.name = name; el.value = value;
+            form.appendChild(el);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
     }
 
     exportPdf() {
         if (!this.reportId) { this.showToast('Save the report first', 'error'); return; }
-        const id = this.reportGuid || this.reportId;
-        window.open(`/api/render/${id}?format=pdf`, '_blank');
+        this.postRenderRequest('pdf');
     }
 
     exportHtml() {
         if (!this.reportId) { this.showToast('Save the report first', 'error'); return; }
-        const id = this.reportGuid || this.reportId;
-        window.open(`/api/render/${id}?format=html`, '_blank');
+        this.postRenderRequest('html');
     }
 
     async exportDesign() {
@@ -838,9 +916,9 @@ class Designer {
         const current = JSON.stringify(window.ReportingEngine.state.definition);
         window.ReportingEngine.state.redoStack.push(current);
         const prev = JSON.parse(stack.pop());
+        this.bands = prev.bands || this.getDefaultBands();
         window.ReportingEngine.dispatch('UNDO_STACK', stack);
         window.ReportingEngine.dispatch('SET_DEFINITION', prev);
-        this.bands = prev.bands || this.getDefaultBands();
         this.renderCanvas();
         this.renderObjectTree();
     }
@@ -851,9 +929,9 @@ class Designer {
         const current = JSON.stringify(window.ReportingEngine.state.definition);
         window.ReportingEngine.state.undoStack.push(current);
         const next = JSON.parse(stack.pop());
+        this.bands = next.bands || this.getDefaultBands();
         window.ReportingEngine.dispatch('REDO_STACK', stack);
         window.ReportingEngine.dispatch('SET_DEFINITION', next);
-        this.bands = next.bands || this.getDefaultBands();
         this.renderCanvas();
         this.renderObjectTree();
     }

@@ -40,6 +40,13 @@
     font-family: var(--font-ui);
 }
 
+.unsaved-dot {
+    color: #ef4444;
+    font-size: 12px;
+    vertical-align: top;
+    margin-left: 2px;
+}
+
 .designer-panels {
     display: flex;
     flex: 1;

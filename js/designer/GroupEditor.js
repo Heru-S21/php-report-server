@@ -83,6 +83,7 @@ class GroupEditor {
         window.ReportingEngine.state.definition.groups = groups.filter(g => g.id !== groupId);
         this.updateGroupList();
         this.designer.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     moveUp(groupId) {

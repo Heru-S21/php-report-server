@@ -35,13 +35,12 @@ const preview = {
         if (!this.reportId) return;
         let def;
         if (this.isUnsaved) {
-            const stored = localStorage.getItem('preview_unsaved_' + this.reportId);
+            const stored = localStorage.getItem('designer_draft_' + this.reportId);
             if (!stored) {
                 document.getElementById('preview-container').innerHTML = '<div class="error-message">Unsaved preview data not found. Please go back to the designer and try again.</div>';
                 return;
             }
             def = JSON.parse(stored);
-            localStorage.removeItem('preview_unsaved_' + this.reportId);
             this.definition = def;
         } else {
             const res = await fetch('/api/reports/' + this.reportId);

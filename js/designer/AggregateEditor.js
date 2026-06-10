@@ -43,6 +43,7 @@ class AggregateEditor {
         el.format = document.getElementById('agg-format').value;
 
         this.designer.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
         this.close();
     }
 

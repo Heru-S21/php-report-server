@@ -13,6 +13,10 @@ window.ReportingEngine = {
     listeners: {},
     dispatch(action, payload) {
         switch (action) {
+            case 'LOAD_DEFINITION':
+                this.state.definition = payload;
+                this.state.isDirty = false;
+                break;
             case 'SET_DEFINITION':
                 this.state.definition = payload;
                 this.state.isDirty = true;

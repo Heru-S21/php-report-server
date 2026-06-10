@@ -1,7 +1,7 @@
 <div class="designer-page">
     <div class="designer-toolbar">
         <div class="toolbar-left">
-            <button class="btn btn-primary" onclick="designer.save()"><i class="ph-floppy-disk"></i> Save</button>
+            <button class="btn btn-primary" onclick="designer.save()" id="btn-save"><i class="ph-floppy-disk"></i> Save<span class="unsaved-dot" style="display:none"> &#9679;</span></button>
             <button class="btn" onclick="designer.preview()"><i class="ph-eye"></i> Preview</button>
             <button class="btn" onclick="designer.exportDesign()" title="Export report design as JSON"><i class="ph-download"></i> Export</button>
             <button class="btn" onclick="designer.importDesign()" title="Import report design from JSON"><i class="ph-upload"></i> Import</button>

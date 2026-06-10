@@ -67,6 +67,7 @@ class BorderEditor {
         this.target.border[side].enabled = enabled;
         this.updatePreview();
         this.designer.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     toggleAll(enabled) {
@@ -76,6 +77,7 @@ class BorderEditor {
         });
         this.updatePreview();
         this.designer.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     updateStyle(field, value) {
@@ -87,6 +89,7 @@ class BorderEditor {
         });
         this.updatePreview();
         this.designer.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     updatePreview() {

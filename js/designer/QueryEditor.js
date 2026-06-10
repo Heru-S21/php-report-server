@@ -65,6 +65,7 @@ class QueryEditor {
     onConnectionChange() {
         const connId = this.connectionSelect.value;
         window.ReportingEngine.state.definition.connectionId = connId ? parseInt(connId) : null;
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
         if (connId) {
             this.loadTables(parseInt(connId));
         } else {
@@ -188,6 +189,7 @@ class QueryEditor {
         window.ReportingEngine.state.definition.query.sql = sql;
         window.ReportingEngine.state.definition.sqlQuery = sql;
         this.detectParameters(sql);
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     detectParameters(sql) {
@@ -340,10 +342,10 @@ class QueryEditor {
 
             this.queryColumns = res.data || [];
             window.ReportingEngine.dispatch('SET_QUERY_COLUMNS', this.queryColumns);
+            window.ReportingEngine.state.definition.queryColumns = this.queryColumns;
             this.renderFieldList();
 
             this.onSqlChange();
-            window.ReportingEngine.state.definition.queryColumns = this.queryColumns;
 
             this.setStatus(`Applied ${this.queryColumns.length} fields`, 'success');
         } catch (e) {

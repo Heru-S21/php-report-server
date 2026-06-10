@@ -599,6 +599,7 @@ class ElementEditor {
             this.designer.selectElement(el.id);
         }
         this.render();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     resetToDefaultStyle() {
@@ -613,11 +614,13 @@ class ElementEditor {
         el.inheritStyle = true;
         this.designer.renderCanvas();
         this.render();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     updateBandField(field, value) {
         if (!this.currentBand) return;
         this.currentBand[field] = value;
         this.designer.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 }

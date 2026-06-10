@@ -55,6 +55,7 @@ class BandManager {
         if (band) {
             band.visible = visible;
             this.designer.renderCanvas();
+            window.ReportingEngine.dispatch('SET_DIRTY', true);
         }
     }
 
@@ -70,5 +71,6 @@ class BandManager {
         }
         band.height = Math.max(minH, height);
         this.designer.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 }
