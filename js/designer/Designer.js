@@ -86,6 +86,8 @@ class Designer {
                 if (!stored) {
                     window.ReportingEngine.dispatch('LOAD_DEFINITION', def);
                     this.bands = def.bands || this.getDefaultBands();
+                } else {
+                    window.ReportingEngine.state.definition.guid = res.data.guid || null;
                 }
 
                 this.reportGuid = res.data.guid || null;
