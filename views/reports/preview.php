@@ -29,12 +29,27 @@ $contentBefore = '<div class="preview-toolbar">
 const preview = {
     reportId: <?= json_encode($reportId) ?>,
     paramValues: {},
+    isUnsaved: new URLSearchParams(window.location.search).get('unsaved') === '1',
     async init() {
         this.renderRuler();
         if (!this.reportId) return;
-        const res = await window.ReportingEngine.api('GET', `/api/reports/${this.reportId}`);
-        if (!res.data) return;
-        const def = typeof res.data.definition === 'string' ? JSON.parse(res.data.definition) : res.data.definition;
+        let def;
+        if (this.isUnsaved) {
+            const stored = localStorage.getItem('preview_unsaved_' + this.reportId);
+            if (!stored) {
+                document.getElementById('preview-container').innerHTML = '<div class="error-message">Unsaved preview data not found. Please go back to the designer and try again.</div>';
+                return;
+            }
+            def = JSON.parse(stored);
+            localStorage.removeItem('preview_unsaved_' + this.reportId);
+            this.definition = def;
+        } else {
+            const res = await fetch('/api/reports/' + this.reportId);
+            const json = await res.json();
+            if (!json.data) { document.getElementById('preview-container').innerHTML = '<div class="error-message">Report not found</div>'; return; }
+            def = typeof json.data.definition === 'string' ? JSON.parse(json.data.definition) : json.data.definition;
+            this.definition = def;
+        }
         const params = def.query?.parameters || [];
         if (params.length > 0) {
             this.renderParamForm(params);
@@ -62,7 +77,6 @@ const preview = {
                 html += `<div class="ruler-mark" style="left:${x}px;height:4px;top:8px;background:#cbd5e1"></div>`;
             }
         }
-        // margin indicators
         const ml = marginLeft * pxPerMm;
         const mr = (paperWidth - marginRight) * pxPerMm;
         html += `<div style="position:absolute;top:0;left:${ml}px;width:${mr - ml}px;height:100%;border-left:1px solid #93c5fd;border-right:1px solid #93c5fd;pointer-events:none"></div>`;
@@ -118,25 +132,34 @@ const preview = {
         const oldStyles = document.getElementById('preview-styles');
         if (oldStyles) oldStyles.remove();
         container.innerHTML = '<div class="loading-spinner">Loading preview...</div>';
-        const queryStr = Object.entries(this.paramValues)
-            .filter(([,v]) => v !== '')
-            .map(([k,v]) => `param_${k}=${encodeURIComponent(v)}`)
-            .join('&');
         try {
-            const url = `/api/render/${this.reportId}?format=html${queryStr ? '&' + queryStr : ''}`;
-            const res = await fetch(url);
-            let html = await res.text();
-            // Extract <style> from <head>
+            let html;
+            if (this.isUnsaved) {
+                const body = { definition: this.definition, format: 'html' };
+                Object.entries(this.paramValues).forEach(([k,v]) => { if (v !== '') body['param_' + k] = v; });
+                const res = await fetch('/api/render/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                html = await res.text();
+            } else {
+                const qs = Object.entries(this.paramValues)
+                    .filter(([,v]) => v !== '')
+                    .map(([k,v]) => `param_${k}=${encodeURIComponent(v)}`)
+                    .join('&');
+                const url = `/api/render/${this.reportId}?format=html${qs ? '&' + qs : ''}`;
+                const res = await fetch(url);
+                html = await res.text();
+            }
             const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
             if (styleMatch) {
-                // Strip body rules — they'd leak onto the outer page
                 const cleanCss = styleMatch[1].replace(/body\s*\{[^}]*\}/g, '');
                 const styleEl = document.createElement('style');
                 styleEl.id = 'preview-styles';
                 styleEl.textContent = cleanCss;
                 document.head.appendChild(styleEl);
             }
-            // Strip outer wrappers, keep only body content
             html = html.replace(/^<!DOCTYPE[^>]*>/i, '');
             html = html.replace(/<html[^>]*>/gi, '');
             html = html.replace(/<\/html>/gi, '');
@@ -155,13 +178,36 @@ const preview = {
             .map(([k,v]) => `param_${k}=${encodeURIComponent(v)}`)
             .join('&');
     },
+    postRenderRequest(format) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/api/render/preview';
+        form.target = '_blank';
+        const defInput = document.createElement('input');
+        defInput.type = 'hidden'; defInput.name = 'json'; defInput.value = JSON.stringify(this.definition);
+        form.appendChild(defInput);
+        const fmtInput = document.createElement('input');
+        fmtInput.type = 'hidden'; fmtInput.name = 'format'; fmtInput.value = format;
+        form.appendChild(fmtInput);
+        Object.entries(this.paramValues).forEach(([k,v]) => {
+            if (v === '') return;
+            const input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'param_' + k; input.value = v;
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+    },
     exportPdf() {
         if (!this.reportId) return;
+        if (this.isUnsaved) { this.postRenderRequest('pdf'); return; }
         const qs = this.getParamQueryString();
         window.open(`/api/render/${this.reportId}?format=pdf${qs ? '&' + qs : ''}`, '_blank');
     },
     exportHtml() {
         if (!this.reportId) return;
+        if (this.isUnsaved) { this.postRenderRequest('html'); return; }
         const qs = this.getParamQueryString();
         window.open(`/api/render/${this.reportId}?format=html${qs ? '&' + qs : ''}`, '_blank');
     },

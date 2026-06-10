@@ -764,7 +764,10 @@ class Designer {
 
     preview() {
         const id = this.reportGuid || this.reportId || '';
-        window.location.href = `/reports/preview/${id}`;
+        if (!id) { this.showToast('Save the report first', 'error'); return; }
+        const def = window.ReportingEngine.state.definition;
+        localStorage.setItem('preview_unsaved_' + id, JSON.stringify(def));
+        window.open('/reports/preview/' + id + '?unsaved=1', '_blank');
     }
 
     exportPdf() {
