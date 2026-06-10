@@ -23,7 +23,21 @@ class ImagePicker {
         this.selectedId = null;
         document.getElementById('image-picker-modal').style.display = 'flex';
         document.getElementById('image-picker-select-btn').disabled = true;
+        this.loadMaxSize();
         this.loadImages();
+    }
+
+    async loadMaxSize() {
+        try {
+            const res = await window.ReportingEngine.api('GET', '/api/settings');
+            if (res.success !== false && res.data?.max_upload_size) {
+                const mb = (parseInt(res.data.max_upload_size) / 1048576).toFixed(1);
+                const el = document.getElementById('image-picker-size-info');
+                if (el) el.textContent = `Max file size: ${mb} MB · Allowed: JPEG, PNG, GIF, WebP`;
+            }
+        } catch (e) {
+            // ignore
+        }
     }
 
     close() {

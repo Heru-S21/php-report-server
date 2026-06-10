@@ -22,6 +22,18 @@ class ImageController
         $config = Database::getConfig();
         $this->storageDir = ($config['data_path'] ?? __DIR__ . '/../../data') . '/images';
         $this->maxSize = (int)($config['max_upload_size'] ?? 1048576);
+        // Check for runtime override in app_settings (set via /settings page)
+        try {
+            $pdo = Database::getInstance();
+            $stmt = $pdo->prepare("SELECT value FROM app_settings WHERE key = 'max_upload_size'");
+            $stmt->execute();
+            $dbVal = $stmt->fetchColumn();
+            if ($dbVal !== false && $dbVal !== null) {
+                $this->maxSize = (int)$dbVal;
+            }
+        } catch (\Exception $e) {
+            // Ignore — fall back to config default
+        }
     }
 
     public function index(Request $request): Response

@@ -27,6 +27,7 @@ class HtmlRenderer implements RendererInterface
         $html  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">';
         $html .= '<title>' . htmlspecialchars($definition->name ?: 'Report') . '</title>';
         $html .= '<style>' . $this->getBaseStyles($usableWidth, $paperW) . '</style></head><body>';
+        $html .= '<button class="print-btn no-print" onclick="window.print()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg> Print</button>';
 
         $has = function(?Band $b): bool {
             return $b && $b->visible && !empty($b->elements);
@@ -281,6 +282,7 @@ class HtmlRenderer implements RendererInterface
             $wrapped[] = '<div class="paper-page" style="width:' . $paperW . 'mm;' . $minH . '">' . "\n" . $pageHtml . "\n" . '</div>';
         }
         $html .= implode("\n", $wrapped);
+        $html .= '<script>(function(){var b=document.querySelector(".print-btn");if(b&&window.location.search.includes("print"))setTimeout(function(){b.click()},500)})();</script>';
         $html .= '</body></html>';
         return $html;
     }
@@ -472,12 +474,16 @@ class HtmlRenderer implements RendererInterface
             .paper-page { background: #fff; box-shadow: 0 2px 20px rgba(0,0,0,0.18); margin: 0 auto 32px auto; padding: 15mm 0; position: relative; page-break-after: always; }
             .paper-page:last-child { margin-bottom: 0; page-break-after: auto; }
             .paper-page .report-page { margin: 0 auto !important; box-shadow: none !important; background: transparent !important; }
+            .print-btn { position:fixed; top:16px; right:16px; z-index:9999; display:inline-flex; align-items:center; gap:6px; padding:10px 18px; font-size:14px; font-family:Arial,sans-serif; font-weight:600; border:none; border-radius:8px; background:#2563eb; color:#fff; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.25); transition:background 0.15s,transform 0.1s; }
+            .print-btn:hover { background:#1d4ed8; transform:scale(1.04); }
+            .print-btn:active { transform:scale(0.96); }
             @media print {
                 body { background: white; padding: 0; }
                 .report-page { box-shadow: none; margin: 0; }
                 .paper-page { box-shadow: none !important; margin: 0 auto !important; padding: 0 !important; page-break-after: always; }
                 .paper-page:last-child { page-break-after: auto; }
                 .paper-page .report-page { box-shadow: none !important; margin: 0 !important; }
+                .no-print { display: none !important; }
             }
         ';
     }

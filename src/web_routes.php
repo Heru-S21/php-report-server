@@ -18,9 +18,13 @@ $router->get('/reports/new', function () {
 });
 
 $router->get('/reports/designer/{id}', function ($request) {
+    $config = \ReportingEngine\Core\Database::getConfig();
+    $maxSize = (int)($config['max_upload_size'] ?? 1048576);
+    $maxMb = $maxSize / 1048576;
     return Response::view('layout', [
         'content' => 'reports/designer',
         'reportId' => $request->getParam('id'),
+        'maxUploadMb' => $maxMb,
         'extraCss' => ['/css/designer.css?v=2'],
         'extraScripts' => [
             '/js/designer/QueryEditor.js?v=2',

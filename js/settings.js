@@ -19,6 +19,7 @@ async function initSettings() {
             document.getElementById('setting-number_format_thousands_sep').value = res.data?.number_format_thousands_sep || ',';
             document.getElementById('setting-theme').value = res.data?.theme || 'light';
             document.getElementById('setting-pdf_engine').value = res.data?.pdf_engine || 'mpdf';
+            document.getElementById('setting-max_upload_size').value = res.data?.max_upload_size ? (parseInt(res.data.max_upload_size) / 1048576) : 1;
         }
     } catch (e) {
         // Use defaults
@@ -36,6 +37,7 @@ async function initSettings() {
             number_format_thousands_sep: document.getElementById('setting-number_format_thousands_sep').value || ',',
             theme: theme,
             pdf_engine: document.getElementById('setting-pdf_engine').value,
+            max_upload_size: Math.round(parseFloat(document.getElementById('setting-max_upload_size').value || '1') * 1048576),
         };
 
         try {

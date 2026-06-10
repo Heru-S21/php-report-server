@@ -276,6 +276,7 @@
                 <div style="flex:1"></div>
                 <button class="btn" id="image-picker-select-btn" disabled><i class="ph-check"></i> Select</button>
             </div>
+            <div style="font-size:11px;color:var(--color-text-muted);margin-bottom:8px" id="image-picker-size-info">Max file size: <?= htmlspecialchars((string)($maxUploadMb ?? '1')) ?> MB · Allowed: JPEG, PNG, GIF, WebP</div>
             <div id="image-picker-status" class="image-picker-status"></div>
             <div id="image-picker-grid" class="image-picker-grid">
                 <p class="text-muted">Loading...</p>

@@ -26,6 +26,14 @@
             </div>
         </div>
         <div class="form-card">
+            <h3 style="font-size:14px;margin-bottom:16px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px">Image Upload</h3>
+            <div class="form-group">
+                <label>Max Upload Size (MB)</label>
+                <input type="number" id="setting-max_upload_size" class="form-control" min="0.5" max="100" step="0.5" value="1">
+                <small style="color:var(--color-text-muted);font-size:11px;margin-top:2px;display:block">Maximum file size for image uploads in megabytes. Affects the image library.</small>
+            </div>
+        </div>
+        <div class="form-card">
             <h3 style="font-size:14px;margin-bottom:16px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px">Appearance</h3>
             <div class="form-group">
                 <label>Theme</label>
