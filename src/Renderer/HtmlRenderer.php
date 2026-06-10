@@ -338,7 +338,7 @@ class HtmlRenderer implements RendererInterface
                 default => 'flex-start',
             };
             $style = sprintf(
-                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; display:flex; align-items:%s; justify-content:%s; background:%s; %s',
+                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; display:flex; align-items:%s; justify-content:%s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:%s; %s',
                 $el->top, $el->left, $el->width, $el->height,
                 $el->fontFamily ?: 'Arial',
                 $el->fontSize ?: 10,

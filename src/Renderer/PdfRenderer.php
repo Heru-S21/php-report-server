@@ -369,7 +369,7 @@ class PdfRenderer implements RendererInterface
         $value = $this->getElementValue($el, $def, $group, $data);
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
         $style = sprintf(
-            'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; background:%s; %s',
+            'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:%s; %s',
             $marginLeft, $el->width, $el->height,
             $el->fontFamily ?: 'Arial',
             $el->fontSize ?: 10,
