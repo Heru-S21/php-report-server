@@ -38,8 +38,8 @@
 - **Expression evaluator**: new `src/Report/ExpressionEvaluator.php` — parses `[fieldRef]` substitutions, ternary ops, comparators, math, logical ops; wired into label rendering and conditional visibility in both HtmlRenderer and PdfRenderer
 - **Conditional visibility**: all elements get `visibilityExpression` property; designers shows input in ElementEditor (replaces old static "condition" field)
 - **Max upload size setting**: `/settings` page with `app_settings` table; `max_upload_size` configurable in MB; `ImageController` and designer JS read it; displayed in designer image picker
-- **Print button**: rendered HTML output includes a Print button (hidden during print via `@media print`)
-- **Auto-print script**: added `<script>window.print()</script>` after rendered content for print-on-render workflows
+- **Print button**: shown in standalone/external HTML output (hidden during print via `@media print` + `.no-print`); hidden in preview page (controlled by `no_print` query param)
+- **Auto-print script**: `<script>` auto-clicks print button when URL contains `?print`; only included when print button is shown
 - **README.md sync**: removed duplicate export section; kept content current
 - **Local marked.js**: downloaded `marked@15.0.7` to `js/marked.min.js`, updated `views/reports/readme.php` to use local copy instead of CDN
 

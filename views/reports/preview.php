@@ -134,7 +134,7 @@ const preview = {
         try {
             let html;
             if (this.isUnsaved) {
-                const body = { definition: this.definition, format: 'html' };
+                const body = { definition: this.definition, format: 'html', no_print: '1' };
                 Object.entries(this.paramValues).forEach(([k,v]) => { if (v !== '') body['param_' + k] = v; });
                 const res = await fetch('/api/render/preview', {
                     method: 'POST',
@@ -147,7 +147,7 @@ const preview = {
                     .filter(([,v]) => v !== '')
                     .map(([k,v]) => `param_${k}=${encodeURIComponent(v)}`)
                     .join('&');
-                const url = `/api/render/${this.reportId}?format=html${qs ? '&' + qs : ''}`;
+                const url = `/api/render/${this.reportId}?format=html&no_print=1${qs ? '&' + qs : ''}`;
                 const res = await fetch(url);
                 html = await res.text();
             }
