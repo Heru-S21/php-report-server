@@ -53,6 +53,11 @@ $router->get('/api/report-templates/{id}', [TemplateController::class, 'show']);
 $router->put('/api/report-templates/{id}', [TemplateController::class, 'update']);
 $router->delete('/api/report-templates/{id}', [TemplateController::class, 'destroy']);
 
+// Authentication
+$router->post('/api/auth/login', [\ReportingEngine\Api\AuthController::class, 'login']);
+$router->get('/api/auth/me', [\ReportingEngine\Api\AuthController::class, 'me']);
+$router->post('/api/auth/logout', [\ReportingEngine\Api\AuthController::class, 'logout']);
+
 // Settings
 $router->get('/api/settings', [RenderController::class, 'settings']);
 $router->put('/api/settings', [RenderController::class, 'updateSettings']);

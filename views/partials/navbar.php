@@ -28,5 +28,9 @@
             <i class="ph-moon"></i>
         </button>
         <span class="nav-version">v1.0</span>
+        <span id="navbar-user" style="font-size:13px;color:var(--color-text-muted);display:none"></span>
+        <a href="#" id="navbar-logout" class="nav-link" style="display:none" onclick="handleLogout()" title="Logout">
+            <i class="ph-sign-out"></i>
+        </a>
     </div>
 </nav>

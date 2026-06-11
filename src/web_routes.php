@@ -2,6 +2,17 @@
 
 use ReportingEngine\Core\Response;
 
+$router->get('/login', function () {
+    $config = \ReportingEngine\Core\Database::getConfig();
+    $authEnabled = !empty(($config['auth'] ?? [])['enabled']);
+    if (!$authEnabled) {
+        return new Response('', 302, ['Location' => '/']);
+    }
+    return new Response(file_get_contents(__DIR__ . '/../views/auth/login.php'), 200,
+        ['Content-Type' => 'text/html; charset=utf-8']
+    );
+});
+
 // View routes
 $router->get('/', function () {
     return Response::view('layout', ['content' => 'dashboard']);

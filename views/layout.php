@@ -29,7 +29,9 @@
     </style>
 </head>
 <body>
-    <?php include __DIR__ . '/partials/navbar.php'; ?>
+    <?php if (!isset($showNavbar) || $showNavbar): ?>
+        <?php include __DIR__ . '/partials/navbar.php'; ?>
+    <?php endif; ?>
     <?php
     $contentBefore = $contentBefore ?? '';
     $pageContent = '';

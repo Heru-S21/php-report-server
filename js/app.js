@@ -57,11 +57,48 @@ window.ReportingEngine = {
             method,
             headers: { 'Content-Type': 'application/json' },
         };
+        const token = localStorage.getItem('auth_token');
+        if (token) options.headers['Authorization'] = 'Bearer ' + token;
         if (body) options.body = JSON.stringify(body);
         const res = await fetch(url, options);
+        if (res.status === 401) {
+            localStorage.removeItem('auth_token');
+            document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            if (!window.location.pathname.startsWith('/login')) {
+                window.location.href = '/login';
+            }
+            return { success: false, message: 'Authentication required' };
+        }
         return res.json();
     }
 };
+
+// Auth helpers
+function initAuth() {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        const userEl = document.getElementById('navbar-user');
+        const logoutEl = document.getElementById('navbar-logout');
+        if (userEl) userEl.style.display = 'none';
+        if (logoutEl) logoutEl.style.display = 'none';
+        return;
+    }
+    // Decode token payload to show username
+    try {
+        const parts = token.split('.');
+        const payload = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
+        const userEl = document.getElementById('navbar-user');
+        const logoutEl = document.getElementById('navbar-logout');
+        if (userEl) { userEl.textContent = payload.user; userEl.style.display = 'inline'; }
+        if (logoutEl) logoutEl.style.display = 'inline';
+    } catch (e) {}
+}
+
+function handleLogout() {
+    localStorage.removeItem('auth_token');
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    window.location.href = '/login';
+}
 
 // Global helpers
 function toggleConnectionFields() {
@@ -74,6 +111,7 @@ function toggleConnectionFields() {
 
 // Page-specific initialization
 document.addEventListener('DOMContentLoaded', () => {
+    initAuth();
     const path = window.location.pathname;
 
     if (path === '/' || path === '/index.php') {

@@ -11,4 +11,14 @@ return [
     'number_format_decimals' => 2,
     'number_format_dec_point' => '.',
     'number_format_thousands_sep' => ',',
+
+    /*
+     * Authentication — set enabled=true to require login
+     * For production, change the password to something secure.
+     */
+    'auth' => [
+        'enabled' => false,
+        'username' => 'admin',
+        'password' => 'admin',
+    ],
 ];

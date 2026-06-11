@@ -14,6 +14,7 @@ use ReportingEngine\Core\Router;
 use ReportingEngine\Core\Request;
 use ReportingEngine\Core\Response;
 use ReportingEngine\Core\Database;
+use ReportingEngine\Core\Auth;
 
 $config = require __DIR__ . '/config/app.php';
 
@@ -21,6 +22,9 @@ Database::init($config);
 
 $request  = Request::fromGlobals();
 $router   = new Router();
+
+Auth::init($config['auth'] ?? []);
+$router->addMiddleware([Auth::class, 'middleware']);
 
 require __DIR__ . '/src/routes.php';
 require __DIR__ . '/src/web_routes.php';

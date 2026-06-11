@@ -10,6 +10,7 @@ class Request
     public array $body;
     public array $files;
     public array $headers;
+    public array $cookies;
     public array $params = [];
 
     private function __construct(array $server, array $get, array $post, array $files)
@@ -32,6 +33,7 @@ class Request
         $this->body = $this->parseBody($post, $server);
         $this->files = $files;
         $this->headers = $this->parseHeaders($server);
+        $this->cookies = $_COOKIE;
     }
 
     private function parseBody(array $post, array $server): array
