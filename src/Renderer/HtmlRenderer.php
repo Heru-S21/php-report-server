@@ -69,7 +69,7 @@ class HtmlRenderer implements RendererInterface
         // $reprintGroups – list of group-indexes whose header should be reprinted.
         // $lastRowData  – row data for field values inside reprinted headers.
         $renderPageTop = function(array $reprintGroups, ?array $lastRowData, bool $isFirst)
-            use (&$pageHtml, &$pageY, &$chOnPage, $has, $phBand, $chBand, $groups, $definition, $pageNum)
+            use (&$pageHtml, &$pageY, &$chOnPage, $has, $phBand, $chBand, $groups, $definition, &$pageNum)
         {
             // Page header
             if ($has($phBand) && ($isFirst || $phBand->printOnEveryPage)) {
@@ -273,12 +273,14 @@ class HtmlRenderer implements RendererInterface
         $closePage();
 
         // Wrap each page in a paper-page for word-processor appearance on screen
+        $totalPages = count($pages);
         $wrapped = [];
         foreach ($pages as $pageHtml) {
             $minH = '';
             if (preg_match('/min-height:([\d.]+)mm/', $pageHtml, $m)) {
                 $minH = 'min-height:' . ((float)$m[1] + 30) . 'mm;';
             }
+            $pageHtml = str_replace('{{PAGECOUNT}}', (string)$totalPages, $pageHtml);
             $wrapped[] = '<div class="paper-page" style="width:' . $paperW . 'mm;' . $minH . '">' . "\n" . $pageHtml . "\n" . '</div>';
         }
         $html .= implode("\n", $wrapped);
@@ -410,6 +412,7 @@ class HtmlRenderer implements RendererInterface
             'line' => '<hr style="border:none;border-top:1px solid #000;margin:0;width:100%">',
             'rect' => '',
             'pageno' => (string)$pageNum,
+            'pagecount' => '{{PAGECOUNT}}',
             'rowno' => $data && is_array($data) && isset($data['_rowno']) ? (string)$data['_rowno'] : '1',
             'datetime' => date($el->format ?? 'Y-m-d'),
             default => htmlspecialchars($el->text ?? ''),

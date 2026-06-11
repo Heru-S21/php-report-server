@@ -263,6 +263,7 @@ class Designer {
             case 'line': return '<hr style="border:none;border-top:1px solid #000;margin:0">';
             case 'rect': return '';
             case 'pageno': return el.text || '{PAGENO}';
+            case 'pagecount': return el.text || '{PAGECOUNT}';
             case 'rowno': return el.text || '{ROWNO}';
             case 'datetime': return '[Date/Time]';
             default: return el.text || '';
@@ -624,6 +625,7 @@ class Designer {
             line:      { width: 100, height: 1, text: null },
             rect:      { width: 60, height: 40, text: null },
             pageno:    { width: 40, height: 8, text: '{PAGENO}' },
+            pagecount: { width: 40, height: 8, text: '{PAGECOUNT}' },
             rowno:     { width: 30, height: 8, text: '{ROWNO}' },
             datetime:  { width: 50, height: 8, text: null },
         };
@@ -641,7 +643,7 @@ class Designer {
         const defaults = this.getElementDefaults(type);
         const w = elWidth || defaults.width;
         const h = elHeight || defaults.height;
-        const isTextEl = ['label', 'field', 'pageno', 'rowno', 'datetime'].includes(type);
+        const isTextEl = ['label', 'field', 'pageno', 'pagecount', 'rowno', 'datetime'].includes(type);
         const el = {
             id: 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
             type: type,

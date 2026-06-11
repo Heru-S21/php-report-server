@@ -56,6 +56,7 @@
                             <div class="toolbox-item" draggable="true" data-type="line"><i class="ph-minus"></i> Line</div>
                             <div class="toolbox-item" draggable="true" data-type="rect"><i class="ph-square"></i> Rectangle</div>
                             <div class="toolbox-item" draggable="true" data-type="pageno"><i class="ph-hash"></i> Page #</div>
+    <div class="toolbox-item" draggable="true" data-type="pagecount"><i class="ph-files"></i> Page Count</div>
                             <div class="toolbox-item" draggable="true" data-type="rowno"><i class="ph-list-numbers"></i> Row #</div>
                             <div class="toolbox-item" draggable="true" data-type="datetime"><i class="ph-clock"></i> Date/Time</div>
                         </div>
