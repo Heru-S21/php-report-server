@@ -167,9 +167,52 @@ const preview = {
             html = html.replace(/<\/body>/gi, '');
             container.innerHTML = html;
             this.renderRuler();
+            this.fixWordWrapHeights();
         } catch (e) {
             container.innerHTML = '<div class="error-message">Failed to load preview</div>';
         }
+    },
+    fixWordWrapHeights() {
+        const container = document.getElementById('preview-container');
+        container.querySelectorAll('.band').forEach(band => {
+            const bandHStr = band.style.height;
+            if (!bandHStr) return;
+            const bandH = parseFloat(bandHStr);
+            let maxBottom = 0;
+            let grew = false;
+
+            band.querySelectorAll('.element').forEach(el => {
+                const span = el.querySelector('span');
+                if (!span) return;
+                if (getComputedStyle(span).whiteSpace !== 'normal') return;
+
+                const top = parseFloat(el.style.top);
+                const w = parseFloat(el.style.width);
+                const h = parseFloat(el.style.height);
+                if (isNaN(top) || isNaN(w) || isNaN(h)) return;
+
+                const chPx = span.scrollHeight;
+                if (!chPx) return;
+
+                const wPx = el.offsetWidth;
+                if (!wPx) return;
+                const pxPerMm = wPx / w;
+                const chMm = chPx / pxPerMm;
+                const nh = Math.max(h, chMm);
+
+                if (nh > h) {
+                    el.style.height = nh + 'mm';
+                    grew = true;
+                }
+
+                const bottom = top + nh;
+                if (bottom > maxBottom) maxBottom = bottom;
+            });
+
+            if (grew && maxBottom > bandH) {
+                band.style.height = maxBottom + 'mm';
+            }
+        });
     },
     getParamQueryString() {
         return Object.entries(this.paramValues)
