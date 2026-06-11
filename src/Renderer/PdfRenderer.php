@@ -124,22 +124,24 @@ class PdfRenderer implements RendererInterface
             foreach ($reprintGroups as $gi) {
                 $hdr = $this->findGroupHeader($definition, $groups[$gi]);
                 if ($hdr && $has($hdr) && $groups[$gi]->reprintHeaderOnNewPage) {
-                    $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$gi], $lastRowData);
-                    $pageY += $hdr->height;
+                    $effH = $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$gi], $lastRowData, 1);
+                    $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$gi], $lastRowData, $effH);
+                    $pageY += $effH;
                 }
             }
             if ($has($chBand)) {
-                $html .= $this->renderSingleBandHtml($chBand, $definition, null, null);
-                $pageY += $chBand->height;
+                $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, 1);
+                $html .= $this->renderSingleBandHtml($chBand, $definition, null, null, $effH);
+                $pageY += $effH;
                 $chOnPage = true;
             }
         };
 
         // Insert a page break if the given band height does not fit.
         // On break, reprint active group headers + column header on the new page.
-        $ensureFits = function(?Band $b, ?array $rowData = null) use (&$html, &$pageY, $usableHeight, &$chOnPage, &$groupValues, $reprintable, $renderPageTop): float {
+        $ensureFits = function(?Band $b, ?array $rowData = null, ?float $effectiveHeight = null) use (&$html, &$pageY, $usableHeight, &$chOnPage, &$groupValues, $reprintable, $renderPageTop): float {
             if (!$b || !$b->visible || empty($b->elements)) return 0;
-            $h = $b->height;
+            $h = $effectiveHeight ?? $b->height;
             if ($h <= 0) return 0;
             if ($pageY + $h > $usableHeight && $h <= $usableHeight) {
                 $html .= "<pagebreak />\n";
@@ -158,8 +160,9 @@ class PdfRenderer implements RendererInterface
 
         // ------ report header ------
         if ($has($rhBand)) {
-            $pageY += $ensureFits($rhBand);
-            $html .= $this->renderSingleBandHtml($rhBand, $definition, null, null);
+            $effH = $this->calculateEffectiveBandHeight($rhBand, $definition, null, null, 1);
+            $pageY += $ensureFits($rhBand, null, $effH);
+            $html .= $this->renderSingleBandHtml($rhBand, $definition, null, null, $effH);
         }
 
         if (empty($data)) {
@@ -203,9 +206,10 @@ class PdfRenderer implements RendererInterface
 
                         for ($inner = count($groups) - 1; $inner >= $g; $inner--) {
                             $ft = $this->findGroupFooter($definition, $groups[$inner]);
-                            $pageY += $ensureFits($ft, $row);
+                            $effH = $ft && $has($ft) ? $this->calculateEffectiveBandHeight($ft, $definition, $groups[$inner], $groupAggs[$inner], 1) : 0;
+                            $pageY += $ensureFits($ft, $row, $effH);
                             if ($ft && $has($ft)) {
-                                $html .= $this->renderSingleBandHtml($ft, $definition, $groups[$inner], $groupAggs[$inner]);
+                                $html .= $this->renderSingleBandHtml($ft, $definition, $groups[$inner], $groupAggs[$inner], $effH);
                             }
                             $groupAggs[$inner]->reset();
                             if ($groups[$inner]->resetRowNo) $groupRowCounters[$inner] = 0;
@@ -214,15 +218,17 @@ class PdfRenderer implements RendererInterface
                         for ($outer = $g; $outer < count($groups); $outer++) {
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;
                             $hdr = $this->findGroupHeader($definition, $groups[$outer]);
-                            $pageY += $ensureFits($hdr, $row);
+                            $effH = $hdr && $has($hdr) ? $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$outer], $row, 1) : 0;
+                            $pageY += $ensureFits($hdr, $row, $effH);
                             if ($hdr && $has($hdr)) {
-                                $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$outer], $row);
+                                $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$outer], $row, $effH);
                             }
                         }
 
                         if (!$chOnPage && $has($chBand)) {
-                            $pageY += $ensureFits($chBand, $row);
-                            $html .= $this->renderSingleBandHtml($chBand, $definition, null, null);
+                            $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, 1);
+                            $pageY += $ensureFits($chBand, $row, $effH);
+                            $html .= $this->renderSingleBandHtml($chBand, $definition, null, null, $effH);
                             $chOnPage = true;
                         }
 
@@ -236,14 +242,16 @@ class PdfRenderer implements RendererInterface
                     for ($g = 0; $g < count($groups); $g++) {
                         $groupValues[$g] = $row[$groups[$g]->fieldName] ?? null;
                         $hdr = $this->findGroupHeader($definition, $groups[$g]);
-                        $pageY += $ensureFits($hdr, $row);
+                        $effH = $hdr && $has($hdr) ? $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$g], $row, 1) : 0;
+                        $pageY += $ensureFits($hdr, $row, $effH);
                         if ($hdr && $has($hdr)) {
-                            $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$g], $row);
+                            $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$g], $row, $effH);
                         }
                     }
                     if (!$chOnPage && $has($chBand)) {
-                        $pageY += $ensureFits($chBand, $row);
-                        $html .= $this->renderSingleBandHtml($chBand, $definition, null, null);
+                        $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, 1);
+                        $pageY += $ensureFits($chBand, $row, $effH);
+                        $html .= $this->renderSingleBandHtml($chBand, $definition, null, null, $effH);
                         $chOnPage = true;
                     }
                     $groupChanged = true;
@@ -267,26 +275,29 @@ class PdfRenderer implements RendererInterface
                 }
 
                 // ------ detail ------
-                $pageY += $ensureFits($dtBand, $row);
+                $effH = $has($dtBand) ? $this->calculateEffectiveBandHeight($dtBand, $definition, null, $row, 1) : 0;
+                $pageY += $ensureFits($dtBand, $row, $effH);
                 if ($has($dtBand)) {
-                    $html .= $this->renderSingleBandHtml($dtBand, $definition, null, $row);
+                    $html .= $this->renderSingleBandHtml($dtBand, $definition, null, $row, $effH);
                 }
             }
 
             // ------ close remaining groups ------
             for ($g = count($groups) - 1; $g >= 0; $g--) {
                 $ft = $this->findGroupFooter($definition, $groups[$g]);
-                $pageY += $ensureFits($ft, $row);
+                $effH = $ft && $has($ft) ? $this->calculateEffectiveBandHeight($ft, $definition, $groups[$g], $groupAggs[$g], 1) : 0;
+                $pageY += $ensureFits($ft, $row ?? null, $effH);
                 if ($ft && $has($ft)) {
-                    $html .= $this->renderSingleBandHtml($ft, $definition, $groups[$g], $groupAggs[$g]);
+                    $html .= $this->renderSingleBandHtml($ft, $definition, $groups[$g], $groupAggs[$g], $effH);
                 }
                 $groupAggs[$g]->reset();
             }
 
             // ------ report footer ------
-            $pageY += $ensureFits($rfBand);
+            $effH = $has($rfBand) ? $this->calculateEffectiveBandHeight($rfBand, $definition, null, $reportAggs, 1) : 0;
+            $pageY += $ensureFits($rfBand, null, $effH);
             if ($has($rfBand)) {
-                $html .= $this->renderSingleBandHtml($rfBand, $definition, null, $reportAggs);
+                $html .= $this->renderSingleBandHtml($rfBand, $definition, null, $reportAggs, $effH);
             }
         }
 
@@ -310,11 +321,12 @@ class PdfRenderer implements RendererInterface
         return $out;
     }
 
-    private function renderSingleBandHtml(Band $band, ReportDefinition $def, $group, $data): string
+    private function renderSingleBandHtml(Band $band, ReportDefinition $def, $group, $data, ?float $effectiveHeight = null): string
     {
+        $h = $effectiveHeight ?? $band->height;
         $style = sprintf(
             'style="position:relative; height:%.1fmm; background:%s; %s"',
-            $band->height,
+            $h,
             $band->backgroundColor ?: 'transparent',
             $band->border ? $band->border->toHtmlStyle() : ''
         );
@@ -380,9 +392,21 @@ class PdfRenderer implements RendererInterface
         $textAlign = $condStyle['textAlign'] ?? $el->textAlign ?: 'left';
         $verticalAlign = $condStyle['verticalAlign'] ?? $el->verticalAlign ?? 'top';
 
+        $isTextType = !in_array($el->type, ['image', 'line', 'rect']);
+        $wordWrap = $el->wordWrap ?? false;
+        $textOverflow = $wordWrap ? '' : 'text-overflow:ellipsis;';
+        $whiteSpace = $wordWrap ? 'white-space:normal; overflow-wrap:break-word;' : 'white-space:nowrap;';
+
+        if ($wordWrap && $isTextType) {
+            $textH = $this->estimateTextHeight(strip_tags($value), $fontSize, $el->width);
+            $effectiveElH = max((float)$el->height, $textH);
+        } else {
+            $effectiveElH = (float)$el->height;
+        }
+
         $style = sprintf(
             'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; overflow:hidden; background:%s; %s',
-            $marginLeft, $el->width, $el->height,
+            $marginLeft, $el->width, $effectiveElH,
             $fontFamily,
             $fontSize,
             $bold ? 'bold' : 'normal',
@@ -394,15 +418,50 @@ class PdfRenderer implements RendererInterface
             $borderStyle
         );
 
-        if (!in_array($el->type, ['image', 'line', 'rect'])) {
+        if ($isTextType) {
             $value = sprintf(
-                '<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; width:100%%; min-width:0; text-align:%s">%s</span>',
+                '<span style="overflow:hidden; %s %s display:block; width:100%%; min-width:0; text-align:%s">%s</span>',
+                $textOverflow,
+                $whiteSpace,
                 $textAlign,
                 $value
             );
         }
 
         return sprintf('<div class="element" style="%s">%s</div>', $style, $value);
+    }
+
+    private function estimateTextHeight(string $text, int $fontSize, float $widthMm): float
+    {
+        if ($text === '' || $text === null) {
+            return ($fontSize * 1.4) * 0.3528;
+        }
+        $avgCharWidth = 0.5 * ($fontSize / 10);
+        $charsPerLine = max(1, $widthMm / $avgCharWidth);
+        $lines = max(1, ceil(mb_strlen($text) / $charsPerLine));
+        $lineHeightMm = ($fontSize * 1.4) * 0.3528;
+        return $lines * $lineHeightMm;
+    }
+
+    private function calculateEffectiveBandHeight(Band $band, ReportDefinition $def, $group, $data, int $pageNum): float
+    {
+        $effH = $band->height;
+        foreach ($band->elements as $el) {
+            if ($el->conditionalExpression && !ExpressionEvaluator::evaluateBool(
+                $el->conditionalExpression,
+                $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: [])
+            )) {
+                continue;
+            }
+            if (in_array($el->type, ['image', 'line', 'rect'])) continue;
+            if (!($el->wordWrap ?? false)) continue;
+            $value = $this->getElementValue($el, $def, $group, $data);
+            if ($value === '' || $value === null) continue;
+            $textH = $this->estimateTextHeight(strip_tags($value), $el->fontSize ?: 10, $el->width);
+            $elBottom = (float)$el->top + max((float)$el->height, $textH);
+            $effH = max($effH, $elBottom);
+        }
+        return $effH;
     }
 
     private function resolveConditionalStyle(BandElement $el, $data): array

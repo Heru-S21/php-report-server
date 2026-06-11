@@ -61,7 +61,8 @@ class HtmlRenderer implements RendererInterface
 
         $closePage = function() use (&$pageHtml, &$pages, &$pageNum, $has, $pfBand, $definition) {
             if ($has($pfBand)) {
-                $pageHtml .= $this->renderBandElement($pfBand, $definition, null, null, $pageNum);
+                $effH = $this->calculateEffectiveBandHeight($pfBand, $definition, null, null, $pageNum);
+                $pageHtml .= $this->renderBandElement($pfBand, $definition, null, null, $pageNum, $effH);
             }
             $pageHtml .= '</div>';
             $pages[]   = $pageHtml;
@@ -76,22 +77,25 @@ class HtmlRenderer implements RendererInterface
         {
             // Page header
             if ($has($phBand) && ($isFirst || $phBand->printOnEveryPage)) {
-                $pageHtml .= $this->renderBandElement($phBand, $definition, null, null, $pageNum);
-                $pageY += $phBand->height;
+                $effH = $this->calculateEffectiveBandHeight($phBand, $definition, null, null, $pageNum);
+                $pageHtml .= $this->renderBandElement($phBand, $definition, null, null, $pageNum, $effH);
+                $pageY += $effH;
             }
             // Reprint group headers that have reprintHeaderOnNewPage enabled
             foreach ($reprintGroups as $gi) {
                 if (!$groups[$gi]->reprintHeaderOnNewPage) continue;
                 $hdr = $this->findGroupHeader($definition, $groups[$gi]);
                 if ($hdr && $has($hdr)) {
-                    $pageHtml .= $this->renderBandElement($hdr, $definition, $groups[$gi], $lastRowData, $pageNum);
-                    $pageY += $hdr->height;
+                    $effH = $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$gi], $lastRowData, $pageNum);
+                    $pageHtml .= $this->renderBandElement($hdr, $definition, $groups[$gi], $lastRowData, $pageNum, $effH);
+                    $pageY += $effH;
                 }
             }
             // Column header
             if ($has($chBand)) {
-                $pageHtml .= $this->renderBandElement($chBand, $definition, null, null, $pageNum);
-                $pageY += $chBand->height;
+                $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, $pageNum);
+                $pageHtml .= $this->renderBandElement($chBand, $definition, null, null, $pageNum, $effH);
+                $pageY += $effH;
                 $chOnPage = true;
             }
         };
@@ -99,9 +103,9 @@ class HtmlRenderer implements RendererInterface
         // Reserve space for a band – break page if needed.
         // $rowData – current data row, passed for reprinted group-header field values.
         $contentLimit = $usableHeight - ($has($pfBand) ? $pfBand->height : 0);
-        $fit = function(?Band $b, ?array $rowData = null) use (&$pageHtml, &$pageY, $contentLimit, &$closePage, &$openPage, &$renderPageTop, &$groupValues): float {
+        $fit = function(?Band $b, ?array $rowData = null, ?float $effectiveHeight = null) use (&$pageHtml, &$pageY, $contentLimit, &$closePage, &$openPage, &$renderPageTop, &$groupValues): float {
             if (!$b || !$b->visible || empty($b->elements)) return 0;
-            $h = $b->height;
+            $h = $effectiveHeight ?? $b->height;
             if ($h <= 0) return 0;
             if ($pageY + $h > $contentLimit && $h <= $contentLimit) {
                 $reprint = [];
@@ -122,14 +126,16 @@ class HtmlRenderer implements RendererInterface
 
         // -- Page 1 header (report-level, not via renderPageTop) --
         if ($has($phBand)) {
-            $pageHtml .= $this->renderBandElement($phBand, $definition, null, null, $pageNum);
-            $pageY += $phBand->height;
+            $effH = $this->calculateEffectiveBandHeight($phBand, $definition, null, null, $pageNum);
+            $pageHtml .= $this->renderBandElement($phBand, $definition, null, null, $pageNum, $effH);
+            $pageY += $effH;
         }
 
         // -- Report header --
-        $pageY += $fit($rhBand);
+        $effH = $has($rhBand) ? $this->calculateEffectiveBandHeight($rhBand, $definition, null, null, $pageNum) : 0;
+        $pageY += $fit($rhBand, null, $effH);
         if ($has($rhBand)) {
-            $pageHtml .= $this->renderBandElement($rhBand, $definition, null, null, $pageNum);
+            $pageHtml .= $this->renderBandElement($rhBand, $definition, null, null, $pageNum, $effH);
         }
 
         if (empty($data)) {
@@ -179,9 +185,10 @@ class HtmlRenderer implements RendererInterface
                         // Close inner groups (reverse order)
                         for ($inner = count($groups) - 1; $inner >= $g; $inner--) {
                             $ft = $this->findGroupFooter($definition, $groups[$inner]);
-                            $pageY += $fit($ft);
+                            $effH = $ft && $has($ft) ? $this->calculateEffectiveBandHeight($ft, $definition, $groups[$inner], $groupAggs[$inner], $pageNum) : 0;
+                            $pageY += $fit($ft, null, $effH);
                             if ($ft && $has($ft)) {
-                                $pageHtml .= $this->renderBandElement($ft, $definition, $groups[$inner], $groupAggs[$inner], $pageNum);
+                                $pageHtml .= $this->renderBandElement($ft, $definition, $groups[$inner], $groupAggs[$inner], $pageNum, $effH);
                             }
                             $groupAggs[$inner]->reset();
                             if ($groups[$inner]->resetRowNo) $groupRowCounters[$inner] = 0;
@@ -191,19 +198,19 @@ class HtmlRenderer implements RendererInterface
                         for ($outer = $g; $outer < count($groups); $outer++) {
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;
                             $hdr = $this->findGroupHeader($definition, $groups[$outer]);
-                            $pageY += $fit($hdr, $row);
+                            $effH = $hdr && $has($hdr) ? $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$outer], $row, $pageNum) : 0;
+                            $pageY += $fit($hdr, $row, $effH);
                             if ($hdr && $has($hdr)) {
-                                $pageHtml .= $this->renderBandElement($hdr, $definition, $groups[$outer], $row, $pageNum);
+                                $pageHtml .= $this->renderBandElement($hdr, $definition, $groups[$outer], $row, $pageNum, $effH);
                             }
                         }
 
                         // -- Column header after new group headers, once per page --
                         if (!$chOnPage && $has($chBand)) {
-                            $pageY += $fit($chBand);
-                            if ($has($chBand)) {
-                                $pageHtml .= $this->renderBandElement($chBand, $definition, null, null, $pageNum);
-                                $chOnPage = true;
-                            }
+                            $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, $pageNum);
+                            $pageY += $fit($chBand, null, $effH);
+                            $pageHtml .= $this->renderBandElement($chBand, $definition, null, null, $pageNum, $effH);
+                            $chOnPage = true;
                         }
 
                         $groupChanged = true;
@@ -216,18 +223,18 @@ class HtmlRenderer implements RendererInterface
                     for ($g = 0; $g < count($groups); $g++) {
                         $groupValues[$g] = $row[$groups[$g]->fieldName] ?? null;
                         $hdr = $this->findGroupHeader($definition, $groups[$g]);
-                        $pageY += $fit($hdr, $row);
+                        $effH = $hdr && $has($hdr) ? $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$g], $row, $pageNum) : 0;
+                        $pageY += $fit($hdr, $row, $effH);
                         if ($hdr && $has($hdr)) {
-                            $pageHtml .= $this->renderBandElement($hdr, $definition, $groups[$g], $row, $pageNum);
+                            $pageHtml .= $this->renderBandElement($hdr, $definition, $groups[$g], $row, $pageNum, $effH);
                         }
                     }
                     // Column header after group headers on first data page
                     if (!$chOnPage && $has($chBand)) {
-                        $pageY += $fit($chBand);
-                        if ($has($chBand)) {
-                            $pageHtml .= $this->renderBandElement($chBand, $definition, null, null, $pageNum);
-                            $chOnPage = true;
-                        }
+                        $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, $pageNum);
+                        $pageY += $fit($chBand, null, $effH);
+                        $pageHtml .= $this->renderBandElement($chBand, $definition, null, null, $pageNum, $effH);
+                        $chOnPage = true;
                     }
                     $groupChanged = true;
                 }
@@ -250,26 +257,29 @@ class HtmlRenderer implements RendererInterface
                 }
 
                 // ------ detail band ------
-                $pageY += $fit($dtBand, $row);
+                $effH = $has($dtBand) ? $this->calculateEffectiveBandHeight($dtBand, $definition, null, $row, $pageNum) : 0;
+                $pageY += $fit($dtBand, $row, $effH);
                 if ($has($dtBand)) {
-                    $pageHtml .= $this->renderBandElement($dtBand, $definition, null, $row, $pageNum);
+                    $pageHtml .= $this->renderBandElement($dtBand, $definition, null, $row, $pageNum, $effH);
                 }
             }
 
             // ------ close remaining groups ------
             for ($g = count($groups) - 1; $g >= 0; $g--) {
                 $ft = $this->findGroupFooter($definition, $groups[$g]);
-                $pageY += $fit($ft);
+                $effH = $ft && $has($ft) ? $this->calculateEffectiveBandHeight($ft, $definition, $groups[$g], $groupAggs[$g], $pageNum) : 0;
+                $pageY += $fit($ft, null, $effH);
                 if ($ft && $has($ft)) {
-                    $pageHtml .= $this->renderBandElement($ft, $definition, $groups[$g], $groupAggs[$g], $pageNum);
+                    $pageHtml .= $this->renderBandElement($ft, $definition, $groups[$g], $groupAggs[$g], $pageNum, $effH);
                 }
                 $groupAggs[$g]->reset();
             }
 
             // ------ report footer ------
-            $pageY += $fit($rfBand);
+            $effH = $has($rfBand) ? $this->calculateEffectiveBandHeight($rfBand, $definition, null, $reportAggs, $pageNum) : 0;
+            $pageY += $fit($rfBand, null, $effH);
             if ($has($rfBand)) {
-                $pageHtml .= $this->renderBandElement($rfBand, $definition, null, $reportAggs, $pageNum);
+                $pageHtml .= $this->renderBandElement($rfBand, $definition, null, $reportAggs, $pageNum, $effH);
             }
         }
 
@@ -296,12 +306,13 @@ class HtmlRenderer implements RendererInterface
 
     // ------------------------------------------------------------------ helpers
 
-    private function renderBandElement(Band $band, ReportDefinition $def, $group, $data, int $pageNum = 1): string
+    private function renderBandElement(Band $band, ReportDefinition $def, $group, $data, int $pageNum = 1, ?float $effectiveHeight = null): string
     {
         $borderStyle = $band->border ? $band->border->toHtmlStyle() : '';
+        $h = $effectiveHeight ?? $band->height;
         $style = sprintf(
             'position:relative; height:%.1fmm; background:%s; %s',
-            $band->height,
+            $h,
             $band->backgroundColor ?: 'transparent',
             $borderStyle
         );
@@ -336,11 +347,21 @@ class HtmlRenderer implements RendererInterface
         $verticalAlign = $condStyle['verticalAlign'] ?? $va;
 
         $isTextType = !in_array($el->type, ['image', 'line', 'rect']);
+        $wordWrap = $el->wordWrap ?? false;
+        $textOverflow = $wordWrap ? '' : 'text-overflow:ellipsis;';
+        $whiteSpace = $wordWrap ? 'white-space:normal; overflow-wrap:break-word;' : 'white-space:nowrap;';
+
+        if ($wordWrap && $isTextType) {
+            $textH = $this->estimateTextHeight(strip_tags($value), $fontSize, $el->width);
+            $effectiveElH = max((float)$el->height, $textH);
+        } else {
+            $effectiveElH = (float)$el->height;
+        }
 
         if ($verticalAlign === 'top') {
             $style = sprintf(
-                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:%s; %s',
-                $el->top, $el->left, $el->width, $el->height,
+                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; overflow:hidden; %s %s background:%s; %s',
+                $el->top, $el->left, $el->width, $effectiveElH,
                 $fontFamily,
                 $fontSize,
                 $bold ? 'bold' : 'normal',
@@ -348,6 +369,8 @@ class HtmlRenderer implements RendererInterface
                 $underline ? 'underline' : 'none',
                 $color,
                 $textAlign,
+                $textOverflow,
+                $whiteSpace,
                 $backgroundColor,
                 $borderStyle
             );
@@ -360,7 +383,7 @@ class HtmlRenderer implements RendererInterface
             };
             $style = sprintf(
                 'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; display:flex; align-items:%s; justify-content:%s; overflow:hidden; background:%s; %s',
-                $el->top, $el->left, $el->width, $el->height,
+                $el->top, $el->left, $el->width, $effectiveElH,
                 $fontFamily,
                 $fontSize,
                 $bold ? 'bold' : 'normal',
@@ -376,13 +399,48 @@ class HtmlRenderer implements RendererInterface
 
         if ($isTextType) {
             $value = sprintf(
-                '<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; width:100%%; min-width:0; text-align:%s">%s</span>',
+                '<span style="overflow:hidden; %s %s display:block; width:100%%; min-width:0; text-align:%s">%s</span>',
+                $textOverflow,
+                $whiteSpace,
                 $textAlign,
                 $value
             );
         }
 
         return sprintf('<div class="element" style="%s">%s</div>', $style, $value);
+    }
+
+    private function estimateTextHeight(string $text, int $fontSize, float $widthMm): float
+    {
+        if ($text === '' || $text === null) {
+            return ($fontSize * 1.4) * 0.3528;
+        }
+        $avgCharWidth = 0.5 * ($fontSize / 10);
+        $charsPerLine = max(1, $widthMm / $avgCharWidth);
+        $lines = max(1, ceil(mb_strlen($text) / $charsPerLine));
+        $lineHeightMm = ($fontSize * 1.4) * 0.3528;
+        return $lines * $lineHeightMm;
+    }
+
+    private function calculateEffectiveBandHeight(Band $band, ReportDefinition $def, $group, $data, int $pageNum): float
+    {
+        $effH = $band->height;
+        foreach ($band->elements as $el) {
+            if ($el->conditionalExpression && !ExpressionEvaluator::evaluateBool(
+                $el->conditionalExpression,
+                $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: [])
+            )) {
+                continue;
+            }
+            if (in_array($el->type, ['image', 'line', 'rect'])) continue;
+            if (!($el->wordWrap ?? false)) continue;
+            $value = $this->getElementValue($el, $def, $group, $data, $pageNum);
+            if ($value === '' || $value === null) continue;
+            $textH = $this->estimateTextHeight(strip_tags($value), $el->fontSize ?: 10, $el->width);
+            $elBottom = (float)$el->top + max((float)$el->height, $textH);
+            $effH = max($effH, $elBottom);
+        }
+        return $effH;
     }
 
     private function resolveConditionalStyle(BandElement $el, $data): array
@@ -520,7 +578,7 @@ class HtmlRenderer implements RendererInterface
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #e2e8f0; }
             .report-page { width: ' . $usableWidth . 'mm; margin: 0 auto; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.12); position: relative; }
             .band { padding: 2px 4px; overflow: hidden; }
-            .element { overflow: hidden; white-space: nowrap; }
+            .element { overflow: hidden; }
             .paper-page { background: #fff; box-shadow: 0 2px 20px rgba(0,0,0,0.18); margin: 0 auto 32px auto; padding: 15mm 0; position: relative; page-break-after: always; }
             .paper-page:last-child { margin-bottom: 0; page-break-after: auto; }
             .paper-page .report-page { margin: 0 auto !important; box-shadow: none !important; background: transparent !important; }
@@ -537,7 +595,6 @@ class HtmlRenderer implements RendererInterface
                 .print-btn { position:fixed; top:16px; right:16px; z-index:9999; display:inline-flex; align-items:center; gap:6px; padding:10px 18px; font-size:14px; font-family:Arial,sans-serif; font-weight:600; border:none; border-radius:8px; background:#2563eb; color:#fff; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.25); transition:background 0.15s,transform 0.1s; }
                 .print-btn:hover { background:#1d4ed8; transform:scale(1.04); }
                 .print-btn:active { transform:scale(0.96); }
-                .no-print { display: none !important; }
                 @media print {
                     .no-print { display: none !important; }
                 }
