@@ -20,6 +20,8 @@ async function initSettings() {
             document.getElementById('setting-theme').value = res.data?.theme || 'light';
             document.getElementById('setting-pdf_engine').value = res.data?.pdf_engine || 'mpdf';
             document.getElementById('setting-max_upload_size').value = res.data?.max_upload_size ? (parseInt(res.data.max_upload_size) / 1048576) : 1;
+            document.getElementById('setting-auth_enabled').checked = res.data?.auth_enabled === '1' || res.data?.auth_enabled === 'true';
+            document.getElementById('setting-auth_username').value = res.data?.auth_username || '';
         }
     } catch (e) {
         // Use defaults
@@ -38,7 +40,11 @@ async function initSettings() {
             theme: theme,
             pdf_engine: document.getElementById('setting-pdf_engine').value,
             max_upload_size: Math.round(parseFloat(document.getElementById('setting-max_upload_size').value || '1') * 1048576),
+            auth_enabled: document.getElementById('setting-auth_enabled').checked ? '1' : '0',
+            auth_username: document.getElementById('setting-auth_username').value,
         };
+        const pw = document.getElementById('setting-auth_password').value;
+        if (pw) data.auth_password = pw;
 
         try {
             const res = await window.ReportingEngine.api('PUT', '/api/settings', data);

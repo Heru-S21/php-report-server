@@ -19,8 +19,27 @@ class Auth
         self::$config = $config;
     }
 
+    public static function getDbConfig(): array
+    {
+        try {
+            $pdo = Database::getInstance();
+            $stmt = $pdo->query("SELECT key, value FROM app_settings WHERE key LIKE 'auth_%'");
+            $cfg = [];
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $cfg[$row['key']] = $row['value'];
+            }
+            return $cfg;
+        } catch (\Exception) {
+            return [];
+        }
+    }
+
     public static function isEnabled(): bool
     {
+        $db = self::getDbConfig();
+        if (isset($db['auth_enabled'])) {
+            return $db['auth_enabled'] === '1' || $db['auth_enabled'] === 'true';
+        }
         return !empty(self::$config['enabled']);
     }
 
@@ -64,6 +83,14 @@ class Auth
 
     public static function authenticate(string $username, string $password): ?string
     {
+        $db = self::getDbConfig();
+
+        if (!empty($db['auth_username']) && !empty($db['auth_password'])) {
+            if ($username !== $db['auth_username']) return null;
+            if (!password_verify($password, $db['auth_password'])) return null;
+            return self::generateToken($username);
+        }
+
         $cfgUser = self::$config['username'] ?? '';
         $cfgPass = self::$config['password'] ?? '';
 

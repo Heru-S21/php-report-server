@@ -54,6 +54,26 @@
                 <small style="color:var(--color-text-muted);font-size:11px;margin-top:2px;display:block">Engine used for PDF export</small>
             </div>
         </div>
+        <div class="form-card">
+            <h3 style="font-size:14px;margin-bottom:16px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px">Authentication</h3>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="setting-auth_enabled">
+                    <span style="margin-left:8px">Require login to access the app</span>
+                </label>
+                <small style="color:var(--color-text-muted);font-size:11px;margin-top:2px;display:block">When enabled, users must log in before accessing any page.</small>
+            </div>
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label>Username</label>
+                    <input type="text" id="setting-auth_username" class="form-control" placeholder="admin" autocomplete="off">
+                </div>
+                <div class="form-group flex-1">
+                    <label>Password</label>
+                    <input type="password" id="setting-auth_password" class="form-control" placeholder="Leave blank to keep current" autocomplete="new-password">
+                </div>
+            </div>
+        </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary"><i class="ph-floppy-disk"></i> Save Settings</button>
         </div>

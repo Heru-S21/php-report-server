@@ -103,6 +103,7 @@ class RenderController
             $stmt = $pdo->query("SELECT * FROM app_settings");
             $settings = [];
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                if ($row['key'] === 'auth_password') continue;
                 $settings[$row['key']] = $row['value'];
             }
             return Response::json($settings);
@@ -116,6 +117,11 @@ class RenderController
         try {
             $pdo = Database::getInstance();
             foreach ($request->body as $key => $value) {
+                if ($key === 'auth_password') {
+                    if ($value === '' || $value === null) continue;
+                    $value = password_hash($value, PASSWORD_BCRYPT);
+                    $key = 'auth_password';
+                }
                 $stmt = $pdo->prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)");
                 $stmt->execute([$key, $value]);
             }
