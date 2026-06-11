@@ -618,18 +618,18 @@ class Designer {
 
     getElementDefaults(type) {
         const sizes = {
-            label:     { width: 50, height: 8, text: 'Label' },
-            field:     { width: 60, height: 8, text: null, fieldText: '[Field]' },
-            aggregate: { width: 60, height: 8, text: null, fieldText: '{AGG}' },
-            image:     { width: 50, height: 50, text: null },
-            line:      { width: 100, height: 1, text: null },
-            rect:      { width: 60, height: 40, text: null },
-            pageno:    { width: 40, height: 8, text: '{PAGENO}' },
-            pagecount: { width: 40, height: 8, text: '{PAGECOUNT}' },
-            rowno:     { width: 30, height: 8, text: '{ROWNO}' },
-            datetime:  { width: 50, height: 8, text: null },
+            label:     { width: 50, height: 10, text: 'Label' },
+            field:     { width: 50, height: 10, text: null, fieldText: '[Field]' },
+            aggregate: { width: 50, height: 10, text: null, fieldText: '{AGG}' },
+            image:     { width: 50, height: 10, text: null },
+            line:      { width: 50, height: 10, text: null },
+            rect:      { width: 50, height: 10, text: null },
+            pageno:    { width: 50, height: 10, text: '{PAGENO}' },
+            pagecount: { width: 50, height: 10, text: '{PAGECOUNT}' },
+            rowno:     { width: 50, height: 10, text: '{ROWNO}' },
+            datetime:  { width: 50, height: 10, text: null },
         };
-        return sizes[type] || { width: 40, height: 12, text: null };
+        return sizes[type] || { width: 50, height: 10, text: null };
     }
 
     addElement(type, bandType, x, y, fieldName, elWidth, elHeight) {

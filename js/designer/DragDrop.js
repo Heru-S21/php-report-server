@@ -11,8 +11,8 @@ class DragDrop {
             item.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('text/plain', 'field');
                 e.dataTransfer.setData('field-name', item.dataset.fieldName || '');
-                e.dataTransfer.setData('element-width', '60');
-                e.dataTransfer.setData('element-height', '8');
+                e.dataTransfer.setData('element-width', '50');
+                e.dataTransfer.setData('element-height', '10');
             });
         });
     }
