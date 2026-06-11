@@ -422,7 +422,251 @@ If you need stricter access on render endpoints, protect them at the reverse-pro
 
 ---
 
-## 5. Report Definition Structure Reference
+## 5. PHP Proxy Pattern (Embed Without Exposing the Engine)
+
+If your external app runs on a different server from the reporting engine and you don't want to expose the engine directly to end users (or you need to add your own auth/logic around each report fetch), the recommended approach is a **server-side proxy**. Your app makes an HTTP request to the engine's render endpoint and writes the response downstream — the engine stays behind your firewall and the browser never talks to it directly.
+
+### Architecture
+
+```
+Browser / Client App
+        │
+        │  GET /my-app/reports/42
+        ▼
+┌──────────────────┐
+│  Your App        │  ← your auth, session, permissions here
+│  (Proxy Route)   │
+└──────┬───────────┘
+       │  cURL / file_get_contents / Guzzle
+       │  GET http://engine:8080/api/render/42?format=html
+       ▼
+┌──────────────────┐
+│  Engine Server   │  ← behind firewall, not internet-facing
+│  (php -S 8080)   │
+└──────────────────┘
+       │
+       ▼   Returns raw HTML or PDF
+┌──────────────────┐
+│  Your App        │
+│  streams response│
+│  to client       │
+└──────────────────┘
+```
+
+### Why use a proxy
+
+| Concern | Direct iframe | PHP proxy |
+|---------|--------------|-----------|
+| Engine visibility | Exposed to browser | Hidden behind firewall |
+| Your app's auth | Can't add auth easily | Your normal middleware applies |
+| Query parameters | Must trust user-supplied params | You control/validate params |
+| Error handling | Browser shows engine's raw error | You catch + format errors |
+| Caching | None | You add cache layer |
+| Mix data sources | Engine data only | Merge engine report + your own data |
+
+### Basic proxy controller (request-report → relay)
+
+This is the simplest pattern: your app receives a request, fetches the rendered report from the engine, and relays the response with the correct content type.
+
+```php
+<?php
+// Example: Symfony controller
+// src/Controller/ReportProxyController.php
+
+namespace App\Controller;
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ReportProxyController
+{
+    private string $engineUrl = 'http://127.0.0.1:8080';  // engine internal address
+
+    #[Route('/reports/{id}', name: 'report_embed')]
+    public function embed(int $id, Request $request): Response
+    {
+        // 1. YOUR AUTH — standard framework guard
+        // $this->denyAccessUnlessGranted('ROLE_USER');
+
+        // 2. Build engine URL (passthrough format + query params)
+        $format = $request->query->get('format', 'html');
+        $url = "{$this->engineUrl}/api/render/{$id}?format=" . urlencode($format);
+
+        foreach ($request->query as $key => $value) {
+            if (str_starts_with($key, 'param_')) {
+                $url .= '&' . urlencode($key) . '=' . urlencode($value);
+            }
+        }
+
+        // 3. Fetch from engine
+        $html = @file_get_contents($url);
+
+        if ($html === false) {
+            return new Response('Report unavailable', 502);
+        }
+
+        // 4. Relay with correct content type
+        $contentType = $format === 'pdf'
+            ? 'application/pdf'
+            : 'text/html; charset=utf-8';
+
+        return new Response($html, 200, [
+            'Content-Type' => $contentType,
+        ]);
+    }
+}
+```
+
+```php
+<?php
+// Example: Laravel controller
+// app/Http/Controllers/ReportProxyController.php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;  // Laravel's HTTP client
+
+class ReportProxyController extends Controller
+{
+    protected string $engineUrl = 'http://127.0.0.1:8080';
+
+    public function show(int $id, Request $request)
+    {
+        // 1. YOUR AUTH
+        // $this->authorize('view-report');
+
+        // 2. Build URL
+        $format = $request->query('format', 'html');
+        $url = "{$this->engineUrl}/api/render/{$id}?format=" . urlencode($format);
+
+        foreach ($request->query() as $key => $value) {
+            if (str_starts_with($key, 'param_')) {
+                $url .= '&' . urlencode($key) . '=' . urlencode($value);
+            }
+        }
+
+        // 3. Fetch via Guzzle (Laravel's Http facade)
+        try {
+            $response = Http::timeout(30)->get($url);
+        } catch (\Exception $e) {
+            abort(502, 'Report engine unreachable');
+        }
+
+        if ($response->failed()) {
+            abort(502, 'Report render failed');
+        }
+
+        // 4. Return with content type
+        $contentType = $format === 'pdf'
+            ? 'application/pdf'
+            : 'text/html; charset=utf-8';
+
+        return response($response->body(), 200)
+            ->header('Content-Type', $contentType);
+    }
+}
+```
+
+### Proxy with caching
+
+Add a cache layer so repeated views of the same report don't hit the engine every time.
+
+```php
+// Symfony — using Symfony Cache
+use Symfony\Contracts\Cache\CacheInterface;
+
+#[Route('/reports/{id}', name: 'report_embed')]
+public function embed(int $id, Request $request, CacheInterface $cache): Response
+{
+    $format = $request->query->get('format', 'html');
+    $cacheKey = "report_{$id}_{$format}";
+
+    $html = $cache->get($cacheKey, function () use ($id, $format) {
+        $url = "http://127.0.0.1:8080/api/render/{$id}?format={$format}";
+        $result = @file_get_contents($url);
+        if ($result === false) throw new \RuntimeException('Engine error');
+        return $result;
+    }, 300); // 5-minute TTL
+
+    return new Response($html, 200, [
+        'Content-Type' => $format === 'pdf' ? 'application/pdf' : 'text/html; charset=utf-8',
+    ]);
+}
+```
+
+```php
+// Laravel — using Cache facade
+use Illuminate\Support\Facades\Cache;
+
+public function show(int $id, Request $request)
+{
+    $format = $request->query('format', 'html');
+    $cacheKey = "report_{$id}_{$format}";
+
+    $html = Cache::remember($cacheKey, 300, function () use ($id, $format) {
+        $url = "http://127.0.0.1:8080/api/render/{$id}?format={$format}";
+        return Http::timeout(30)->get($url)->body();
+    });
+
+    return response($html, 200)
+        ->header('Content-Type', $format === 'pdf' ? 'application/pdf' : 'text/html; charset=utf-8');
+}
+```
+
+### Proxy ad-hoc preview (POST relay)
+
+If you need to preview an unsaved definition from your app, relay the POST to the engine's preview endpoint:
+
+```php
+// Plain PHP example
+function proxyPreview(string $definitionJson, string $format = 'html'): string
+{
+    $ch = curl_init('http://127.0.0.1:8080/api/render/preview');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode([
+            'json' => $definitionJson,
+            'format' => $format,
+        ]),
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 30,
+    ]);
+    $result = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200) {
+        throw new \RuntimeException('Preview failed: HTTP ' . $httpCode);
+    }
+    return $result;
+}
+```
+
+### Security notes
+
+- **Keep the engine on an internal network** — bind it to `127.0.0.1` or a private subnet so only your proxy app can reach it. Never expose the engine port to the public internet.
+- **Validate forwarded query parameters** — only forward `param_*` keys; strip anything else.
+- **Timeout** — set a reasonable HTTP timeout (30 s) so a slow render doesn't hang your app.
+- **Error handling** — check HTTP status codes from the engine and return a user-friendly error (502 Bad Gateway) instead of propagating the raw engine error.
+- **Rate limiting** — add rate limiting on your proxy route if needed; the engine has none built in.
+- **Engine internal auth** — if you want an extra layer between your proxy and the engine, enable the engine's built-in auth and pass the token as a `Bearer` header in your proxy's fetch call:
+
+```php
+$opts = [
+    'http' => [
+        'header' => "Authorization: Bearer " . getenv('ENGINE_API_TOKEN'),
+    ],
+];
+$context = stream_context_create($opts);
+$html = file_get_contents($engineUrl, false, $context);
+```
+
+---
+
+## 6. Report Definition Structure Reference
 
 The definition JSON for ad-hoc rendering has this shape:
 
@@ -492,13 +736,14 @@ The definition JSON for ad-hoc rendering has this shape:
 
 ---
 
-## 6. Summary
+## 7. Summary
 
 | Goal | Best Approach |
 |------|--------------|
 | Embed a live HTML report in another web app | `<iframe>` pointing at `/api/render/{id}?format=html` |
 | Fetch report HTML programmatically from browser | `fetch('/api/render/{id}')` |
 | Let users download PDF from browser | `window.open('/api/render/{id}?format=pdf')` |
+| Keep engine private, embed via your own app | **PHP proxy** — your app fetches engine internally and relays response |
 | Render a report server-side in PHP | Install as Composer dep, call `HtmlRenderer::render()` |
 | Render with your own data (no engine DB) | Build `ReportDefinition` manually, pass `$data` directly |
 | Protect public endpoints | Reverse-proxy auth or shared secret middleware |
