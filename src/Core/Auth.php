@@ -11,6 +11,7 @@ class Auth
         '#^/css/#',
         '#^/js/#',
         '#^/img/#',
+        '#^/api/images/file/#',
         '#^/api/render/#',
     ];
 

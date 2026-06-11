@@ -388,22 +388,37 @@ if (in_array($origin, $allowed)) {
 
 ## 4. Authentication
 
-The engine has **no built-in auth**. When embedding via REST API, protect the endpoints with one of:
+The engine has **built-in auth** (disabled by default). Enable it via **Settings → Authentication** or set `'enabled' => true` in `config/app.php`.
 
-- **Reverse-proxy auth** — put the engine behind nginx/Apache with HTTP Basic Auth or OAuth2 proxy
-- **Shared secret** — add a middleware in `Router.php` that checks for an `Authorization: Bearer <token>` header:
+### How auth affects external access
+
+| Endpoint | Auth Required? | Reason |
+|----------|---------------|--------|
+| `/api/render/{id}` | No | Embedded iframes and fetch() access |
+| `/api/render/preview` | No | Ad-hoc preview from external apps |
+| `/api/images/file/{guid}` | No | Images embedded in rendered reports |
+| `/api/reports` (CRUD) | Yes | Admin API — requires login |
+| All other `/api/*` routes | Yes | Requires login |
+| View pages (UI) | Yes | Redirects to `/login` |
+
+### Embedded Reports (iframes / fetch)
+
+The render and image endpoints are always public (auth bypassed), so embedded reports work regardless of auth status. No token or header is needed for these URLs.
+
+### PHP Library Mode
+
+Library mode never goes through HTTP, so auth does not apply:
 
 ```php
-$config = require __DIR__ . '/config/app.php';
-$token = $config['api_token'] ?? '';
-if ($token && $_SERVER['HTTP_AUTHORIZATION'] !== 'Bearer ' . $token) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
+$renderer = new HtmlRenderer();
+$html = $renderer->render($definition, $data);
 ```
 
-Add `'api_token' => 'your-secret-token'` to `config/app.php`.
+### Adding Your Own Auth Guard
+
+If you need stricter access on render endpoints, protect them at the reverse-proxy layer (nginx/Apache) or add a custom middleware in `Router.php`.
+
+**Note:** When auth is enabled, the UI login page is at `/login`. External embedders do not need to authenticate to view rendered reports.
 
 ---
 
