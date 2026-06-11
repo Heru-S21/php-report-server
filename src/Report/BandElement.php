@@ -28,7 +28,7 @@ class BandElement
     public string $verticalAlign = 'middle';
     public string $backgroundColor = 'transparent';
     public BorderDefinition $border;
-    public bool $wordWrap = true;
+    public bool $wordWrap = false;
     public ?string $conditionalExpression = null;
     public ?string $conditionalStyle = null;
 
@@ -64,7 +64,7 @@ class BandElement
         $el->verticalAlign = $data['verticalAlign'] ?? 'middle';
         $el->backgroundColor = $data['backgroundColor'] ?? 'transparent';
         $el->border = BorderDefinition::fromArray($data['border'] ?? null);
-        $el->wordWrap = (bool)($data['wordWrap'] ?? true);
+        $el->wordWrap = (bool)($data['wordWrap'] ?? false);
         $el->conditionalExpression = $data['conditionalExpression'] ?? null;
         $el->conditionalStyle = $data['conditionalStyle'] ?? null;
         return $el;
