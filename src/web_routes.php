@@ -3,9 +3,7 @@
 use ReportingEngine\Core\Response;
 
 $router->get('/login', function () {
-    $config = \ReportingEngine\Core\Database::getConfig();
-    $authEnabled = !empty(($config['auth'] ?? [])['enabled']);
-    if (!$authEnabled) {
+    if (!\ReportingEngine\Core\Auth::isEnabled()) {
         return new Response('', 302, ['Location' => '/']);
     }
     return new Response(file_get_contents(__DIR__ . '/../views/auth/login.php'), 200,
