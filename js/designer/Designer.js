@@ -31,6 +31,9 @@ class Designer {
         if (window.groupEditor) window.groupEditor.updateGroupList();
         this.updateSaveIndicator();
 
+        window.clipboard = { element: null, style: null };
+        this.contextMenu = new ContextMenu(this);
+
         window.ReportingEngine.on('stateChange', (e) => {
             this.updateSaveIndicator();
             if (e.state.isDirty) this.autosave();
@@ -696,6 +699,124 @@ class Designer {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
         this.renderCanvas();
         this.renderObjectTree();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+    }
+
+    copyElement(id) {
+        const band = this.findBandForElement(id);
+        if (!band) return;
+        const elem = band.elements.find(e => e.id === id);
+        if (!elem) return;
+        window.clipboard.element = JSON.parse(JSON.stringify(elem));
+        window.clipboard.isCut = false;
+    }
+
+    cutElement(id) {
+        const band = this.findBandForElement(id);
+        if (!band) return;
+        const elem = band.elements.find(e => e.id === id);
+        if (!elem) return;
+        window.clipboard.element = JSON.parse(JSON.stringify(elem));
+        window.clipboard.isCut = true;
+        this.removeElement(id);
+    }
+
+    pasteElement(targetBandType, cursorX, cursorY) {
+        if (!window.clipboard || !window.clipboard.element) return;
+
+        const band = this.bands.find(b => b.type === targetBandType);
+        if (!band) return;
+        if (!band.elements) band.elements = [];
+
+        const src = window.clipboard.element;
+        const el = JSON.parse(JSON.stringify(src));
+        el.id = 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+
+        // Convert cursor position to mm coordinates within the target band
+        const bandEl = this.canvasInner.querySelector(`.band[data-band-type="${targetBandType}"]`);
+        if (bandEl && cursorX != null && cursorY != null) {
+            const bandRect = bandEl.getBoundingClientRect();
+            const canvasRect = this.canvasInner.getBoundingClientRect();
+            const mmPerPxY = band.height / bandRect.height;
+            const mmPerPxX = this.canvasUsableWidth / canvasRect.width;
+            el.left = this.snapValue(Math.max(0, (cursorX - bandRect.left) * mmPerPxX));
+            el.top = this.snapValue(Math.max(0, (cursorY - bandRect.top) * mmPerPxY));
+        } else {
+            el.left = this.snapValue(10);
+            el.top = this.snapValue(10);
+        }
+
+        band.elements.push(el);
+        this.renderCanvas();
+        this.renderObjectTree();
+        this.selectElement(el.id);
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+    }
+
+    duplicateElement(id) {
+        const band = this.findBandForElement(id);
+        if (!band) return;
+        const src = band.elements.find(e => e.id === id);
+        if (!src) return;
+
+        const el = JSON.parse(JSON.stringify(src));
+        el.id = 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+        el.left = this.snapValue((src.left || 0) + (src.width || 10) + 5);
+        el.top = this.snapValue(src.top || 0);
+
+        band.elements.push(el);
+        this.renderCanvas();
+        this.renderObjectTree();
+        this.selectElement(el.id);
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+    }
+
+    copyStyle(id) {
+        const band = this.findBandForElement(id);
+        if (!band) return;
+        const elem = band.elements.find(e => e.id === id);
+        if (!elem) return;
+        window.clipboard.style = {
+            fontFamily: elem.fontFamily,
+            fontSize: elem.fontSize,
+            bold: elem.bold,
+            italic: elem.italic,
+            underline: elem.underline,
+            color: elem.color,
+            textAlign: elem.textAlign,
+            verticalAlign: elem.verticalAlign,
+            backgroundColor: elem.backgroundColor,
+            border: JSON.parse(JSON.stringify(elem.border || {})),
+            width: elem.width,
+            height: elem.height,
+        };
+    }
+
+    pasteStyle(id) {
+        if (!window.clipboard || !window.clipboard.style) return;
+        const band = this.findBandForElement(id);
+        if (!band) return;
+        const elem = band.elements.find(e => e.id === id);
+        if (!elem) return;
+
+        const s = window.clipboard.style;
+        elem.fontFamily = s.fontFamily;
+        elem.fontSize = s.fontSize;
+        elem.bold = s.bold;
+        elem.italic = s.italic;
+        elem.underline = s.underline;
+        elem.color = s.color;
+        elem.textAlign = s.textAlign;
+        elem.verticalAlign = s.verticalAlign;
+        elem.backgroundColor = s.backgroundColor;
+        elem.border = JSON.parse(JSON.stringify(s.border));
+        elem.width = s.width;
+        elem.height = s.height;
+
+        this.renderCanvas();
+        if (window.ReportingEngine.state.selectedElement === id) {
+            this.selectElement(id);
+        }
         window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 

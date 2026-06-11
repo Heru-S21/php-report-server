@@ -43,6 +43,7 @@ $router->get('/reports/designer/{id}', function ($request) {
             '/js/designer/GroupEditor.js?v=2',
             '/js/designer/AggregateEditor.js?v=2',
             '/js/designer/DragDrop.js?v=2',
+            '/js/designer/ContextMenu.js?v=1',
             '/js/designer/Designer.js?v=2',
             '/js/designer/ImagePicker.js?v=1',
         ],
