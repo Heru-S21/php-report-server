@@ -436,7 +436,7 @@ class PdfRenderer implements RendererInterface
         if ($text === '' || $text === null) {
             return ($fontSize * 1.4) * 0.3528;
         }
-        $avgCharWidth = 0.5 * ($fontSize / 10);
+        $avgCharWidth = 1.2 * ($fontSize / 10);
         $charsPerLine = max(1, $widthMm / $avgCharWidth);
         $lines = max(1, ceil(mb_strlen($text) / $charsPerLine));
         $lineHeightMm = ($fontSize * 1.4) * 0.3528;
