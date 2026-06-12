@@ -38,6 +38,8 @@ class GroupEditor {
         const fieldName = document.getElementById('group-field-select').value;
         if (!fieldName) { alert('Please select a field'); return; }
 
+        this.designer.pushUndoState();
+
         const groups = window.ReportingEngine.state.definition.groups || [];
         if (!window.ReportingEngine.state.definition.groups) {
             window.ReportingEngine.state.definition.groups = [];
@@ -75,6 +77,7 @@ class GroupEditor {
 
     delete(groupId) {
         if (!confirm('Delete this group?')) return;
+        this.designer.pushUndoState();
         const groups = window.ReportingEngine.state.definition.groups || [];
         const group = groups.find(g => g.id === groupId);
         if (group && window.bandManager) {

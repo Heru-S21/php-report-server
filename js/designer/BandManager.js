@@ -4,6 +4,7 @@ class BandManager {
     }
 
     addGroupBands(groupField, groupLevel) {
+        this.designer.pushUndoState();
         const bands = this.designer.bands;
         const headerExists = bands.some(b => b.type === 'group_header' && b.groupField === groupField);
         const footerExists = bands.some(b => b.type === 'group_footer' && b.groupField === groupField);
@@ -44,6 +45,7 @@ class BandManager {
     }
 
     removeGroupBands(groupField) {
+        this.designer.pushUndoState();
         this.designer.bands = this.designer.bands.filter(
             b => !((b.type === 'group_header' || b.type === 'group_footer') && b.groupField === groupField)
         );
@@ -51,6 +53,7 @@ class BandManager {
     }
 
     toggleBandVisibility(bandType, visible) {
+        this.designer.pushUndoState();
         const band = this.designer.bands.find(b => b.type === bandType);
         if (band) {
             band.visible = visible;
@@ -60,6 +63,7 @@ class BandManager {
     }
 
     resizeBand(bandType, height) {
+        this.designer.pushUndoState();
         const band = this.designer.bands.find(b => b.type === bandType);
         if (!band) return;
         let minH = 1;

@@ -581,6 +581,7 @@ class ElementEditor {
     updateField(field, value) {
         if (!this.currentElement) return;
         const el = this.currentElement;
+        this.designer.pushUndoState();
         // Snap position/size fields
         if (['top', 'left', 'width', 'height'].includes(field)) {
             value = this.designer.snapValue(parseFloat(value) || 0);
@@ -627,6 +628,7 @@ class ElementEditor {
 
     updateBandField(field, value) {
         if (!this.currentBand) return;
+        this.designer.pushUndoState();
         this.currentBand[field] = value;
         this.designer.renderCanvas();
         window.ReportingEngine.dispatch('SET_DIRTY', true);

@@ -6,6 +6,8 @@ window.ReportingEngine = {
         selectedBand: null,
         undoStack: [],
         redoStack: [],
+        history: [],
+        historyIndex: -1,
         zoom: 1.0,
         isDirty: false,
         queryColumns: [],
