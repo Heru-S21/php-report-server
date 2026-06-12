@@ -1067,3 +1067,32 @@
     background: var(--color-border, #e2e8f0);
     margin: 4px 8px;
 }
+
+.toolbar-separator {
+    width: 1px;
+    height: 20px;
+    background: var(--color-border, #d1d5db);
+    margin: 0 4px;
+}
+
+.toolbar-group-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted, #94a3b8);
+    margin-right: 2px;
+}
+
+.align-btn.disabled,
+.distribute-btn.disabled,
+.align-btn:disabled,
+.distribute-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+}
+
+.canvas-element.multi-selected {
+    outline: 2px dashed var(--color-primary, #3b82f6);
+    outline-offset: 1px;
+}

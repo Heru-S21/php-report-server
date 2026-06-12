@@ -7,6 +7,7 @@ class Designer {
         this.elements = {};
         this.bands = [];
         this.zoom = 1;
+        this.selectedElementIds = [];
         this.init();
     }
 
@@ -237,7 +238,7 @@ class Designer {
         `;
 
         return `
-            <div class="canvas-element ${isSelected ? 'selected' : ''}"
+            <div class="canvas-element ${isSelected ? 'selected' : ''} ${this.selectedElementIds.includes(el.id) && !isSelected ? 'multi-selected' : ''}"
                  data-element-id="${el.id}"
                  data-element-type="${el.type}"
                  style="${style}">
@@ -292,15 +293,33 @@ class Designer {
             if (e.target.closest('.panel-left') || e.target.closest('.panel-right') || e.target.closest('.modal')) return;
             const el = e.target.closest('.canvas-element');
             if (el) {
-                this.selectElement(el.dataset.elementId);
+                if (e.ctrlKey || e.metaKey) {
+                    const id = el.dataset.elementId;
+                    const idx = this.selectedElementIds.indexOf(id);
+                    if (idx >= 0) {
+                        this.selectedElementIds.splice(idx, 1);
+                    } else {
+                        this.selectedElementIds.push(id);
+                    }
+                    this.selectElement(id);
+                    this.updateAlignmentButtons();
+                } else {
+                    this.selectedElementIds = [];
+                    this.selectElement(el.dataset.elementId);
+                    this.updateAlignmentButtons();
+                }
                 return;
             }
             const band = e.target.closest('.band');
             if (band) {
+                this.selectedElementIds = [];
                 this.selectBand(band.dataset.bandType);
+                this.updateAlignmentButtons();
                 return;
             }
+            this.selectedElementIds = [];
             this.selectReport();
+            this.updateAlignmentButtons();
         });
 
         // Keyboard shortcuts
@@ -323,7 +342,7 @@ class Designer {
             }
             if (e.ctrlKey && e.key === 's') { e.preventDefault(); this.save(); }
             if (e.ctrlKey && e.key === 'p') { e.preventDefault(); this.preview(); }
-            if (e.key === 'Escape') { this.deselectAll(); }
+            if (e.key === 'Escape') { this.selectedElementIds = []; this.deselectAll(); }
         });
 
         // Toolbox drag
@@ -923,6 +942,122 @@ class Designer {
         this.selectElement(el.id);
         window.ReportingEngine.dispatch('SET_DIRTY', true);
         this.clearFontMetrics();
+    }
+
+    getSelectedElements() {
+        const ids = this.selectedElementIds.length > 0 ? this.selectedElementIds
+            : (window.ReportingEngine.state.selectedElement ? [window.ReportingEngine.state.selectedElement] : []);
+        const result = [];
+        for (const id of ids) {
+            const band = this.findBandForElement(id);
+            if (!band) continue;
+            const el = band.elements.find(e => e.id === id);
+            if (el) result.push({ el, band });
+        }
+        return result;
+    }
+
+    updateAlignmentButtons() {
+        const count = this.getSelectedElements().length;
+        document.querySelectorAll('.align-btn, .distribute-btn').forEach(btn => {
+            btn.disabled = count < 2;
+            btn.classList.toggle('disabled', count < 2);
+        });
+    }
+
+    alignElements(direction) {
+        const selected = this.getSelectedElements();
+        if (selected.length < 2) {
+            this.showToast('Select at least 2 elements in the same band', 'error');
+            return;
+        }
+        const bandType = selected[0].band.type;
+        if (selected.some(s => s.band.type !== bandType)) {
+            this.showToast('Elements must be in the same band', 'error');
+            return;
+        }
+
+        let ref;
+        if (direction === 'left') ref = Math.min(...selected.map(s => s.el.left));
+        else if (direction === 'right') ref = Math.max(...selected.map(s => s.el.left + s.el.width));
+        else if (direction === 'top') ref = Math.min(...selected.map(s => s.el.top));
+        else if (direction === 'bottom') ref = Math.max(...selected.map(s => s.el.top + s.el.height));
+        else if (direction === 'middle') {
+            const avg = selected.reduce((sum, s) => sum + s.el.top + s.el.height / 2, 0) / selected.length;
+            for (const { el } of selected) {
+                el.top = this.snapValue(Math.max(0, avg - el.height / 2));
+            }
+            this.renderCanvas();
+            window.ReportingEngine.dispatch('SET_DIRTY', true);
+            return;
+        } else if (direction === 'center') {
+            const avg = selected.reduce((sum, s) => sum + s.el.left + s.el.width / 2, 0) / selected.length;
+            for (const { el } of selected) {
+                el.left = this.snapValue(Math.max(0, avg - el.width / 2));
+            }
+            this.renderCanvas();
+            window.ReportingEngine.dispatch('SET_DIRTY', true);
+            return;
+        }
+
+        if (direction === 'left' || direction === 'right') {
+            for (const { el } of selected) {
+                el.left = direction === 'left'
+                    ? this.snapValue(ref)
+                    : this.snapValue(ref - el.width);
+                el.left = Math.max(0, el.left);
+            }
+        } else if (direction === 'top' || direction === 'bottom') {
+            for (const { el } of selected) {
+                el.top = direction === 'top'
+                    ? this.snapValue(ref)
+                    : this.snapValue(ref - el.height);
+                el.top = Math.max(0, el.top);
+            }
+        }
+
+        this.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+    }
+
+    distributeElements(direction) {
+        const selected = this.getSelectedElements();
+        if (selected.length < 2) {
+            this.showToast('Select at least 2 elements in the same band', 'error');
+            return;
+        }
+        const bandType = selected[0].band.type;
+        if (selected.some(s => s.band.type !== bandType)) {
+            this.showToast('Elements must be in the same band', 'error');
+            return;
+        }
+
+        if (direction === 'horizontal') {
+            selected.sort((a, b) => a.el.left - b.el.left);
+            const totalWidth = selected.reduce((sum, s) => sum + s.el.width, 0);
+            const firstLeft = selected[0].el.left;
+            const lastRight = selected[selected.length - 1].el.left + selected[selected.length - 1].el.width;
+            const gap = (lastRight - firstLeft - totalWidth) / (selected.length - 1);
+            let pos = firstLeft;
+            for (const { el } of selected) {
+                el.left = this.snapValue(Math.max(0, pos));
+                pos += el.width + gap;
+            }
+        } else if (direction === 'vertical') {
+            selected.sort((a, b) => a.el.top - b.el.top);
+            const totalHeight = selected.reduce((sum, s) => sum + s.el.height, 0);
+            const firstTop = selected[0].el.top;
+            const lastBottom = selected[selected.length - 1].el.top + selected[selected.length - 1].el.height;
+            const gap = (lastBottom - firstTop - totalHeight) / (selected.length - 1);
+            let pos = firstTop;
+            for (const { el } of selected) {
+                el.top = this.snapValue(Math.max(0, pos));
+                pos += el.height + gap;
+            }
+        }
+
+        this.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
     duplicateElement(id) {

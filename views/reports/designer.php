@@ -14,6 +14,19 @@
         <div class="toolbar-right">
             <button class="btn btn-icon" onclick="designer.undo()" title="Undo (Ctrl+Z)"><i class="ph-arrow-counter-clockwise"></i></button>
             <button class="btn btn-icon" onclick="designer.redo()" title="Redo (Ctrl+Y)"><i class="ph-arrow-clockwise"></i></button>
+            <span class="toolbar-separator"></span>
+            <span class="toolbar-group-label">Align:</span>
+            <button class="btn btn-icon align-btn disabled" onclick="designer.alignElements('left')" title="Align Left" disabled><i class="ph-align-left"></i></button>
+            <button class="btn btn-icon align-btn disabled" onclick="designer.alignElements('center')" title="Align Center" disabled><i class="ph-align-center-horizontal"></i></button>
+            <button class="btn btn-icon align-btn disabled" onclick="designer.alignElements('right')" title="Align Right" disabled><i class="ph-align-right"></i></button>
+            <button class="btn btn-icon align-btn disabled" onclick="designer.alignElements('top')" title="Align Top" disabled><i class="ph-align-top"></i></button>
+            <button class="btn btn-icon align-btn disabled" onclick="designer.alignElements('middle')" title="Align Middle" disabled><i class="ph-align-center-vertical"></i></button>
+            <button class="btn btn-icon align-btn disabled" onclick="designer.alignElements('bottom')" title="Align Bottom" disabled><i class="ph-align-bottom"></i></button>
+            <span class="toolbar-separator"></span>
+            <span class="toolbar-group-label">Distribute:</span>
+            <button class="btn btn-icon distribute-btn disabled" onclick="designer.distributeElements('horizontal')" title="Distribute Horizontally" disabled><i class="ph-distribute-horizontal"></i></button>
+            <button class="btn btn-icon distribute-btn disabled" onclick="designer.distributeElements('vertical')" title="Distribute Vertically" disabled><i class="ph-distribute-vertical"></i></button>
+            <span class="toolbar-separator"></span>
             <label class="zoom-label">Zoom:</label>
             <select class="zoom-select" onchange="designer.setZoom(+this.value)">
                 <option value="0.25">25%</option>
