@@ -56,6 +56,19 @@ class ContextMenu {
             );
         }
 
+        // Subtotal / Grand Total for field elements
+        if (onElement) {
+            const band = this.designer.findBandForElement(this.targetElementId);
+            const elem = band ? band.elements.find(e => e.id === this.targetElementId) : null;
+            if (elem && elem.type === 'field') {
+                items.push(
+                    { separator: true },
+                    { icon: 'ph-calculator', label: 'Add Subtotal', action: () => this.designer.addSubtotal(this.targetElementId) },
+                    { icon: 'ph-calculator', label: 'Add Grand Total', action: () => this.designer.addGrandTotal(this.targetElementId) },
+                );
+            }
+        }
+
         items.push({
             icon: 'ph-clipboard-text',
             label: 'Paste',

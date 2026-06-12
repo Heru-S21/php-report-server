@@ -706,6 +706,173 @@ class Designer {
         this.clearFontMetrics();
     }
 
+    findBandByType(type, groupField) {
+        return this.bands.find(b => b.type === type && (!groupField || b.groupField === groupField));
+    }
+
+    addSubtotal(fieldElementId) {
+        const band = this.findBandForElement(fieldElementId);
+        if (!band) return;
+        const el = band.elements.find(e => e.id === fieldElementId);
+        if (!el || !el.fieldName) {
+            this.showToast('Selected element has no field name', 'error');
+            return;
+        }
+
+        // Find matching group
+        const group = (window.ReportingEngine.state.definition.groups || [])
+            .find(g => g.fieldName === el.fieldName);
+        if (!group) {
+            this.showToast(`Field "${el.fieldName}" is not grouped. Add a group first.`, 'error');
+            return;
+        }
+
+        // Find or create group_footer band
+        let footerBand = this.findBandByType('group_footer', group.fieldName);
+        if (!footerBand) {
+            // Insert after detail band (or last group_header if this is a new group)
+            const insertIdx = this.bands.findIndex(b => b.type === 'detail') + 1;
+            footerBand = {
+                type: 'group_footer',
+                groupField: group.fieldName,
+                groupLevel: group.level ?? 0,
+                height: 18,
+                backgroundColor: 'transparent',
+                border: {},
+                elements: [],
+            };
+            this.bands.splice(insertIdx, 0, footerBand);
+
+            // Also ensure group_header exists
+            const headerBand = this.findBandByType('group_header', group.fieldName);
+            if (!headerBand) {
+                this.bands.splice(insertIdx, 0, {
+                    type: 'group_header',
+                    groupField: group.fieldName,
+                    groupLevel: group.level ?? 0,
+                    height: 18,
+                    backgroundColor: 'transparent',
+                    border: {},
+                    elements: [],
+                });
+            }
+        }
+
+        // Check for existing aggregate for this field + scope
+        const existing = footerBand.elements.find(e =>
+            e.type === 'aggregate' && e.fieldName === el.fieldName && e.aggregateScope === 'group'
+        );
+        if (existing) {
+            this.showToast(`Subtotal for "${el.fieldName}" already exists`, 'error');
+            return;
+        }
+
+        // Create aggregate element
+        const aggEl = {
+            id: 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+            type: 'aggregate',
+            top: 0,
+            left: el.left,
+            width: el.width,
+            height: el.height,
+            text: null,
+            fieldName: el.fieldName,
+            fontFamily: el.fontFamily || 'Arial',
+            fontSize: el.fontSize || 10,
+            bold: el.bold || false,
+            italic: el.italic || false,
+            underline: el.underline || false,
+            color: el.color || '#000000',
+            textAlign: el.textAlign || 'left',
+            verticalAlign: el.verticalAlign || 'middle',
+            backgroundColor: el.backgroundColor || 'transparent',
+            border: JSON.parse(JSON.stringify(el.border || {})),
+            inheritStyle: false,
+            wordWrap: false,
+            visibleExpression: null,
+            aggregateFunc: 'sum',
+            aggregateScope: 'group',
+            format: '#,##0.00',
+        };
+
+        footerBand.elements.push(aggEl);
+        this.renderCanvas();
+        this.renderObjectTree();
+        this.selectElement(aggEl.id);
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.clearFontMetrics();
+        this.showToast(`Subtotal added for "${el.fieldName}"`);
+    }
+
+    addGrandTotal(fieldElementId) {
+        const band = this.findBandForElement(fieldElementId);
+        if (!band) return;
+        const el = band.elements.find(e => e.id === fieldElementId);
+        if (!el || !el.fieldName) {
+            this.showToast('Selected element has no field name', 'error');
+            return;
+        }
+
+        // Find or create report_footer band
+        let footerBand = this.findBandByType('report_footer');
+        if (!footerBand) {
+            const pfIdx = this.bands.findIndex(b => b.type === 'page_footer');
+            const insertIdx = pfIdx >= 0 ? pfIdx : this.bands.length;
+            this.bands.splice(insertIdx, 0, {
+                type: 'report_footer',
+                height: 22,
+                backgroundColor: 'transparent',
+                border: {},
+                elements: [],
+            });
+            footerBand = this.findBandByType('report_footer');
+        }
+
+        // Check for existing aggregate for this field + scope
+        const existing = footerBand.elements.find(e =>
+            e.type === 'aggregate' && e.fieldName === el.fieldName && e.aggregateScope === 'report'
+        );
+        if (existing) {
+            this.showToast(`Grand total for "${el.fieldName}" already exists`, 'error');
+            return;
+        }
+
+        const aggEl = {
+            id: 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+            type: 'aggregate',
+            top: 0,
+            left: el.left,
+            width: el.width,
+            height: el.height,
+            text: null,
+            fieldName: el.fieldName,
+            fontFamily: el.fontFamily || 'Arial',
+            fontSize: el.fontSize || 10,
+            bold: el.bold || false,
+            italic: el.italic || false,
+            underline: el.underline || false,
+            color: el.color || '#000000',
+            textAlign: el.textAlign || 'left',
+            verticalAlign: el.verticalAlign || 'middle',
+            backgroundColor: el.backgroundColor || 'transparent',
+            border: JSON.parse(JSON.stringify(el.border || {})),
+            inheritStyle: false,
+            wordWrap: false,
+            visibleExpression: null,
+            aggregateFunc: 'sum',
+            aggregateScope: 'report',
+            format: '#,##0.00',
+        };
+
+        footerBand.elements.push(aggEl);
+        this.renderCanvas();
+        this.renderObjectTree();
+        this.selectElement(aggEl.id);
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.clearFontMetrics();
+        this.showToast(`Grand total added for "${el.fieldName}"`);
+    }
+
     copyElement(id) {
         const band = this.findBandForElement(id);
         if (!band) return;
