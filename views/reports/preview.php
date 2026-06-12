@@ -93,6 +93,8 @@ const preview = {
                     const name = typeof p === 'string' ? p : (p.name || '');
                     const type = typeof p === 'string' ? 'string' : (p.type || 'string');
                     const defaultValue = typeof p === 'string' ? '' : (p.defaultValue || '');
+                    const options = typeof p === 'string' ? [] : (Array.isArray(p.options) ? p.options : []);
+                    const dependsOn = typeof p === 'string' ? '' : (p.dependsOn || '');
                     const inputId = 'param-' + i;
                     let inputHtml = '';
                     if (type === 'boolean') {
@@ -104,6 +106,18 @@ const preview = {
                         inputHtml = `<input type="date" id="${inputId}" class="form-control param-input" data-param="${name}" value="${defaultValue}" onchange="preview.paramValues['${name}']=this.value">`;
                     } else if (type === 'number') {
                         inputHtml = `<input type="number" id="${inputId}" class="form-control param-input" data-param="${name}" value="${defaultValue}" placeholder=":${name}" onchange="preview.paramValues['${name}']=this.value">`;
+                    } else if (type === 'dropdown') {
+                        inputHtml = `<select id="${inputId}" class="form-control param-input" data-param="${name}" data-depends="${dependsOn}" onchange="preview.paramValues['${name}']=this.value">
+                            <option value="">Select...</option>
+                            ${options.map(o => `<option value="${o}"${defaultValue === o ? ' selected' : ''}>${o}</option>`).join('')}
+                        </select>`;
+                    } else if (type === 'multi-select') {
+                        inputHtml = `<div id="${inputId}" class="param-input multi-select-group" data-param="${name}" data-depends="${dependsOn}">
+                            ${options.map(o => `<label style="font-weight:400;display:flex;align-items:center;gap:4px;font-size:12px">
+                                <input type="checkbox" value="${o}"${defaultValue === o ? ' checked' : ''}
+                                    onchange="preview.updateMultiSelect('${name}')"> ${o}
+                            </label>`).join('')}
+                        </div>`;
                     } else {
                         inputHtml = `<input type="text" id="${inputId}" class="form-control param-input" data-param="${name}" value="${defaultValue}" placeholder=":${name}" onchange="preview.paramValues['${name}']=this.value">`;
                     }
@@ -119,12 +133,34 @@ const preview = {
         `;
         document.querySelectorAll('.param-input').forEach(inp => {
             const key = inp.dataset.param;
-            if (inp.type === 'checkbox') {
+            if (inp.type === 'checkbox' && !inp.closest('.multi-select-group')) {
                 preview.paramValues[key] = inp.checked ? '1' : '';
-            } else {
+            } else if (inp.classList.contains('multi-select-group')) {
+                preview.updateMultiSelect(key);
+            } else if (inp.tagName === 'SELECT' || inp.type === 'text' || inp.type === 'number' || inp.type === 'date') {
                 preview.paramValues[key] = inp.value;
             }
         });
+        // Attach cascade handlers
+        document.querySelectorAll('.param-input[data-depends]').forEach(inp => {
+            const depends = inp.dataset.depends;
+            if (!depends) return;
+            const parentInput = document.querySelector(`.param-input[data-param="${depends}"]`);
+            if (parentInput) {
+                parentInput.addEventListener('change', () => {
+                    inp.disabled = true;
+                    inp.style.opacity = '0.5';
+                });
+            }
+        });
+        preview._cascadeParams = params;
+    },
+
+    updateMultiSelect(name) {
+        const group = document.querySelector(`.param-input.multi-select-group[data-param="${name}"]`);
+        if (!group) return;
+        const checked = group.querySelectorAll('input[type="checkbox"]:checked');
+        preview.paramValues[name] = Array.from(checked).map(cb => cb.value).join(',');
     },
     async loadPreview() {
         const container = document.getElementById('preview-container');
@@ -215,7 +251,7 @@ const preview = {
         for (const band of allBands) {
             if (!band || !band.elements) continue;
             for (const el of band.elements) {
-                if (el.wordWrap && !['image', 'line', 'rect'].includes(el.type)) {
+                if (el.wordWrap && !['image', 'line', 'rect', 'barcode'].includes(el.type)) {
                     const ff = el.fontFamily || 'Arial';
                     const fs = el.fontSize || 10;
                     const b = el.bold ? '1' : '0';
