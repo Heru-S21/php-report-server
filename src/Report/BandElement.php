@@ -32,6 +32,9 @@ class BandElement
     public ?string $conditionalExpression = null;
     public ?string $conditionalStyle = null;
     public ?string $visibleExpression = null;
+    public ?string $barcodeSymbology = 'code128';
+    public bool $barcodeShowText = true;
+    public ?string $barcodeExpression = null;
 
     public function __construct()
     {
@@ -69,6 +72,9 @@ class BandElement
         $el->conditionalExpression = $data['conditionalExpression'] ?? null;
         $el->conditionalStyle = $data['conditionalStyle'] ?? null;
         $el->visibleExpression = $data['visibleExpression'] ?? null;
+        $el->barcodeSymbology = $data['barcodeSymbology'] ?? 'code128';
+        $el->barcodeShowText = (bool)($data['barcodeShowText'] ?? true);
+        $el->barcodeExpression = $data['barcodeExpression'] ?? null;
         return $el;
     }
 
@@ -103,6 +109,9 @@ class BandElement
             'conditionalExpression' => $this->conditionalExpression,
             'conditionalStyle' => $this->conditionalStyle,
             'visibleExpression' => $this->visibleExpression,
+            'barcodeSymbology' => $this->barcodeSymbology,
+            'barcodeShowText' => $this->barcodeShowText,
+            'barcodeExpression' => $this->barcodeExpression,
         ];
     }
 }

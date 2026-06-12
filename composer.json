@@ -6,7 +6,8 @@
         "php": ">=8.2",
         "mpdf/mpdf": "^8.2",
         "ext-pdo": "*",
-        "ext-pdo_sqlite": "*"
+        "ext-pdo_sqlite": "*",
+        "picqer/php-barcode-generator": "^3.2"
     },
     "autoload": {
         "psr-4": {

@@ -272,6 +272,7 @@ class Designer {
             case 'pagecount': return el.text || '{PAGECOUNT}';
             case 'rowno': return el.text || '{ROWNO}';
             case 'datetime': return '[Date/Time]';
+            case 'barcode': return el.barcodeExpression || el.text || '[Barcode]';
             default: return el.text || '';
         }
     }
@@ -656,6 +657,7 @@ class Designer {
             pagecount: { width: 50, height: 10, text: '{PAGECOUNT}' },
             rowno:     { width: 50, height: 10, text: '{ROWNO}' },
             datetime:  { width: 50, height: 10, text: null },
+            barcode:   { width: 50, height: 20, text: null },
         };
         return sizes[type] || { width: 50, height: 10, text: null };
     }
@@ -701,6 +703,12 @@ class Designer {
             el.aggregateFunc = 'sum';
             el.aggregateScope = bandType === 'group_footer' ? 'group' : 'report';
             el.format = '#,##0.00';
+        }
+
+        if (type === 'barcode') {
+            el.barcodeSymbology = 'code128';
+            el.barcodeShowText = true;
+            el.barcodeExpression = '';
         }
 
         band.elements.push(el);

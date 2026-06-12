@@ -72,6 +72,7 @@
     <div class="toolbox-item" draggable="true" data-type="pagecount"><i class="ph-files"></i> Page Count</div>
                             <div class="toolbox-item" draggable="true" data-type="rowno"><i class="ph-list-numbers"></i> Row #</div>
                             <div class="toolbox-item" draggable="true" data-type="datetime"><i class="ph-clock"></i> Date/Time</div>
+                            <div class="toolbox-item" draggable="true" data-type="barcode"><i class="ph-barcode"></i> Barcode</div>
                         </div>
                     </div>
                 </div>

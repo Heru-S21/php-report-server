@@ -235,6 +235,34 @@ class ElementEditor {
                     <option value="original" ${el.imageDisplay === 'original' ? 'selected' : ''}>Original</option>
                 </select>
             </div>` : ''}
+            ${el.type === 'barcode' ? `
+            <div class="prop-group">
+                <label>Value Expression</label>
+                <input class="prop-control" type="text" value="${escapeHtml(el.barcodeExpression || '')}"
+                       onchange="window.elementEditor.updateField('barcodeExpression', this.value)"
+                       placeholder="e.g. [product_code]">
+            </div>
+            <div class="prop-group">
+                <label>Symbology</label>
+                <select class="prop-control" onchange="window.elementEditor.updateField('barcodeSymbology', this.value)">
+                    <option value="code128" ${el.barcodeSymbology === 'code128' ? 'selected' : ''}>Code 128</option>
+                    <option value="code39" ${el.barcodeSymbology === 'code39' ? 'selected' : ''}>Code 39</option>
+                    <option value="ean13" ${el.barcodeSymbology === 'ean13' ? 'selected' : ''}>EAN-13</option>
+                    <option value="ean8" ${el.barcodeSymbology === 'ean8' ? 'selected' : ''}>EAN-8</option>
+                    <option value="upca" ${el.barcodeSymbology === 'upca' ? 'selected' : ''}>UPC-A</option>
+                    <option value="upce" ${el.barcodeSymbology === 'upce' ? 'selected' : ''}>UPC-E</option>
+                    <option value="qr" ${el.barcodeSymbology === 'qr' ? 'selected' : ''}>QR Code</option>
+                    <option value="pdf417" ${el.barcodeSymbology === 'pdf417' ? 'selected' : ''}>PDF417</option>
+                    <option value="datamatrix" ${el.barcodeSymbology === 'datamatrix' ? 'selected' : ''}>Data Matrix</option>
+                    <option value="codabar" ${el.barcodeSymbology === 'codabar' ? 'selected' : ''}>Codabar</option>
+                    <option value="msi" ${el.barcodeSymbology === 'msi' ? 'selected' : ''}>MSI</option>
+                    <option value="pharmacode" ${el.barcodeSymbology === 'pharmacode' ? 'selected' : ''}>Pharmacode</option>
+                </select>
+            </div>
+            <div class="prop-group">
+                <label><input type="checkbox" ${el.barcodeShowText !== false ? 'checked' : ''}
+                       onchange="window.elementEditor.updateField('barcodeShowText', this.checked)"> Show text</label>
+            </div>` : ''}
             <div class="prop-row">
                 <div class="prop-group">
                     <label>Top (mm)</label>

@@ -357,7 +357,7 @@ class HtmlRenderer implements RendererInterface
         $textAlign = $condStyle['textAlign'] ?? $ta;
         $verticalAlign = $condStyle['verticalAlign'] ?? $va;
 
-        $isTextType = !in_array($el->type, ['image', 'line', 'rect']);
+        $isTextType = !in_array($el->type, ['image', 'line', 'rect', 'barcode']);
         $wordWrap = $el->wordWrap ?? false;
         $textOverflow = $wordWrap ? '' : 'text-overflow:ellipsis;';
         $whiteSpace = $wordWrap ? 'white-space:normal; overflow-wrap:break-word;' : 'white-space:nowrap;';
@@ -452,7 +452,7 @@ class HtmlRenderer implements RendererInterface
             )) {
                 continue;
             }
-            if (in_array($el->type, ['image', 'line', 'rect'])) continue;
+            if (in_array($el->type, ['image', 'line', 'rect', 'barcode'])) continue;
             if (!($el->wordWrap ?? false)) continue;
             $value = $this->getElementValue($el, $def, $group, $data, $pageNum);
             if ($value === '' || $value === null) continue;
@@ -498,8 +498,20 @@ class HtmlRenderer implements RendererInterface
             'pagecount' => '{{PAGECOUNT}}',
             'rowno' => $data && is_array($data) && isset($data['_rowno']) ? (string)$data['_rowno'] : '1',
             'datetime' => date($el->format ?? 'Y-m-d'),
+            'barcode' => self::renderBarcodeValue($el, $data),
             default => htmlspecialchars($el->text ?? ''),
         };
+    }
+
+    private static function renderBarcodeValue(BandElement $el, $data): string
+    {
+        $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
+        $value = $el->barcodeExpression
+            ? ExpressionEvaluator::evaluate($el->barcodeExpression, $rowData)
+            : ($el->text ?? '');
+        if (!$value) return '';
+        $src = BarcodeRenderer::renderPng($value, $el->barcodeSymbology ?? 'code128', $el->barcodeShowText ?? true);
+        return '<img src="' . $src . '" style="width:100%;height:100%;object-fit:contain" alt="barcode">';
     }
 
     private function renderAggregate(BandElement $el, $data): string
