@@ -31,6 +31,7 @@ class BandElement
     public bool $wordWrap = false;
     public ?string $conditionalExpression = null;
     public ?string $conditionalStyle = null;
+    public ?string $visibleExpression = null;
 
     public function __construct()
     {
@@ -67,6 +68,7 @@ class BandElement
         $el->wordWrap = (bool)($data['wordWrap'] ?? false);
         $el->conditionalExpression = $data['conditionalExpression'] ?? null;
         $el->conditionalStyle = $data['conditionalStyle'] ?? null;
+        $el->visibleExpression = $data['visibleExpression'] ?? null;
         return $el;
     }
 
@@ -100,6 +102,7 @@ class BandElement
             'wordWrap' => $this->wordWrap,
             'conditionalExpression' => $this->conditionalExpression,
             'conditionalStyle' => $this->conditionalStyle,
+            'visibleExpression' => $this->visibleExpression,
         ];
     }
 }

@@ -668,6 +668,7 @@ class Designer {
             border: {},
             inheritStyle: true,
             wordWrap: false,
+            visibleExpression: null,
         };
 
         if (type === 'aggregate') {

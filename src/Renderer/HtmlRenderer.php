@@ -321,7 +321,11 @@ class HtmlRenderer implements RendererInterface
         );
         $html = sprintf('<div class="band band-%s" style="%s">', $band->type, $style);
         foreach ($band->elements as $element) {
-            if ($element->conditionalExpression && !ExpressionEvaluator::evaluateBool($element->conditionalExpression, $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []))) {
+            $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
+            if ($element->visibleExpression !== null && !ExpressionEvaluator::evaluateBool($element->visibleExpression, $rowData)) {
+                continue;
+            }
+            if ($element->conditionalExpression && !ExpressionEvaluator::evaluateBool($element->conditionalExpression, $rowData)) {
                 continue;
             }
             $html .= $this->renderSingleElement($element, $def, $group, $data, $pageNum);
@@ -332,6 +336,10 @@ class HtmlRenderer implements RendererInterface
 
     private function renderSingleElement(BandElement $el, ReportDefinition $def, $group, $data, int $pageNum = 1): string
     {
+        $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
+        if ($el->visibleExpression !== null && !ExpressionEvaluator::evaluateBool($el->visibleExpression, $rowData)) {
+            return '';
+        }
         $value = $this->getElementValue($el, $def, $group, $data, $pageNum);
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
         $va = $el->verticalAlign ?? 'top';
@@ -434,9 +442,13 @@ class HtmlRenderer implements RendererInterface
     {
         $effH = $band->height;
         foreach ($band->elements as $el) {
+            $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
+            if ($el->visibleExpression !== null && !ExpressionEvaluator::evaluateBool($el->visibleExpression, $rowData)) {
+                continue;
+            }
             if ($el->conditionalExpression && !ExpressionEvaluator::evaluateBool(
                 $el->conditionalExpression,
-                $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: [])
+                $rowData
             )) {
                 continue;
             }

@@ -338,7 +338,11 @@ class PdfRenderer implements RendererInterface
         // Group elements by top position into visual rows
         $rows = [];
         foreach ($band->elements as $element) {
-            if ($element->conditionalExpression && !ExpressionEvaluator::evaluateBool($element->conditionalExpression, $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []))) {
+            $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
+            if ($element->visibleExpression !== null && !ExpressionEvaluator::evaluateBool($element->visibleExpression, $rowData)) {
+                continue;
+            }
+            if ($element->conditionalExpression && !ExpressionEvaluator::evaluateBool($element->conditionalExpression, $rowData)) {
                 continue;
             }
             $rows[(string)$element->top][] = $element;
@@ -381,6 +385,10 @@ class PdfRenderer implements RendererInterface
 
     private function renderElementHtml(BandElement $el, ReportDefinition $def, $group, $data, float $marginLeft = 0.0): string
     {
+        $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
+        if ($el->visibleExpression !== null && !ExpressionEvaluator::evaluateBool($el->visibleExpression, $rowData)) {
+            return '';
+        }
         $value = $this->getElementValue($el, $def, $group, $data);
         $borderStyle = $el->border ? $el->border->toHtmlStyle() : '';
 
@@ -455,9 +463,13 @@ class PdfRenderer implements RendererInterface
     {
         $effH = $band->height;
         foreach ($band->elements as $el) {
+            $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
+            if ($el->visibleExpression !== null && !ExpressionEvaluator::evaluateBool($el->visibleExpression, $rowData)) {
+                continue;
+            }
             if ($el->conditionalExpression && !ExpressionEvaluator::evaluateBool(
                 $el->conditionalExpression,
-                $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: [])
+                $rowData
             )) {
                 continue;
             }

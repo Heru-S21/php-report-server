@@ -350,6 +350,13 @@ class ElementEditor {
                     onchange="window.elementEditor.updateField('conditionalStyle', this.value)"
                     placeholder='{"color":"#ff0000","bold":true}'>${escapeHtml(el.conditionalStyle || '')}</textarea>
             </div>
+            <div class="prop-group">
+                <label>Visibility Expression (PHP)</label>
+                <textarea class="prop-control" rows="2" style="font-family:var(--font-mono);font-size:12px"
+                    onchange="window.elementEditor.updateField('visibleExpression', this.value)"
+                    placeholder="e.g. value > 0">${escapeHtml(el.visibleExpression || '')}</textarea>
+                <span class="prop-hint">Element is hidden when expression returns false</span>
+            </div>
         `;
     }
 
