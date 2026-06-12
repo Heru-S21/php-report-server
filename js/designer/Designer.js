@@ -656,7 +656,7 @@ class Designer {
             height: h,
             text: type === 'label' ? 'Label' : null,
             fieldName: type === 'field' ? (fieldName || '') : null,
-            fontFamily: ds.fontFamily || 'Arial',
+            fontFamily: ds.fontFamily || (type === 'field' || type === 'rowno' ? 'Courier New' : 'Arial'),
             fontSize: ds.fontSize || 10,
             bold: false,
             italic: false,
@@ -667,6 +667,7 @@ class Designer {
             backgroundColor: ds.backgroundColor || 'transparent',
             border: {},
             inheritStyle: true,
+            wordWrap: false,
         };
 
         if (type === 'aggregate') {
@@ -684,6 +685,7 @@ class Designer {
             window.aggregateEditor.open(el.id);
         }
         window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.clearFontMetrics();
     }
 
     removeElement(id) {
@@ -700,6 +702,7 @@ class Designer {
         this.renderCanvas();
         this.renderObjectTree();
         window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.clearFontMetrics();
     }
 
     copyElement(id) {
@@ -751,6 +754,7 @@ class Designer {
         this.renderObjectTree();
         this.selectElement(el.id);
         window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.clearFontMetrics();
     }
 
     duplicateElement(id) {
@@ -769,6 +773,7 @@ class Designer {
         this.renderObjectTree();
         this.selectElement(el.id);
         window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.clearFontMetrics();
     }
 
     copyStyle(id) {
@@ -957,6 +962,7 @@ class Designer {
     postRenderRequest(format) {
         const def = window.ReportingEngine.state.definition;
         def.bands = this.bands;
+        const fontMetrics = this.measureFontMetrics(def);
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '/api/render/preview';
@@ -965,6 +971,9 @@ class Designer {
             { name: 'json', value: JSON.stringify(def) },
             { name: 'format', value: format },
         ];
+        if (Object.keys(fontMetrics).length > 0) {
+            inputs.push({ name: '_fontMetrics', value: JSON.stringify(fontMetrics) });
+        }
         inputs.forEach(({ name, value }) => {
             const el = document.createElement('input');
             el.type = 'hidden'; el.name = name; el.value = value;
@@ -973,6 +982,57 @@ class Designer {
         document.body.appendChild(form);
         form.submit();
         form.remove();
+    }
+
+    measureFontMetrics(definition) {
+        if (definition.fontMetrics && typeof definition.fontMetrics === 'object' && Object.keys(definition.fontMetrics).length > 0) {
+            return definition.fontMetrics;
+        }
+        const allBands = [];
+        if (definition.bands) {
+            for (const key in definition.bands) allBands.push(definition.bands[key]);
+        }
+        const combos = new Map();
+        for (const band of allBands) {
+            if (!band || !band.elements) continue;
+            for (const el of band.elements) {
+                if (el.wordWrap && !['image', 'line', 'rect'].includes(el.type)) {
+                    const ff = el.fontFamily || 'Arial';
+                    const fs = el.fontSize || 10;
+                    const b = el.bold ? '1' : '0';
+                    const it = el.italic ? '1' : '0';
+                    const key = ff + '-' + fs + '-' + b + '-' + it;
+                    if (!combos.has(key)) {
+                        combos.set(key, { fontFamily: ff, fontSize: fs, bold: !!el.bold, italic: !!el.italic });
+                    }
+                }
+            }
+        }
+        if (combos.size === 0) {
+            definition.fontMetrics = {};
+            return {};
+        }
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const results = {};
+        const sample = 'abcdefghijklmnopqrstuvwxyz0123456789@.-_';
+        for (const [key, c] of combos) {
+            let fontStr = c.fontSize + 'pt ' + c.fontFamily;
+            if (c.bold) fontStr = 'bold ' + fontStr;
+            if (c.italic) fontStr = 'italic ' + fontStr;
+            ctx.font = fontStr;
+            const avgPx = ctx.measureText(sample).width / sample.length;
+            results[key] = avgPx * 25.4 / 96;
+        }
+        definition.fontMetrics = results;
+        return results;
+    }
+
+    clearFontMetrics() {
+        const def = window.ReportingEngine.state.definition;
+        if (def && def.fontMetrics) {
+            delete def.fontMetrics;
+        }
     }
 
     exportPdf() {

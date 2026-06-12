@@ -10,8 +10,11 @@ use ReportingEngine\Report\AggregateAccumulator;
 
 class HtmlRenderer implements RendererInterface
 {
+    private array $fontMetrics = [];
+
     public function render(ReportDefinition $definition, array $data, array $params = []): string
     {
+        $this->fontMetrics = isset($params['_fontMetrics']) && is_array($params['_fontMetrics']) ? $params['_fontMetrics'] : [];
         $page = $definition->pageSettings;
         $groups = $definition->groups;
         usort($groups, fn(GroupDefinition $a, GroupDefinition $b) => $a->level <=> $b->level);
@@ -352,7 +355,7 @@ class HtmlRenderer implements RendererInterface
         $whiteSpace = $wordWrap ? 'white-space:normal; overflow-wrap:break-word;' : 'white-space:nowrap;';
 
         if ($wordWrap && $isTextType) {
-            $textH = $this->estimateTextHeight(strip_tags($value), $fontSize, $el->width);
+            $textH = $this->estimateTextHeight(strip_tags($value), $fontSize, $el->width, $fontFamily, $bold, $italic);
             $effectiveElH = max((float)$el->height, $textH);
         } else {
             $effectiveElH = (float)$el->height;
@@ -410,12 +413,17 @@ class HtmlRenderer implements RendererInterface
         return sprintf('<div class="element" style="%s">%s</div>', $style, $value);
     }
 
-    private function estimateTextHeight(string $text, int $fontSize, float $widthMm): float
+    private function estimateTextHeight(string $text, int $fontSize, float $widthMm, string $fontFamily = 'Arial', bool $bold = false, bool $italic = false): float
     {
         if ($text === '' || $text === null) {
             return ($fontSize * 1.4) * 0.3528;
         }
-        $avgCharWidth = 1.2 * ($fontSize / 10);
+        $key = $fontFamily . '-' . $fontSize . '-' . ($bold ? '1' : '0') . '-' . ($italic ? '1' : '0');
+        if (isset($this->fontMetrics[$key])) {
+            $avgCharWidth = (float)$this->fontMetrics[$key];
+        } else {
+            $avgCharWidth = 2.0 * ($fontSize / 10);
+        }
         $charsPerLine = max(1, $widthMm / $avgCharWidth);
         $lines = max(1, ceil(mb_strlen($text) / $charsPerLine));
         $lineHeightMm = ($fontSize * 1.4) * 0.3528;
@@ -436,7 +444,7 @@ class HtmlRenderer implements RendererInterface
             if (!($el->wordWrap ?? false)) continue;
             $value = $this->getElementValue($el, $def, $group, $data, $pageNum);
             if ($value === '' || $value === null) continue;
-            $textH = $this->estimateTextHeight(strip_tags($value), $el->fontSize ?: 10, $el->width);
+            $textH = $this->estimateTextHeight(strip_tags($value), $el->fontSize ?: 10, $el->width, $el->fontFamily ?: 'Arial', $el->bold ?? false, $el->italic ?? false);
             $elBottom = (float)$el->top + max((float)$el->height, $textH);
             $effH = max($effH, $elBottom);
         }

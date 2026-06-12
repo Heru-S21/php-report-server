@@ -133,24 +133,16 @@ const preview = {
         container.innerHTML = '<div class="loading-spinner">Loading preview...</div>';
         try {
             let html;
-            if (this.isUnsaved) {
-                const body = { definition: this.definition, format: 'html', no_print: '1' };
-                Object.entries(this.paramValues).forEach(([k,v]) => { if (v !== '') body['param_' + k] = v; });
-                const res = await fetch('/api/render/preview', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                html = await res.text();
-            } else {
-                const qs = Object.entries(this.paramValues)
-                    .filter(([,v]) => v !== '')
-                    .map(([k,v]) => `param_${k}=${encodeURIComponent(v)}`)
-                    .join('&');
-                const url = `/api/render/${this.reportId}?format=html&no_print=1${qs ? '&' + qs : ''}`;
-                const res = await fetch(url);
-                html = await res.text();
-            }
+            const body = { definition: this.definition, format: 'html', no_print: '1' };
+            const fontMetrics = this.measureFontMetrics(this.definition);
+            if (Object.keys(fontMetrics).length > 0) body._fontMetrics = fontMetrics;
+            Object.entries(this.paramValues).forEach(([k,v]) => { if (v !== '') body['param_' + k] = v; });
+            const res = await fetch('/api/render/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            html = await res.text();
             const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
             if (styleMatch) {
                 const cleanCss = styleMatch[1].replace(/body\s*\{[^}]*\}/g, '');
@@ -214,6 +206,42 @@ const preview = {
             }
         });
     },
+    measureFontMetrics(definition) {
+        const allBands = [];
+        if (definition.bands) {
+            for (const key in definition.bands) allBands.push(definition.bands[key]);
+        }
+        const combos = new Map();
+        for (const band of allBands) {
+            if (!band || !band.elements) continue;
+            for (const el of band.elements) {
+                if (el.wordWrap && !['image', 'line', 'rect'].includes(el.type)) {
+                    const ff = el.fontFamily || 'Arial';
+                    const fs = el.fontSize || 10;
+                    const b = el.bold ? '1' : '0';
+                    const it = el.italic ? '1' : '0';
+                    const key = ff + '-' + fs + '-' + b + '-' + it;
+                    if (!combos.has(key)) {
+                        combos.set(key, { fontFamily: ff, fontSize: fs, bold: !!el.bold, italic: !!el.italic });
+                    }
+                }
+            }
+        }
+        if (combos.size === 0) return {};
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const results = {};
+        const sample = 'abcdefghijklmnopqrstuvwxyz0123456789@.-_';
+        for (const [key, c] of combos) {
+            let fontStr = c.fontSize + 'pt ' + c.fontFamily;
+            if (c.bold) fontStr = 'bold ' + fontStr;
+            if (c.italic) fontStr = 'italic ' + fontStr;
+            ctx.font = fontStr;
+            const avgPx = ctx.measureText(sample).width / sample.length;
+            results[key] = avgPx * 25.4 / 96;
+        }
+        return results;
+    },
     getParamQueryString() {
         return Object.entries(this.paramValues)
             .filter(([,v]) => v !== '')
@@ -231,6 +259,12 @@ const preview = {
         const fmtInput = document.createElement('input');
         fmtInput.type = 'hidden'; fmtInput.name = 'format'; fmtInput.value = format;
         form.appendChild(fmtInput);
+        const fontMetrics = this.measureFontMetrics(this.definition);
+        if (Object.keys(fontMetrics).length > 0) {
+            const fmInput = document.createElement('input');
+            fmInput.type = 'hidden'; fmInput.name = '_fontMetrics'; fmInput.value = JSON.stringify(fontMetrics);
+            form.appendChild(fmInput);
+        }
         Object.entries(this.paramValues).forEach(([k,v]) => {
             if (v === '') return;
             const input = document.createElement('input');

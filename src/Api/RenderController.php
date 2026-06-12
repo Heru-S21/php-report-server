@@ -40,9 +40,14 @@ class RenderController
             $definition = $this->buildDefinition($report);
             $data = $this->fetchData($definition, $request);
 
+            $params = $request->query;
+            if (!empty($definition->fontMetrics)) {
+                $params['_fontMetrics'] = $definition->fontMetrics;
+            }
+
             if ($format === 'pdf') {
                 $renderer = new PdfRenderer();
-                $pdfContent = $renderer->render($definition, $data, $request->query);
+                $pdfContent = $renderer->render($definition, $data, $params);
 
                 return new Response($pdfContent, 200, [
                     'Content-Type' => 'application/pdf',
@@ -52,7 +57,7 @@ class RenderController
             }
 
             $renderer = new HtmlRenderer();
-            $html = $renderer->render($definition, $data, $request->query);
+            $html = $renderer->render($definition, $data, $params);
             return new Response($html, 200, [
                 'Content-Type' => 'text/html; charset=utf-8',
             ]);
@@ -67,6 +72,17 @@ class RenderController
             $definitionJson = $request->body['definition'] ?? $request->body['json'] ?? '';
             $format = $request->body['format'] ?? 'html';
 
+            // Decode _fontMetrics if it arrived as a JSON string (form POST)
+            $body = $request->body;
+            if (isset($body['_fontMetrics']) && is_string($body['_fontMetrics'])) {
+                $decoded = json_decode($body['_fontMetrics'], true);
+                if (is_array($decoded)) {
+                    $body['_fontMetrics'] = $decoded;
+                } else {
+                    unset($body['_fontMetrics']);
+                }
+            }
+
             if (is_string($definitionJson)) {
                 $definition = ReportDefinition::fromJson($definitionJson);
             } elseif (is_array($definitionJson)) {
@@ -79,7 +95,7 @@ class RenderController
 
             if ($format === 'pdf') {
                 $renderer = new PdfRenderer();
-                $pdfContent = $renderer->render($definition, $data, $request->body);
+                $pdfContent = $renderer->render($definition, $data, $body);
                 return new Response($pdfContent, 200, [
                     'Content-Type' => 'application/pdf',
                     'Content-Disposition' => 'inline; filename="preview.pdf"',
@@ -87,7 +103,7 @@ class RenderController
             }
 
             $renderer = new HtmlRenderer();
-            $html = $renderer->render($definition, $data, $request->body);
+            $html = $renderer->render($definition, $data, $body);
             return new Response($html, 200, [
                 'Content-Type' => 'text/html; charset=utf-8',
             ]);

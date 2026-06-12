@@ -334,7 +334,7 @@ class ElementEditor {
             <div class="prop-group">
                 <label>Word Wrap</label>
                 <label style="font-weight:400;text-transform:none">
-                    <input type="checkbox" ${el.wordWrap !== false ? 'checked' : ''}
+                    <input type="checkbox" ${el.wordWrap === true ? 'checked' : ''}
                            onchange="window.elementEditor.updateField('wordWrap', this.checked)"> Enabled
                 </label>
             </div>
@@ -600,6 +600,7 @@ class ElementEditor {
         }
         this.render();
         window.ReportingEngine.dispatch('SET_DIRTY', true);
+        this.designer.clearFontMetrics();
     }
 
     resetToDefaultStyle() {

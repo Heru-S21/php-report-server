@@ -14,6 +14,7 @@ class ReportDefinition
     public BandCollection $bands;
     public array $groups = [];
     public array $parameters = [];
+    public array $fontMetrics = [];
 
     public function __construct()
     {
@@ -54,6 +55,10 @@ class ReportDefinition
             $def->parameters = $data['parameters'];
         }
 
+        if (isset($data['fontMetrics']) && is_array($data['fontMetrics'])) {
+            $def->fontMetrics = $data['fontMetrics'];
+        }
+
         return $def;
     }
 
@@ -79,6 +84,7 @@ class ReportDefinition
             ],
             'groups' => $groups,
             'bands' => $this->bands->toArray(),
+            'fontMetrics' => $this->fontMetrics,
         ];
     }
 }
