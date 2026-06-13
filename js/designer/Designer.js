@@ -292,12 +292,18 @@ class Designer {
 
     bindEvents() {
         document.addEventListener('click', (e) => {
-            // Ignore clicks in panels (left toolbox, right properties/tree) and modals
-            if (e.target.closest('.panel-left') || e.target.closest('.panel-right') || e.target.closest('.modal')) return;
+            // Only handle clicks inside the designer canvas area
+            if (!e.target.closest('.designer-center')) return;
             const el = e.target.closest('.canvas-element');
             if (el) {
                 if (e.ctrlKey || e.metaKey) {
                     const id = el.dataset.elementId;
+                    if (this.selectedElementIds.length === 0 && window.ReportingEngine.state.selectedElement) {
+                        const currentId = window.ReportingEngine.state.selectedElement;
+                        if (currentId !== id) {
+                            this.selectedElementIds.push(currentId);
+                        }
+                    }
                     const idx = this.selectedElementIds.indexOf(id);
                     if (idx >= 0) {
                         this.selectedElementIds.splice(idx, 1);
@@ -988,7 +994,7 @@ class Designer {
 
     updateAlignmentButtons() {
         const count = this.getSelectedElements().length;
-        document.querySelectorAll('.align-btn, .distribute-btn').forEach(btn => {
+        document.querySelectorAll('.align-btn, .distribute-btn, .arrange-btn').forEach(btn => {
             btn.disabled = count < 2;
             btn.classList.toggle('disabled', count < 2);
         });
@@ -1084,6 +1090,35 @@ class Designer {
             for (const { el } of selected) {
                 el.top = this.snapValue(Math.max(0, pos));
                 pos += el.height + gap;
+            }
+        }
+
+        this.renderCanvas();
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+    }
+
+    arrangeElements(direction) {
+        this.pushUndoState();
+        const selected = this.getSelectedElements();
+        if (selected.length < 2) {
+            this.showToast('Select at least 2 elements in the same band', 'error');
+            return;
+        }
+        const bandType = selected[0].band.type;
+        if (selected.some(s => s.band.type !== bandType)) {
+            this.showToast('Elements must be in the same band', 'error');
+            return;
+        }
+
+        const def = window.ReportingEngine.state.definition;
+        const grid = def.gridSize || 2;
+
+        if (direction === 'horizontal') {
+            selected.sort((a, b) => a.el.left - b.el.left);
+            let pos = selected[0].el.left;
+            for (const { el } of selected) {
+                el.left = this.snapValue(Math.max(0, pos));
+                pos = el.left + el.width + grid;
             }
         }
 

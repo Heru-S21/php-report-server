@@ -31,8 +31,9 @@
             <button class="btn btn-icon align-btn disabled" onclick="designer.alignElements('bottom')" title="Align Bottom" disabled><i class="ph-align-bottom"></i></button>
             <span class="toolbar-separator"></span>
             <span class="toolbar-group-label">Distribute:</span>
-            <button class="btn btn-icon distribute-btn disabled" onclick="designer.distributeElements('horizontal')" title="Distribute Horizontally" disabled><i class="ph-distribute-horizontal"></i></button>
-            <button class="btn btn-icon distribute-btn disabled" onclick="designer.distributeElements('vertical')" title="Distribute Vertically" disabled><i class="ph-distribute-vertical"></i></button>
+            <button class="btn btn-icon distribute-btn disabled" onclick="designer.distributeElements('horizontal')" title="Distribute Horizontally" disabled><i class="ph-arrows-out-line-horizontal"></i></button>
+            <button class="btn btn-icon distribute-btn disabled" onclick="designer.distributeElements('vertical')" title="Distribute Vertically" disabled><i class="ph-arrows-out-line-vertical"></i></button>
+            <button class="btn btn-icon arrange-btn disabled" onclick="designer.arrangeElements('horizontal')" title="Arrange Horizontally (gap=1)" disabled><i class="ph-arrows-in-line-horizontal"></i></button>
             <span class="toolbar-separator"></span>
             <label class="zoom-label">Zoom:</label>
             <select class="zoom-select" onchange="designer.setZoom(+this.value)">

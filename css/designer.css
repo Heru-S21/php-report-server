@@ -1139,14 +1139,16 @@
 
 .align-btn.disabled,
 .distribute-btn.disabled,
+.arrange-btn.disabled,
 .align-btn:disabled,
-.distribute-btn:disabled {
+.distribute-btn:disabled,
+.arrange-btn:disabled {
     opacity: 0.35;
     cursor: default;
     pointer-events: none;
 }
 
 .canvas-element.multi-selected {
-    outline: 2px dashed var(--color-primary, #3b82f6);
+    outline: 2px dashed var(--color-success, #16a34a);
     outline-offset: 1px;
 }
