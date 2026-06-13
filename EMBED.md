@@ -9,9 +9,46 @@ The PHP Reporting Engine exposes two integration paths:
 
 ---
 
+## Table of Contents
+
+- [1. JavaScript Embedding (REST API)](#1-javascript-embedding-rest-api)
+  - [1.1 Embed Saved Report via iframe](#11-embed-saved-report-via-iframe)
+  - [1.2 Embed Report with URL Parameters](#12-embed-report-with-url-parameters)
+  - [1.3 Fetch Report HTML via fetch()](#13-fetch-report-html-via-fetch)
+  - [1.4 Download PDF via fetch()](#14-download-pdf-via-fetch)
+  - [1.5 Preview Unsaved Definition](#15-preview-unsaved-definition)
+- [2. PHP Embedding (Library Mode)](#2-php-embedding-library-mode)
+  - [2.1 Install](#21-install)
+  - [2.2 Initialize the Database](#22-initialize-the-database)
+  - [2.3 Render a Saved Report from DB](#23-render-a-saved-report-from-db)
+  - [2.4 Pass Query Parameters](#24-pass-query-parameters)
+  - [2.5 Render Without a Database (Ad-Hoc Definitions)](#25-render-without-a-database-ad-hoc-definitions)
+  - [2.6 Render PDF](#26-render-pdf)
+  - [2.7 Embed in a PHP Framework (Symfony / Laravel)](#27-embed-in-a-php-framework-symfony--laravel)
+- [3. CORS Configuration](#3-cors-configuration)
+- [4. Authentication](#4-authentication)
+  - [4.1 How auth affects external access](#41-how-auth-affects-external-access)
+  - [4.2 Embedded Reports (iframes / fetch)](#42-embedded-reports-iframes--fetch)
+  - [4.3 PHP Library Mode](#43-php-library-mode)
+  - [4.4 Adding Your Own Auth Guard](#44-adding-your-own-auth-guard)
+- [5. PHP Proxy Pattern (Embed Without Exposing the Engine)](#5-php-proxy-pattern-embed-without-exposing-the-engine)
+  - [5.1 Architecture](#51-architecture)
+  - [5.2 Why use a proxy](#52-why-use-a-proxy)
+  - [5.3 Basic proxy controller (request-report → relay)](#53-basic-proxy-controller-request-report--relay)
+  - [5.4 Proxy with caching](#54-proxy-with-caching)
+  - [5.5 Proxy ad-hoc preview (POST relay)](#55-proxy-ad-hoc-preview-post-relay)
+  - [5.6 Security notes](#56-security-notes)
+- [6. Report Definition Structure Reference](#6-report-definition-structure-reference)
+  - [6.1 Band types](#61-band-types)
+  - [6.2 Element types](#62-element-types)
+  - [6.3 Aggregate functions & scopes](#63-aggregate-functions--scopes)
+- [7. Summary](#7-summary)
+
+---
+
 ## 1. JavaScript Embedding (REST API)
 
-The server exposes `/api/render/{id}` (saved reports) and `/api/render/preview` (ad-hoc definitions). Both return raw HTML or PDF.
+The server exposes `/api/render/{id}` (saved reports) and `/api/render/preview` (ad-hoc definitions). Both return raw HTML or PDF. Render and image endpoints are always public (auth bypassed), so embedded reports work regardless of auth status.
 
 ### 1.1 Embed Saved Report via iframe
 
@@ -150,7 +187,6 @@ The engine uses an **internal SQLite database** to store report definitions and 
 require __DIR__ . '/vendor/autoload.php';
 
 use ReportingEngine\Core\Database;
-use ReportingEngine\Core\Request;
 use ReportingEngine\Report\ReportDefinition;
 use ReportingEngine\Report\ReportRepository;
 use ReportingEngine\Renderer\HtmlRenderer;
@@ -315,7 +351,7 @@ echo $pdf;
 file_put_contents('/tmp/report.pdf', $pdf);
 ```
 
-### 2.7 Embed in a PHP Framework (Symfony/Laravel)
+### 2.7 Embed in a PHP Framework (Symfony / Laravel)
 
 **Symfony controller:**
 
@@ -369,7 +405,7 @@ class ReportController extends Controller
 
 ---
 
-## 3. CORS Configuration (JS Embedding Only)
+## 3. CORS Configuration
 
 If the reporting engine runs on a different origin from your app, the server must include CORS headers. Currently, `Router.php` returns `Access-Control-Allow-Origin: *` on API responses. Add explicit origin restrictions in `src/Core/Router.php` if needed:
 
@@ -390,7 +426,14 @@ if (in_array($origin, $allowed)) {
 
 The engine has **built-in auth** (disabled by default). Enable it via **Settings → Authentication** or set `'enabled' => true` in `config/app.php`.
 
-### How auth affects external access
+Library mode never goes through HTTP, so auth does not apply:
+
+```php
+$renderer = new HtmlRenderer();
+$html = $renderer->render($definition, $data);
+```
+
+### 4.1 How auth affects external access
 
 | Endpoint | Auth Required? | Reason |
 |----------|---------------|--------|
@@ -401,20 +444,15 @@ The engine has **built-in auth** (disabled by default). Enable it via **Settings
 | All other `/api/*` routes | Yes | Requires login |
 | View pages (UI) | Yes | Redirects to `/login` |
 
-### Embedded Reports (iframes / fetch)
+### 4.2 Embedded Reports (iframes / fetch)
 
 The render and image endpoints are always public (auth bypassed), so embedded reports work regardless of auth status. No token or header is needed for these URLs.
 
-### PHP Library Mode
+### 4.3 PHP Library Mode
 
-Library mode never goes through HTTP, so auth does not apply:
+Library mode never goes through HTTP, so auth does not apply.
 
-```php
-$renderer = new HtmlRenderer();
-$html = $renderer->render($definition, $data);
-```
-
-### Adding Your Own Auth Guard
+### 4.4 Adding Your Own Auth Guard
 
 If you need stricter access on render endpoints, protect them at the reverse-proxy layer (nginx/Apache) or add a custom middleware in `Router.php`.
 
@@ -426,7 +464,7 @@ If you need stricter access on render endpoints, protect them at the reverse-pro
 
 If your external app runs on a different server from the reporting engine and you don't want to expose the engine directly to end users (or you need to add your own auth/logic around each report fetch), the recommended approach is a **server-side proxy**. Your app makes an HTTP request to the engine's render endpoint and writes the response downstream — the engine stays behind your firewall and the browser never talks to it directly.
 
-### Architecture
+### 5.1 Architecture
 
 ```
 Browser / Client App
@@ -453,7 +491,7 @@ Browser / Client App
 └──────────────────┘
 ```
 
-### Why use a proxy
+### 5.2 Why use a proxy
 
 | Concern | Direct iframe | PHP proxy |
 |---------|--------------|-----------|
@@ -464,13 +502,14 @@ Browser / Client App
 | Caching | None | You add cache layer |
 | Mix data sources | Engine data only | Merge engine report + your own data |
 
-### Basic proxy controller (request-report → relay)
+### 5.3 Basic proxy controller (request-report → relay)
 
 This is the simplest pattern: your app receives a request, fetches the rendered report from the engine, and relays the response with the correct content type.
 
+**Symfony controller:**
+
 ```php
 <?php
-// Example: Symfony controller
 // src/Controller/ReportProxyController.php
 
 namespace App\Controller;
@@ -518,9 +557,10 @@ class ReportProxyController
 }
 ```
 
+**Laravel controller:**
+
 ```php
 <?php
-// Example: Laravel controller
 // app/Http/Controllers/ReportProxyController.php
 
 namespace App\Http\Controllers;
@@ -569,12 +609,13 @@ class ReportProxyController extends Controller
 }
 ```
 
-### Proxy with caching
+### 5.4 Proxy with caching
 
 Add a cache layer so repeated views of the same report don't hit the engine every time.
 
+**Symfony — using Symfony Cache:**
+
 ```php
-// Symfony — using Symfony Cache
 use Symfony\Contracts\Cache\CacheInterface;
 
 #[Route('/reports/{id}', name: 'report_embed')]
@@ -596,8 +637,9 @@ public function embed(int $id, Request $request, CacheInterface $cache): Respons
 }
 ```
 
+**Laravel — using Cache facade:**
+
 ```php
-// Laravel — using Cache facade
 use Illuminate\Support\Facades\Cache;
 
 public function show(int $id, Request $request)
@@ -615,7 +657,7 @@ public function show(int $id, Request $request)
 }
 ```
 
-### Proxy ad-hoc preview (POST relay)
+### 5.5 Proxy ad-hoc preview (POST relay)
 
 If you need to preview an unsaved definition from your app, relay the POST to the engine's preview endpoint:
 
@@ -645,7 +687,7 @@ function proxyPreview(string $definitionJson, string $format = 'html'): string
 }
 ```
 
-### Security notes
+### 5.6 Security notes
 
 - **Keep the engine on an internal network** — bind it to `127.0.0.1` or a private subnet so only your proxy app can reach it. Never expose the engine port to the public internet.
 - **Validate forwarded query parameters** — only forward `param_*` keys; strip anything else.
@@ -702,22 +744,12 @@ The definition JSON for ad-hoc rendering has this shape:
           "id": "e1",
           "type": "field",
           "fieldName": "customer_name",
-          "top": 2,
-          "left": 10,
-          "width": 100,
-          "height": 12,
-          "fontFamily": "Arial",
-          "fontSize": 10,
-          "bold": false,
-          "italic": false,
-          "underline": false,
-          "color": "#000000",
-          "textAlign": "left",
-          "verticalAlign": "top",
-          "backgroundColor": "transparent",
-          "border": {},
-          "inheritStyle": true,
-          "format": ""
+          "top": 2, "left": 10, "width": 100, "height": 12,
+          "fontFamily": "Arial", "fontSize": 10,
+          "bold": false, "italic": false, "underline": false,
+          "color": "#000000", "textAlign": "left", "verticalAlign": "top",
+          "backgroundColor": "transparent", "border": {},
+          "inheritStyle": true, "format": ""
         }
       ],
       "border": {}
@@ -726,20 +758,56 @@ The definition JSON for ad-hoc rendering has this shape:
 }
 ```
 
-**Band types:** `page_header`, `report_header`, `column_header`, `group_header`, `detail`, `group_footer`, `report_footer`, `page_footer`
+### 6.1 Band types
 
-**Element types:** `label`, `field`, `aggregate`, `image`, `line`, `rect`, `pageno`, `rowno`, `datetime`
+| Type | Purpose |
+|------|---------|
+| `page_header` | Repeats at top of every page |
+| `report_header` | Renders once at the beginning |
+| `column_header` | Repeats on each page (table column labels) |
+| `group_header` | Renders when group value changes |
+| `detail` | Renders for each data row |
+| `group_footer` | Renders at end of group |
+| `report_footer` | Renders once at the end |
+| `page_footer` | Repeats at bottom of every page |
 
-**Aggregate functions** (for `aggregate` elements): `sum`, `count`, `avg`, `min`, `max`
+### 6.2 Element types
 
-**Aggregate scopes:** `group` (per-group subtotal), `report` (grand total)
+| Type | Description |
+|------|-------------|
+| `label` | Static text or expression (`[field] > 3 ? "high" : "low"`) |
+| `field` | Data field from query result |
+| `aggregate` | SUM, AVG, COUNT, MIN, MAX (group or report scope) |
+| `image` | From image library or external URL |
+| `line` | Horizontal rule |
+| `rect` | Colored rectangle (placeholder) |
+| `pageno` | Current page number (format: `Page {page} of {pages}`) |
+| `pagecount` | Total number of pages in document |
+| `rowno` | Row number within dataset |
+| `datetime` | Current date/time with format string |
+| `barcode` | Barcode or QR code (symbology, value expression, show-text toggle) |
+
+### 6.3 Aggregate functions & scopes
+
+| Function | Description |
+|----------|-------------|
+| `sum` | Sum of values |
+| `count` | Count of rows |
+| `avg` | Average of values |
+| `min` | Minimum value |
+| `max` | Maximum value |
+
+| Scope | Description |
+|-------|-------------|
+| `group` | Per-group subtotal |
+| `report` | Grand total across all groups |
 
 ---
 
 ## 7. Summary
 
 | Goal | Best Approach |
-|------|--------------|
+|------|---------------|
 | Embed a live HTML report in another web app | `<iframe>` pointing at `/api/render/{id}?format=html` |
 | Fetch report HTML programmatically from browser | `fetch('/api/render/{id}')` |
 | Let users download PDF from browser | `window.open('/api/render/{id}?format=pdf')` |
