@@ -293,7 +293,8 @@ class Designer {
         for (const side of sides) {
             const s = border[side];
             if (s && s.enabled) {
-                styles.push(`border-${side}: ${s.width || 1}px ${s.style || 'solid'} ${s.color || '#000'}`);
+                const w = s.style === 'double' ? Math.max(3, s.width || 1) : (s.width || 1);
+                styles.push(`border-${side}: ${w}px ${s.style || 'solid'} ${s.color || '#000'}`);
             }
         }
         return styles.join('; ');
@@ -330,9 +331,24 @@ class Designer {
             }
             const band = e.target.closest('.band');
             if (band) {
-                this.selectedElementIds = [];
-                this.selectBand(band.dataset.bandType);
-                this.updateAlignmentButtons();
+                if (e.ctrlKey || e.metaKey) {
+                    const elementIds = Array.from(band.querySelectorAll('.canvas-element')).map(el => el.dataset.elementId).filter(Boolean);
+                    if (elementIds.length) {
+                        const currentId = window.ReportingEngine.state.selectedElement;
+                        if (currentId && !elementIds.includes(currentId) && this.selectedElementIds.length === 0) {
+                            this.selectedElementIds.push(currentId);
+                        }
+                        elementIds.forEach(id => {
+                            if (!this.selectedElementIds.includes(id)) this.selectedElementIds.push(id);
+                        });
+                        this.selectElement(elementIds[elementIds.length - 1]);
+                        this.updateAlignmentButtons();
+                    }
+                } else {
+                    this.selectedElementIds = [];
+                    this.selectBand(band.dataset.bandType);
+                    this.updateAlignmentButtons();
+                }
                 return;
             }
             this.selectedElementIds = [];

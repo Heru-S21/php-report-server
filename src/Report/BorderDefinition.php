@@ -90,7 +90,8 @@ class BorderDefinition
         foreach (['top', 'right', 'bottom', 'left'] as $side) {
             $s = $this->$side;
             if ($s->enabled) {
-                $parts[] = "border-{$side}: {$s->width}px {$s->style} {$s->color};";
+                $width = $s->style === 'double' ? max(3, $s->width) : $s->width;
+                $parts[] = "border-{$side}: {$width}px {$s->style} {$s->color};";
             }
         }
         return implode(' ', $parts);

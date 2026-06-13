@@ -87,6 +87,13 @@ class BorderEditor {
                 this.target.border[side][field] = value;
             }
         });
+        if (field === 'style' && value === 'double') {
+            ['top', 'right', 'bottom', 'left'].forEach(side => {
+                if (this.target.border[side].enabled && this.target.border[side].width < 3) {
+                    this.target.border[side].width = 3;
+                }
+            });
+        }
         this.updatePreview();
         this.designer.renderCanvas();
         window.ReportingEngine.dispatch('SET_DIRTY', true);
@@ -100,7 +107,8 @@ class BorderEditor {
         ['top', 'right', 'bottom', 'left'].forEach(side => {
             const s = b[side];
             if (s && s.enabled) {
-                css += `border-${side}: ${s.width}px ${s.style} ${s.color};`;
+                const w = s.style === 'double' ? Math.max(3, s.width) : s.width;
+                css += `border-${side}: ${w}px ${s.style} ${s.color};`;
             }
         });
         preview.style.cssText = `width:120px; height:80px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#999; ${css}`;
