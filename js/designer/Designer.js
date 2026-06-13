@@ -117,6 +117,8 @@ class Designer {
             }
 
             this.autosave();
+            // Ensure band order matches group order after loading
+            if (window.bandManager) window.bandManager.reorderGroupBands();
         } catch (e) {
             console.error('Failed to load report:', e);
             if (!localStorage.getItem(this.storageKey())) {
