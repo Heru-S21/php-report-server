@@ -52,6 +52,30 @@ class BandManager {
         this.designer.renderCanvas();
     }
 
+    reorderGroupBands() {
+        const groups = window.ReportingEngine.state.definition.groups || [];
+        if (!groups.length) return;
+
+        const sorted = [...groups].sort((a, b) => a.level - b.level);
+        const byField = {};
+        sorted.forEach((g, i) => { byField[g.fieldName] = i; });
+
+        // Separate bands by type, preserving non-group order
+        const groupHeaders = this.designer.bands.filter(b => b.type === 'group_header');
+        const groupFooters = this.designer.bands.filter(b => b.type === 'group_footer');
+        const otherBands = this.designer.bands.filter(b => b.type !== 'group_header' && b.type !== 'group_footer');
+
+        // Sort group bands to match group order
+        groupHeaders.sort((a, b) => (byField[a.groupField] ?? 0) - (byField[b.groupField] ?? 0));
+        groupFooters.sort((a, b) => (byField[a.groupField] ?? 0) - (byField[b.groupField] ?? 0));
+
+        // Replace bands, keeping original positions: group_headers stay before other bands,
+        // group_footers after. Since renderCanvas sorts by bandOrder, we just need headers
+        // before footers in the array and everything will render correctly.
+        this.designer.bands = [...groupHeaders, ...otherBands, ...groupFooters];
+        this.designer.renderCanvas();
+    }
+
     toggleBandVisibility(bandType, visible) {
         this.designer.pushUndoState();
         const band = this.designer.bands.find(b => b.type === bandType);

@@ -97,7 +97,7 @@ class GroupEditor {
         groups.forEach((g, i) => g.level = i);
         window.ReportingEngine.dispatch('SET_DEFINITION', window.ReportingEngine.state.definition);
         this.updateGroupList();
-        this.designer.renderCanvas();
+        if (window.bandManager) window.bandManager.reorderGroupBands();
     }
 
     moveDown(groupId) {
@@ -108,7 +108,7 @@ class GroupEditor {
         groups.forEach((g, i) => g.level = i);
         window.ReportingEngine.dispatch('SET_DEFINITION', window.ReportingEngine.state.definition);
         this.updateGroupList();
-        this.designer.renderCanvas();
+        if (window.bandManager) window.bandManager.reorderGroupBands();
     }
 
     updateGroupList() {
