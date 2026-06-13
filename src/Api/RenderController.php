@@ -172,9 +172,9 @@ class RenderController
 
         $connId = $definition->connectionId;
 
-        // Extract params from request query
+        // Extract params from request query (GET params) and body (JSON/POST)
         $params = [];
-        foreach ($request->query as $key => $value) {
+        foreach (array_merge($request->query, $request->body) as $key => $value) {
             if (str_starts_with($key, 'param_')) {
                 $paramName = substr($key, 6);
                 $params[$paramName] = $value;
