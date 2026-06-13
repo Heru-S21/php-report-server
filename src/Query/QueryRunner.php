@@ -23,6 +23,11 @@ class QueryRunner
         // Apply limit
         $sql = $this->applyLimit($sql, $limit);
 
+        // PDO_SQLSRV has issues with named parameters; convert to positional
+        if (!empty($params) && $this->driver->getDriverName() === 'mssql') {
+            $sql = $this->convertNamedToPositional($sql, $params);
+        }
+
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
 
@@ -49,6 +54,11 @@ class QueryRunner
 
     public function getFields(string $sql, array $params = []): array
     {
+        // PDO_SQLSRV has issues with named parameters; convert to positional
+        if (!empty($params) && $this->driver->getDriverName() === 'mssql') {
+            $sql = $this->convertNamedToPositional($sql, $params);
+        }
+
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
 
@@ -69,6 +79,17 @@ class QueryRunner
     {
         preg_match_all('/:(\w+)/', $sql, $matches);
         return array_unique($matches[1]);
+    }
+
+    private function convertNamedToPositional(string $sql, array &$params): string
+    {
+        $values = [];
+        $sql = preg_replace_callback('/:([a-zA-Z_]\w*)/', function ($m) use (&$params, &$values) {
+            $values[] = $params[$m[1]] ?? null;
+            return '?';
+        }, $sql);
+        $params = $values;
+        return $sql;
     }
 
     private function applyLimit(string $sql, int $limit): string
