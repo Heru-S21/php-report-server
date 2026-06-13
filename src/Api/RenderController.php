@@ -62,7 +62,9 @@ class RenderController
                 'Content-Type' => 'text/html; charset=utf-8',
             ]);
         } catch (\Exception $e) {
-            return Response::error($e->getMessage(), 500);
+            $sql = isset($definition) ? $definition->sqlQuery : '';
+            $msg = $e->getMessage() . ($sql ? " | SQL: {$sql}" : '');
+            return Response::error($msg, 500);
         }
     }
 
@@ -108,7 +110,9 @@ class RenderController
                 'Content-Type' => 'text/html; charset=utf-8',
             ]);
         } catch (\Exception $e) {
-            return Response::error($e->getMessage(), 500);
+            $sql = isset($definition) ? $definition->sqlQuery : '';
+            $msg = $e->getMessage() . ($sql ? " | SQL: {$sql}" : '');
+            return Response::error($msg, 500);
         }
     }
 
