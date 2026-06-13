@@ -79,14 +79,9 @@ class QueryRunner
 
         $driverName = $this->driver->getDriverName();
         if ($driverName === 'mssql') {
-            // Wrap for MSSQL
-            $orderBy = '';
-            if (preg_match('/\s+ORDER\s+BY\s+(.+)$/i', $sql, $m)) {
-                $orderBy = $m[1];
-                $sql = preg_replace('/\s+ORDER\s+BY\s+.+$/i', '', $sql);
-            }
-            $orderClause = $orderBy ? "ORDER BY {$orderBy}" : 'ORDER BY 1';
-            $sql = "SELECT * FROM ({$sql}) AS _sub {$orderClause} " . $this->driver->getLimitSyntax($limit, 0);
+            // Use TOP for MSSQL — avoids subquery wrapping which breaks
+            // named parameter binding with the ODBC driver
+            $sql = preg_replace('/^\s*SELECT\s+/i', 'SELECT TOP ' . (int)$limit . ' ', $sql);
         } else {
             $sql .= ' ' . $this->driver->getLimitSyntax($limit, 0);
         }
