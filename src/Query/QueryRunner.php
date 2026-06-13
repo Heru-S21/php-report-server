@@ -47,10 +47,10 @@ class QueryRunner
         ];
     }
 
-    public function getFields(string $sql): array
+    public function getFields(string $sql, array $params = []): array
     {
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($params);
 
         $columns = [];
         $colCount = $stmt->columnCount();

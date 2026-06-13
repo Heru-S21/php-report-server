@@ -215,19 +215,27 @@ class QueryEditor {
     detectParameters(sql) {
         const def = window.ReportingEngine.state.definition;
         def.query = def.query || {};
-        const existing = def.query.parameters || [];
         const namedParams = [...sql.matchAll(/:\b([a-zA-Z_]\w*)\b/g)].map(m => m[1]);
-        const existingNames = new Set(existing.map(p => typeof p === 'string' ? p : p.name));
-        let changed = false;
-        for (const name of namedParams) {
-            if (!existingNames.has(name)) {
-                existing.push({ name, type: 'string', defaultValue: '' });
-                existingNames.add(name);
+        const uniqueNames = [...new Set(namedParams)];
+        const existing = def.query.parameters || [];
+
+        // Keep only params still present in SQL, preserving custom config
+        const kept = existing.filter(p => {
+            const name = typeof p === 'string' ? p : p.name;
+            return uniqueNames.includes(name);
+        });
+
+        const keptNames = new Set(kept.map(p => typeof p === 'string' ? p : p.name));
+        let changed = kept.length !== existing.length;
+        for (const name of uniqueNames) {
+            if (!keptNames.has(name)) {
+                kept.push({ name, type: 'string', defaultValue: '' });
                 changed = true;
             }
         }
+
         if (changed) {
-            def.query.parameters = existing;
+            def.query.parameters = kept;
             this.renderParameters();
         }
     }
@@ -330,6 +338,16 @@ class QueryEditor {
         window.ReportingEngine.dispatch('SET_DIRTY', true);
     }
 
+    collectParamValues() {
+        const values = {};
+        const params = this.getParameters();
+        for (const p of params) {
+            const name = typeof p === 'string' ? p : p.name;
+            if (name) values[name] = p.defaultValue || '';
+        }
+        return values;
+    }
+
     async runQuery() {
         const connId = this.connectionSelect.value;
         const sql = this.sqlTextarea.value.trim();
@@ -344,6 +362,7 @@ class QueryEditor {
             const res = await window.ReportingEngine.api('POST', '/api/query/execute', {
                 connection_id: connId ? parseInt(connId) : 0,
                 sql: sql,
+                params: this.collectParamValues(),
                 limit: 50,
             });
 
@@ -380,6 +399,7 @@ class QueryEditor {
             const res = await window.ReportingEngine.api('POST', '/api/query/execute', {
                 connection_id: connId ? parseInt(connId) : 0,
                 sql: sql,
+                params: this.collectParamValues(),
                 limit: 50,
             });
 

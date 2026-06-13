@@ -69,6 +69,7 @@ class QueryController
         try {
             $connectionId = (int)($request->body['connection_id'] ?? 0);
             $sql = $request->body['sql'] ?? '';
+            $params = $request->body['params'] ?? [];
 
             if (empty($sql)) {
                 return Response::error('SQL query is required', 422);
@@ -77,7 +78,7 @@ class QueryController
             if ($connectionId <= 0) {
                 $pdo = Database::getInstance();
                 $stmt = $pdo->prepare($sql);
-                $stmt->execute();
+                $stmt->execute($params);
                 $columns = [];
                 for ($i = 0; $i < $stmt->columnCount(); $i++) {
                     $colMeta = $stmt->getColumnMeta($i);
@@ -88,7 +89,7 @@ class QueryController
 
             $driver = $this->connectionManager->getDriver($connectionId);
             $runner = new QueryRunner($driver);
-            $columns = $runner->getFields($sql);
+            $columns = $runner->getFields($sql, $params);
             return Response::json($columns);
         } catch (\Exception $e) {
             return Response::error($e->getMessage(), 500);
