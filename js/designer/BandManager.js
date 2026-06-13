@@ -10,9 +10,6 @@ class BandManager {
         const footerExists = bands.some(b => b.type === 'group_footer' && b.groupField === groupField);
         if (headerExists || footerExists) return;
 
-        // Remove existing auto group bands at this level
-        const insertBeforeType = groupLevel === 0 ? 'detail' : 'group_footer';
-
         const headerBand = {
             type: 'group_header',
             groupField: groupField,
@@ -39,8 +36,22 @@ class BandManager {
             elements: [],
         };
 
-        bands.push(headerBand);
-        bands.push(footerBand);
+        // Group headers: outer first → insert new inner header after last existing header
+        const lastHeaderIdx = bands.map((b, i) => b.type === 'group_header' ? i : -1).filter(i => i >= 0).pop();
+        if (lastHeaderIdx !== undefined) {
+            bands.splice(lastHeaderIdx + 1, 0, headerBand);
+        } else {
+            bands.push(headerBand);
+        }
+
+        // Group footers: inner first → insert new inner footer before first existing footer
+        const firstFooterIdx = bands.findIndex(b => b.type === 'group_footer');
+        if (firstFooterIdx >= 0) {
+            bands.splice(firstFooterIdx, 0, footerBand);
+        } else {
+            bands.push(footerBand);
+        }
+
         this.designer.renderCanvas();
     }
 
@@ -65,13 +76,11 @@ class BandManager {
         const groupFooters = this.designer.bands.filter(b => b.type === 'group_footer');
         const otherBands = this.designer.bands.filter(b => b.type !== 'group_header' && b.type !== 'group_footer');
 
-        // Sort group bands to match group order
+        // Sort group headers outer→inner (ascending level)
         groupHeaders.sort((a, b) => (byField[a.groupField] ?? 0) - (byField[b.groupField] ?? 0));
-        groupFooters.sort((a, b) => (byField[a.groupField] ?? 0) - (byField[b.groupField] ?? 0));
+        // Sort group footers inner→outer (descending level) so outermost footer is last
+        groupFooters.sort((a, b) => (byField[b.groupField] ?? 0) - (byField[a.groupField] ?? 0));
 
-        // Replace bands, keeping original positions: group_headers stay before other bands,
-        // group_footers after. Since renderCanvas sorts by bandOrder, we just need headers
-        // before footers in the array and everything will render correctly.
         this.designer.bands = [...groupHeaders, ...otherBands, ...groupFooters];
         this.designer.renderCanvas();
     }
