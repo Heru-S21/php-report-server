@@ -529,14 +529,25 @@ class HtmlRenderer implements RendererInterface
 
     private function formatValue(mixed $value, ?string $format): string
     {
-        if ($format === null || $format === '' || !is_numeric($value)) {
+        if ($format === null || $format === '') {
+            return (string)$value;
+        }
+
+        // Try printf-style format for any value
+        if (str_contains($format, '%')) {
+            $v = $value;
+            if (is_numeric($value)) $v = (float)$value;
+            $result = @sprintf($format, $v);
+            if ($result !== false && $result !== $format) {
+                return $result;
+            }
+        }
+
+        // Numeric-only formatting below
+        if (!is_numeric($value)) {
             return (string)$value;
         }
         $v = (float)$value;
-
-        if (str_contains($format, '%')) {
-            return sprintf($format, $v);
-        }
 
         // If the format is just a number, use it as decimal count
         if (preg_match('/^\d+$/', $format)) {

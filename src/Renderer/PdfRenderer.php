@@ -550,14 +550,25 @@ class PdfRenderer implements RendererInterface
 
     private function formatValue(mixed $value, ?string $format): string
     {
-        if ($format === null || $format === '' || !is_numeric($value)) {
+        if ($format === null || $format === '') {
+            return (string)$value;
+        }
+
+        // Try printf-style format for any value
+        if (str_contains($format, '%')) {
+            $v = $value;
+            if (is_numeric($value)) $v = (float)$value;
+            $result = @sprintf($format, $v);
+            if ($result !== false && $result !== $format) {
+                return $result;
+            }
+        }
+
+        // Numeric-only formatting below
+        if (!is_numeric($value)) {
             return (string)$value;
         }
         $v = (float)$value;
-
-        if (str_contains($format, '%')) {
-            return sprintf($format, $v);
-        }
 
         if (preg_match('/^\d+$/', $format)) {
             return number_format($v, (int)$format, '.', ',');
