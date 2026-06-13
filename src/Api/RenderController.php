@@ -196,13 +196,18 @@ class RenderController
         }
 
         // Fallback to internal DB
-        $pdo = Database::getInstance();
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($rows as $i => &$row) {
-            $row['_rowno'] = $i + 1;
+        try {
+            $pdo = Database::getInstance();
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as $i => &$row) {
+                $row['_rowno'] = $i + 1;
+            }
+            return $rows;
+        } catch (\Exception $e) {
+            error_log("fetchData fallback failed: " . $e->getMessage());
+            return [];
         }
-        return $rows;
     }
 }

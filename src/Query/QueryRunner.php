@@ -85,7 +85,8 @@ class QueryRunner
                 $orderBy = $m[1];
                 $sql = preg_replace('/\s+ORDER\s+BY\s+.+$/i', '', $sql);
             }
-            $sql = "SELECT * FROM ({$sql}) AS _sub ORDER BY 1 " . $this->driver->getLimitSyntax($limit, 0);
+            $orderClause = $orderBy ? "ORDER BY {$orderBy}" : 'ORDER BY 1';
+            $sql = "SELECT * FROM ({$sql}) AS _sub {$orderClause} " . $this->driver->getLimitSyntax($limit, 0);
         } else {
             $sql .= ' ' . $this->driver->getLimitSyntax($limit, 0);
         }

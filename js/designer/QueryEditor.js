@@ -41,10 +41,9 @@ class QueryEditor {
         try {
             // Use in-memory definition first (may include unsaved draft edits)
             const currentDef = window.ReportingEngine.state.definition;
-            if (currentDef.query?.sql) {
-                this.sqlTextarea.value = currentDef.query.sql;
-            } else if (currentDef.sqlQuery) {
-                this.sqlTextarea.value = currentDef.sqlQuery;
+            let sql = currentDef.query?.sql || currentDef.sqlQuery || '';
+            if (sql) {
+                this.sqlTextarea.value = sql;
             }
             if (currentDef.connectionId) {
                 this.connectionSelect.value = currentDef.connectionId;
@@ -56,12 +55,27 @@ class QueryEditor {
             }
 
             // Also fetch server version for saved SQL (used by Reset button)
+            // and as fallback if state.definition wasn't populated yet
             const res = await window.ReportingEngine.api('GET', `/api/reports/${this.designer.reportId}`);
             if (res.data) {
                 const def = typeof res.data.definition === 'string'
                     ? JSON.parse(res.data.definition) : res.data.definition;
                 this.savedQuerySql = def.query?.sql || '';
                 this.savedConnectionId = def.connectionId || null;
+
+                // Fallback: if state didn't have SQL/connection/columns, apply from server
+                if (!sql && def.query?.sql) {
+                    this.sqlTextarea.value = def.query.sql;
+                    sql = def.query.sql;
+                }
+                if (!currentDef.connectionId && def.connectionId) {
+                    this.connectionSelect.value = def.connectionId;
+                    this.loadTables(parseInt(def.connectionId));
+                }
+                if ((!currentDef.queryColumns || currentDef.queryColumns.length === 0) && def.queryColumns?.length > 0) {
+                    this.queryColumns = def.queryColumns;
+                    this.renderFieldList();
+                }
             }
         } catch (e) {
             // Silent fail for new reports

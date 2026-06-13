@@ -88,11 +88,20 @@ class Designer {
                     ? JSON.parse(res.data.definition) : res.data.definition;
                 def.guid = res.data.guid || null;
 
+                // Ensure connectionId is always set from the DB column if not in the definition JSON
+                if (!def.connectionId && res.data.connection_id) {
+                    def.connectionId = parseInt(res.data.connection_id);
+                }
+
                 if (!stored) {
                     window.ReportingEngine.dispatch('LOAD_DEFINITION', def);
                     this.bands = def.bands || this.getDefaultBands();
                 } else {
                     window.ReportingEngine.state.definition.guid = res.data.guid || null;
+                    // Also merge connectionId from server if draft doesn't have it
+                    if (!window.ReportingEngine.state.definition.connectionId && res.data.connection_id) {
+                        window.ReportingEngine.state.definition.connectionId = parseInt(res.data.connection_id);
+                    }
                 }
 
                 this.reportGuid = res.data.guid || null;
