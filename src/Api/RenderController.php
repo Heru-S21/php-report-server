@@ -192,22 +192,49 @@ class RenderController
                 $assocRow['_rowno'] = $i + 1;
                 $data[] = $assocRow;
             }
-            return $data;
+        } else {
+            // Fallback to internal DB
+            try {
+                $pdo = Database::getInstance();
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($data as $i => &$row) {
+                    $row['_rowno'] = $i + 1;
+                }
+                unset($row);
+            } catch (\Exception $e) {
+                error_log("fetchData fallback failed: " . $e->getMessage());
+                return [];
+            }
         }
 
-        // Fallback to internal DB
-        try {
-            $pdo = Database::getInstance();
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($rows as $i => &$row) {
-                $row['_rowno'] = $i + 1;
+        // Sort by group fields to respect group sortDirection
+        $groups = $definition->groups;
+        if (!empty($groups) && !empty($data)) {
+            usort($groups, fn($a, $b) => $a->level <=> $b->level);
+            usort($data, function (array $a, array $b) use ($groups) {
+                foreach ($groups as $group) {
+                    $field = $group->fieldName;
+                    $dir = strtoupper($group->sortDirection) === 'DESC' ? -1 : 1;
+                    $valA = $a[$field] ?? null;
+                    $valB = $b[$field] ?? null;
+                    if ($valA === null && $valB === null) continue;
+                    if ($valA === null) return 1 * $dir;
+                    if ($valB === null) return -1 * $dir;
+                    $cmp = strnatcasecmp((string)$valA, (string)$valB);
+                    if ($cmp !== 0) return $cmp * $dir;
+                }
+                return 0;
+            });
+            // Re-number row numbers after sorting
+            $i = 1;
+            foreach ($data as &$row) {
+                $row['_rowno'] = $i++;
             }
-            return $rows;
-        } catch (\Exception $e) {
-            error_log("fetchData fallback failed: " . $e->getMessage());
-            return [];
+            unset($row);
         }
+
+        return $data;
     }
 }

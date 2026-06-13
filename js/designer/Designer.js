@@ -376,7 +376,17 @@ class Designer {
             }
             if (e.ctrlKey && e.key === 's') { e.preventDefault(); this.save(); }
             if (e.ctrlKey && e.key === 'p') { e.preventDefault(); this.preview(); }
-            if (e.key === 'Escape') { this.selectedElementIds = []; this.selectReport(); }
+            if (e.key === 'Escape') {
+                // Close any open modal/popup
+                ['group-modal', 'aggregate-modal', 'image-picker-modal', 'template-modal'].forEach(id => {
+                    const m = document.getElementById(id);
+                    if (m) m.style.display = 'none';
+                });
+                const ctx = document.querySelector('.context-menu');
+                if (ctx) ctx.style.display = 'none';
+                this.selectedElementIds = [];
+                this.selectReport();
+            }
         });
 
         // Toolbox drag
