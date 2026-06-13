@@ -15,6 +15,7 @@
     --color-border: #E2E8F0;
     --color-text: #0F172A;
     --color-text-muted: #64748B;
+    --color-hover: #F1F5F9;
     --band-page: #FEE2E2;
     --band-report: #E9D5FF;
     --band-group: #FFFBEB;
@@ -699,6 +700,7 @@ a:hover {
     --color-border: #334155;
     --color-text: #F1F5F9;
     --color-text-muted: #94A3B8;
+    --color-hover: #334155;
     --band-page: #451a1a;
     --band-report: #2e1a47;
     --band-group: #3b3510;

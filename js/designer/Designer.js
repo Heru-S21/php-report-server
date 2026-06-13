@@ -345,7 +345,7 @@ class Designer {
             }
             if (e.ctrlKey && e.key === 's') { e.preventDefault(); this.save(); }
             if (e.ctrlKey && e.key === 'p') { e.preventDefault(); this.preview(); }
-            if (e.key === 'Escape') { this.selectedElementIds = []; this.deselectAll(); }
+            if (e.key === 'Escape') { this.selectedElementIds = []; this.selectReport(); }
         });
 
         // Toolbox drag
@@ -600,9 +600,7 @@ class Designer {
     selectElement(id) {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', id);
         window.ReportingEngine.dispatch('SELECT_BAND', null);
-        document.querySelectorAll('.canvas-element').forEach(el => {
-            el.classList.toggle('selected', el.dataset.elementId === id);
-        });
+        this.syncMultiSelect();
         document.querySelectorAll('.band').forEach(b => b.classList.remove('selected'));
         if (window.elementEditor) {
             const band = this.findBandForElement(id);
@@ -617,10 +615,10 @@ class Designer {
     selectBand(type) {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
         window.ReportingEngine.dispatch('SELECT_BAND', type);
-        document.querySelectorAll('.band').forEach(b => {
-            b.classList.toggle('selected', b.dataset.bandType === type);
-        });
-        document.querySelectorAll('.canvas-element').forEach(el => el.classList.remove('selected'));
+        this.selectedElementIds = [];
+        this.syncMultiSelect();
+        document.querySelectorAll('.canvas-element').forEach(el => el.classList.remove('selected', 'multi-selected'));
+        document.querySelectorAll('.band').forEach(b => b.classList.toggle('selected', b.dataset.bandType === type));
         if (window.elementEditor) {
             const band = this.bands.find(b => b.type === type);
             if (band) window.elementEditor.loadBand(band);
@@ -631,11 +629,23 @@ class Designer {
     selectReport() {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
         window.ReportingEngine.dispatch('SELECT_BAND', null);
-        document.querySelectorAll('.canvas-element, .band').forEach(el => el.classList.remove('selected'));
+        this.selectedElementIds = [];
+        this.syncMultiSelect();
+        document.querySelectorAll('.canvas-element, .band').forEach(el => el.classList.remove('selected', 'multi-selected'));
         if (window.elementEditor) {
             window.elementEditor.loadReport();
         }
         this.renderObjectTree();
+    }
+
+    syncMultiSelect() {
+        const primaryId = window.ReportingEngine.state.selectedElement;
+        document.querySelectorAll('.canvas-element').forEach(el => {
+            const eid = el.dataset.elementId;
+            const inList = this.selectedElementIds.includes(eid);
+            el.classList.toggle('selected', eid === primaryId);
+            el.classList.toggle('multi-selected', inList && eid !== primaryId);
+        });
     }
 
     snapValue(val) {

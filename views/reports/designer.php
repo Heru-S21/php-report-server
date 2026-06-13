@@ -1,13 +1,20 @@
 <div class="designer-page">
     <div class="designer-toolbar">
         <div class="toolbar-left">
+            <div class="hamburger-menu">
+                <button class="btn btn-primary hamburger-toggle" onclick="toggleHamburger(event)" title="More"><i class="ph-list"></i></button>
+                <div class="hamburger-dropdown" id="hamburger-dropdown">
+                    <button class="hamburger-item" onclick="designer.exportDesign()"><i class="ph-download"></i> Export</button>
+                    <button class="hamburger-item" onclick="document.getElementById('import-file-input').click()"><i class="ph-upload"></i> Import</button>
+                    <div class="hamburger-separator"></div>
+                    <button class="hamburger-item" onclick="designer.saveAsTemplate()"><i class="ph-bookmark"></i> Save as Template</button>
+                    <div class="hamburger-separator"></div>
+                    <button class="hamburger-item" onclick="designer.exportPdf()"><i class="ph-file-pdf"></i> Export PDF</button>
+                    <button class="hamburger-item" onclick="designer.exportHtml()"><i class="ph-file-html"></i> Export HTML</button>
+                </div>
+            </div>
             <button class="btn btn-primary" onclick="designer.save()" id="btn-save"><i class="ph-floppy-disk"></i> Save<span class="unsaved-dot" style="display:none"> &#9679;</span></button>
             <button class="btn" onclick="designer.preview()"><i class="ph-eye"></i> Preview</button>
-            <button class="btn" onclick="designer.exportDesign()" title="Export report design as JSON"><i class="ph-download"></i> Export</button>
-            <button class="btn" onclick="designer.importDesign()" title="Import report design from JSON"><i class="ph-upload"></i> Import</button>
-            <button class="btn" onclick="designer.saveAsTemplate()" title="Save current report as a reusable template"><i class="ph-bookmark"></i> Save as Template</button>
-            <button class="btn" onclick="designer.exportPdf()"><i class="ph-file-pdf"></i> Export PDF</button>
-            <button class="btn" onclick="designer.exportHtml()"><i class="ph-file-html"></i> Export HTML</button>
             <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="designer.handleImportFile(event)">
         </div>
         <div class="toolbar-center"></div>
@@ -316,6 +323,17 @@ document.addEventListener('DOMContentLoaded', () => {
     switchRightPanel('properties');
     switchLeftPanel('fields');
     switchCenterPanel('designer');
+});
+
+function toggleHamburger(event) {
+    event.stopPropagation();
+    const dd = document.getElementById('hamburger-dropdown');
+    dd.classList.toggle('open');
+}
+
+document.addEventListener('click', () => {
+    const dd = document.getElementById('hamburger-dropdown');
+    if (dd) dd.classList.remove('open');
 });
 
 function switchRightPanel(name) {
