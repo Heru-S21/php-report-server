@@ -162,7 +162,7 @@ class Designer {
         return [
             { type: 'page_header', height: 30, printOnEveryPage: true, backgroundColor: 'transparent', border: {}, elements: [] },
             { type: 'report_header', height: 20, backgroundColor: 'transparent', border: {}, elements: [] },
-            { type: 'column_header', height: 16, backgroundColor: 'transparent', border: {}, elements: [] },
+            { type: 'column_header', height: 16, printOnEveryPage: true, backgroundColor: 'transparent', border: {}, elements: [] },
             { type: 'detail', height: 16, backgroundColor: 'transparent', border: {}, elements: [] },
             { type: 'report_footer', height: 22, backgroundColor: 'transparent', border: {}, elements: [] },
             { type: 'page_footer', height: 16, printOnEveryPage: true, backgroundColor: 'transparent', border: {}, elements: [] },

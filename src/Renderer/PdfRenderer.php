@@ -132,7 +132,7 @@ class PdfRenderer implements RendererInterface
                     $pageY += $effH;
                 }
             }
-            if ($has($chBand)) {
+            if ($has($chBand) && $chBand->printOnEveryPage) {
                 $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, 1);
                 $html .= $this->renderSingleBandHtml($chBand, $definition, null, null, $effH);
                 $pageY += $effH;

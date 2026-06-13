@@ -94,8 +94,8 @@ class HtmlRenderer implements RendererInterface
                     $pageY += $effH;
                 }
             }
-            // Column header
-            if ($has($chBand)) {
+            // Column header — only on page 1 or when printOnEveryPage is true
+            if ($has($chBand) && ($isFirst || $chBand->printOnEveryPage)) {
                 $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, $pageNum);
                 $pageHtml .= $this->renderBandElement($chBand, $definition, null, null, $pageNum, $effH);
                 $pageY += $effH;
