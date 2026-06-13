@@ -237,6 +237,7 @@ class QueryEditor {
         if (changed) {
             def.query.parameters = kept;
             this.renderParameters();
+            this.renderFieldList();
         }
     }
 
@@ -305,6 +306,7 @@ class QueryEditor {
         params.push({ name: '', type: 'string', defaultValue: '' });
         window.ReportingEngine.dispatch('SET_DIRTY', true);
         this.renderParameters();
+        this.renderFieldList();
     }
 
     removeParameter(index) {
@@ -312,6 +314,7 @@ class QueryEditor {
         params.splice(index, 1);
         window.ReportingEngine.dispatch('SET_DIRTY', true);
         this.renderParameters();
+        this.renderFieldList();
     }
 
     resetQuery() {
@@ -432,19 +435,43 @@ class QueryEditor {
     }
 
     renderFieldList() {
-        if (!this.queryColumns || this.queryColumns.length === 0) {
-            this.fieldList.innerHTML = '<p class="text-muted" style="font-size:12px;padding:4px 0">No fields available</p>';
-            return;
+        const params = this.getParameters();
+        let html = '';
+
+        // Parameters section at top
+        if (params.length) {
+            html += '<div class="field-section-header" style="font-size:10px;font-weight:600;color:#6366f1;padding:4px 8px;text-transform:uppercase;letter-spacing:0.5px">Parameters</div>';
+            params.forEach(p => {
+                const name = typeof p === 'string' ? p : p.name;
+                if (!name) return;
+                html += `<div class="field-item" draggable="true" data-field-name=":${name}">
+                    <i class="ph-gear" style="color:#6366f1"></i>
+                    <span style="color:#6366f1">:${name}</span>
+                    <small style="color:#94a3b8;margin-left:auto;font-size:10px">parameter</small>
+                </div>`;
+            });
         }
 
-        this.fieldList.innerHTML = this.queryColumns.map(col => {
-            const icon = this.getFieldIcon(col.type);
-            return `<div class="field-item" draggable="true" data-field-name="${col.name}">
-                <i class="${icon}"></i>
-                <span>${col.name}</span>
-                <small style="color:#94a3b8;margin-left:auto;font-size:10px">${col.type || ''}</small>
-            </div>`;
-        }).join('');
+        // Regular fields
+        if (this.queryColumns && this.queryColumns.length) {
+            if (params.length) {
+                html += '<div class="field-section-header" style="font-size:10px;font-weight:600;color:#64748b;padding:4px 8px;text-transform:uppercase;letter-spacing:0.5px">Fields</div>';
+            }
+            html += this.queryColumns.map(col => {
+                const icon = this.getFieldIcon(col.type);
+                return `<div class="field-item" draggable="true" data-field-name="${col.name}">
+                    <i class="${icon}"></i>
+                    <span>${col.name}</span>
+                    <small style="color:#94a3b8;margin-left:auto;font-size:10px">${col.type || ''}</small>
+                </div>`;
+            }).join('');
+        }
+
+        if (!html) {
+            html = '<p class="text-muted" style="font-size:12px;padding:4px 0">No fields available</p>';
+        }
+
+        this.fieldList.innerHTML = html;
 
         // Enable drag from field list
         document.querySelectorAll('.field-item').forEach(item => {

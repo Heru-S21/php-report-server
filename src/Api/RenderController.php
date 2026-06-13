@@ -239,6 +239,16 @@ class RenderController
             unset($row);
         }
 
+        // Inject parameter values as pseudo-columns (:paramName) so they resolve as fields
+        if (!empty($params) && !empty($data)) {
+            foreach ($data as &$row) {
+                foreach ($params as $name => $value) {
+                    $row[':' . $name] = $value;
+                }
+            }
+            unset($row);
+        }
+
         return $data;
     }
 }
