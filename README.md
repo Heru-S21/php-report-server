@@ -19,6 +19,8 @@ Open `http://localhost:8080` in your browser.
 
 The database is auto-created at `data/reporting.sqlite` on first run.
 
+For embedding reports in external apps (iframe, fetch, PHP library mode, proxy pattern), see [`EMBED.md`](EMBED.md).
+
 ## Features
 
 ### 1. Visual Report Designer
