@@ -39,23 +39,29 @@ class QueryEditor {
 
     async loadReportQuery() {
         try {
-            const res = await window.ReportingEngine.api('GET', `/api/reports/${this.designer.reportId}`);
-            if (!res.data) return;
-            const def = typeof res.data.definition === 'string'
-                ? JSON.parse(res.data.definition) : res.data.definition;
-            this.savedQuerySql = def.query?.sql || '';
-            this.savedConnectionId = def.connectionId || null;
-            if (def.query?.sql) {
-                this.sqlTextarea.value = def.query.sql;
+            // Use in-memory definition first (may include unsaved draft edits)
+            const currentDef = window.ReportingEngine.state.definition;
+            if (currentDef.query?.sql) {
+                this.sqlTextarea.value = currentDef.query.sql;
+            } else if (currentDef.sqlQuery) {
+                this.sqlTextarea.value = currentDef.sqlQuery;
             }
-            if (def.connectionId) {
-                this.connectionSelect.value = def.connectionId;
-                this.loadTables(parseInt(def.connectionId));
+            if (currentDef.connectionId) {
+                this.connectionSelect.value = currentDef.connectionId;
+                this.loadTables(parseInt(currentDef.connectionId));
             }
-            // Load saved query columns if any
-            if (def.queryColumns && def.queryColumns.length > 0) {
-                this.queryColumns = def.queryColumns;
+            if (currentDef.queryColumns && currentDef.queryColumns.length > 0) {
+                this.queryColumns = currentDef.queryColumns;
                 this.renderFieldList();
+            }
+
+            // Also fetch server version for saved SQL (used by Reset button)
+            const res = await window.ReportingEngine.api('GET', `/api/reports/${this.designer.reportId}`);
+            if (res.data) {
+                const def = typeof res.data.definition === 'string'
+                    ? JSON.parse(res.data.definition) : res.data.definition;
+                this.savedQuerySql = def.query?.sql || '';
+                this.savedConnectionId = def.connectionId || null;
             }
         } catch (e) {
             // Silent fail for new reports
@@ -355,28 +361,39 @@ class QueryEditor {
             return;
         }
 
-        this.setStatus('Extracting fields...', '');
+        this.setStatus('Running query...', '');
         try {
-            const res = await window.ReportingEngine.api('POST', '/api/query/fields', {
+            const res = await window.ReportingEngine.api('POST', '/api/query/execute', {
                 connection_id: connId ? parseInt(connId) : 0,
                 sql: sql,
+                limit: 50,
             });
 
             if (!res.success) {
-                this.setStatus(res.message || 'Failed to extract fields', 'error');
+                this.setStatus(res.message || 'Query failed', 'error');
                 return;
             }
 
-            this.queryColumns = res.data || [];
+            this.lastResultColumns = res.data.columns || [];
+            this.lastResultRows = res.data.rows || [];
+            this.renderResultTable();
+
+            const rowCount = res.data.rowCount || 0;
+            this.setStatus(`Query OK — ${rowCount} rows, ${this.lastResultColumns.length} columns`, 'success');
+
+            // Extract fields from result columns
+            this.queryColumns = this.lastResultColumns.map(col => ({
+                name: col.name || col,
+                type: col.type || 'text',
+            }));
             window.ReportingEngine.dispatch('SET_QUERY_COLUMNS', this.queryColumns);
             window.ReportingEngine.state.definition.queryColumns = this.queryColumns;
             this.renderFieldList();
 
             this.onSqlChange();
 
-            this.setStatus(`Applied ${this.queryColumns.length} fields`, 'success');
         } catch (e) {
-            this.setStatus('Field extraction error: ' + e.message, 'error');
+            this.setStatus('Query error: ' + e.message, 'error');
         }
     }
 

@@ -129,7 +129,7 @@
                     <div class="panel-section">
                         <div class="form-group" style="margin-bottom:6px">
                             <label style="font-size:11px;text-transform:none;letter-spacing:0">SQL Query</label>
-                            <textarea id="query-sql" class="prop-control" rows="10" style="font-family:var(--font-mono);font-size:12px;resize:vertical" placeholder="SELECT * FROM ..." onchange="queryEditor.onSqlChange()"></textarea>
+                            <textarea id="query-sql" class="prop-control" rows="10" style="font-family:var(--font-mono);font-size:12px;resize:vertical" placeholder="SELECT * FROM ..." oninput="queryEditor.onSqlChange()"></textarea>
                         </div>
                         <div style="display:flex;gap:4px">
                             <button class="btn btn-sm" onclick="queryEditor.runQuery()"><i class="ph-play"></i> Run</button>
