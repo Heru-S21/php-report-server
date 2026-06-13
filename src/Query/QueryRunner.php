@@ -23,9 +23,10 @@ class QueryRunner
         // Apply limit
         $sql = $this->applyLimit($sql, $limit);
 
-        // PDO_SQLSRV has issues with named parameters; convert to positional
+        // PDO_SQLSRV has issues with parameter binding; substitute values directly
         if (!empty($params) && $this->driver->getDriverName() === 'mssql') {
-            $sql = $this->convertNamedToPositional($sql, $params);
+            $sql = $this->substituteParams($sql, $params);
+            $params = [];
         }
 
         $stmt = $this->pdo->prepare($sql);
@@ -54,9 +55,10 @@ class QueryRunner
 
     public function getFields(string $sql, array $params = []): array
     {
-        // PDO_SQLSRV has issues with named parameters; convert to positional
+        // PDO_SQLSRV has issues with parameter binding; substitute values directly
         if (!empty($params) && $this->driver->getDriverName() === 'mssql') {
-            $sql = $this->convertNamedToPositional($sql, $params);
+            $sql = $this->substituteParams($sql, $params);
+            $params = [];
         }
 
         $stmt = $this->pdo->prepare($sql);
@@ -81,32 +83,25 @@ class QueryRunner
         return array_unique($matches[1]);
     }
 
-    private function convertNamedToPositional(string $sql, array &$params): string
+    private function substituteParams(string $sql, array $params): string
     {
-        $values = [];
-        $sql = preg_replace_callback('/:([a-zA-Z_]\w*)/', function ($m) use (&$params, &$values) {
-            $values[] = $params[$m[1]] ?? null;
-            return '?';
+        return preg_replace_callback('/:([a-zA-Z_]\w*)/', function ($m) use ($params) {
+            $val = $params[$m[1]] ?? null;
+            if ($val === null) return 'NULL';
+            return $this->pdo->quote($val);
         }, $sql);
-        $params = $values;
-        return $sql;
     }
 
     private function applyLimit(string $sql, int $limit): string
     {
+        $driverName = $this->driver->getDriverName();
+        if ($driverName === 'mssql') {
+            return $sql;
+        }
         // Remove any existing LIMIT clause
         $sql = preg_replace('/\s+LIMIT\s+\d+(?:\s+OFFSET\s+\d+)?/i', '', $sql);
         $sql = preg_replace('/\s+OFFSET\s+\d+\s+ROWS\s+FETCH\s+NEXT\s+\d+\s+ROWS\s+ONLY/i', '', $sql);
-
-        $driverName = $this->driver->getDriverName();
-        if ($driverName === 'mssql') {
-            // Use TOP for MSSQL — avoids subquery wrapping which breaks
-            // named parameter binding with the ODBC driver
-            $sql = preg_replace('/^\s*SELECT\s+/i', 'SELECT TOP ' . (int)$limit . ' ', $sql);
-        } else {
-            $sql .= ' ' . $this->driver->getLimitSyntax($limit, 0);
-        }
-
+        $sql .= ' ' . $this->driver->getLimitSyntax($limit, 0);
         return $sql;
     }
 }
