@@ -290,8 +290,13 @@ a:hover {
 }
 
 .table .actions {
-    display: flex;
-    gap: 4px;
+    white-space: nowrap;
+}
+.table .actions .btn {
+    margin-right: 4px;
+}
+.table .actions .btn:last-child {
+    margin-right: 0;
 }
 
 .text-muted {
