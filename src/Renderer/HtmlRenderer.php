@@ -543,6 +543,22 @@ class HtmlRenderer implements RendererInterface
             }
         }
 
+        // Try date format if the format looks like a date pattern
+        if (!str_contains($format, '%') && !preg_match('/^[\d#,.\s]+$/', $format)) {
+            $dateChars = ['Y', 'm', 'd', 'H', 'i', 's', 'F', 'M', 'j', 'n', 'y', 'g', 'h', 'G', 'A', 'a'];
+            $hasDateChars = 0;
+            foreach ($dateChars as $c) {
+                if (str_contains($format, $c)) $hasDateChars++;
+            }
+            if ($hasDateChars >= 2) {
+                $ts = strtotime((string)$value);
+                if ($ts !== false && $ts > 0) {
+                    $result = @date($format, $ts);
+                    if ($result !== false) return $result;
+                }
+            }
+        }
+
         // Numeric-only formatting below
         if (!is_numeric($value)) {
             return (string)$value;
