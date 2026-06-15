@@ -1,6 +1,8 @@
 <?php
 
 if (php_sapi_name() === 'cli-server') {
+    // Clear opcache so file edits take effect immediately during development
+    if (function_exists('opcache_reset')) opcache_reset();
     $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     $file = __DIR__ . $path;
     if ($path !== '/' && is_file($file)) {

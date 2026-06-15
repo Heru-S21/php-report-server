@@ -101,4 +101,19 @@ class BorderDefinition
     {
         return $this->toCssString();
     }
+
+    /** Sum of enabled top+bottom border widths in mm (CSS px → mm at 96 DPI) */
+    public function getVerticalHeightMm(): float
+    {
+        $pxToMm = 25.4 / 96;
+        $total = 0.0;
+        foreach (['top', 'bottom'] as $side) {
+            $s = $this->$side;
+            if ($s->enabled) {
+                $w = $s->style === 'double' ? max(3, $s->width) : $s->width;
+                $total += $w * $pxToMm;
+            }
+        }
+        return $total;
+    }
 }

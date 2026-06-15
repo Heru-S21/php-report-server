@@ -6,6 +6,7 @@ use ReportingEngine\Api\ReportController;
 use ReportingEngine\Api\QueryController;
 use ReportingEngine\Api\RenderController;
 use ReportingEngine\Api\TemplateController;
+use ReportingEngine\Api\FontController;
 
 // Connections
 $router->get('/api/connections', [ConnectionController::class, 'index']);
@@ -57,6 +58,11 @@ $router->delete('/api/report-templates/{id}', [TemplateController::class, 'destr
 $router->post('/api/auth/login', [\ReportingEngine\Api\AuthController::class, 'login']);
 $router->get('/api/auth/me', [\ReportingEngine\Api\AuthController::class, 'me']);
 $router->post('/api/auth/logout', [\ReportingEngine\Api\AuthController::class, 'logout']);
+
+// Fonts
+$router->get('/api/fonts', [FontController::class, 'index']);
+$router->post('/api/fonts/reload', [FontController::class, 'reload']);
+$router->get('/api/fonts/file/{filename}', [FontController::class, 'file']);
 
 // Settings
 $router->get('/api/settings', [RenderController::class, 'settings']);

@@ -188,6 +188,7 @@ class ReportController
 
             // Import embedded images into library
             $embeddedImages = $data['_embeddedImages'] ?? [];
+            $guidMap = [];
             if (!empty($embeddedImages)) {
                 $config = Database::getConfig();
                 $storageDir = ($config['data_path'] ?? __DIR__ . '/../../data') . '/images';
@@ -196,10 +197,20 @@ class ReportController
                 }
                 $imgRepo = new ImageRepository();
                 foreach ($embeddedImages as $guid => $imgData) {
-                    $existing = $imgRepo->findByGuid($guid);
-                    if ($existing) continue;
                     $decoded = base64_decode($imgData['data'], true);
                     if ($decoded === false) continue;
+
+                    // Deduplicate by content hash
+                    $hash = hash('sha256', $decoded);
+                    $existing = $imgRepo->findByHash($hash);
+                    if ($existing) {
+                        $guidMap[$guid] = $existing['guid'];
+                        continue;
+                    }
+
+                    $existing = $imgRepo->findByGuid($guid);
+                    if ($existing) continue;
+
                     $filePath = $storageDir . '/' . $imgData['filename'];
                     file_put_contents($filePath, $decoded);
                     chmod($filePath, 0644);
@@ -211,6 +222,7 @@ class ReportController
                         'width' => $imgData['width'] ?? null,
                         'height' => $imgData['height'] ?? null,
                         'guid' => $guid,
+                        'hash' => $hash,
                     ]);
                 }
             }
@@ -218,6 +230,17 @@ class ReportController
             $definition = $data['definition'] ?? '{}';
             if (is_array($definition)) {
                 $definition = json_encode($definition, JSON_UNESCAPED_UNICODE);
+            }
+
+            // Remap image URLs to deduplicated GUIDs
+            if (!empty($guidMap)) {
+                foreach ($guidMap as $oldGuid => $newGuid) {
+                    $definition = str_replace(
+                        "/api/images/file/{$oldGuid}",
+                        "/api/images/file/{$newGuid}",
+                        $definition
+                    );
+                }
             }
 
             // Ensure unique name

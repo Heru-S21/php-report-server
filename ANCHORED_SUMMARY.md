@@ -9,6 +9,7 @@
 - **Feature 2 — Undo/Redo History Stack**: single `history` array + index replaces dual-stack; deep-clone snapshots (definition + bands + selection); proper branching; 100-entry limit; all 20+ mutation points instrumented
 - **Feature 8 — Barcode / QR Code Element Type**: `picqer/php-barcode-generator` installed; `BandElement` barcode properties; `BarcodeRenderer` (PNG data URI + SVG); `getElementValue` barcode case in both renderers; toolbox button; editor UI (symbology, value expression, show text)
 - **Feature 5 — Enhanced Parameter UI**: `dropdown` and `multi-select` parameter types; static options textarea; `dependsOn` cascading; preview renders select/checkboxes; comma-separated multi-select values
+- **Font Embedding System**: `src/Api/FontController.php` (index/reload/file); font cache in `data/fonts/cache.json`; routes `GET/POST /api/fonts`, `GET /api/fonts/file/{filename}`; `@font-face` CSS in `HtmlRenderer::getBaseStyles()`; mPDF `fontDir` + `fontdata` in `PdfRenderer`; "Uploaded Fonts" optgroup in `ElementEditor.js` (fetches `/api/fonts`); "Reload Font Cache" button in designer hamburger menu; `updateFontFaceStyles()` for canvas `@font-face`; `/api/fonts/file/` in Auth bypass list; `RenderController::injectFontCache()` passes `_fonts` param to both renderers
 
 ### Skipped
 - (none intentionally; Feature 6 — Scheduling deferred)

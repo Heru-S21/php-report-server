@@ -44,6 +44,7 @@ class RenderController
             if (!empty($definition->fontMetrics)) {
                 $params['_fontMetrics'] = $definition->fontMetrics;
             }
+            $this->injectFontCache($params);
 
             if ($format === 'pdf') {
                 $renderer = new PdfRenderer();
@@ -76,6 +77,7 @@ class RenderController
 
             // Decode _fontMetrics if it arrived as a JSON string (form POST)
             $body = $request->body;
+            $this->injectFontCache($body);
             if (isset($body['_fontMetrics']) && is_string($body['_fontMetrics'])) {
                 $decoded = json_decode($body['_fontMetrics'], true);
                 if (is_array($decoded)) {
@@ -243,12 +245,24 @@ class RenderController
         if (!empty($params) && !empty($data)) {
             foreach ($data as &$row) {
                 foreach ($params as $name => $value) {
-                    $row[':' . $name] = $value;
+                    $key = str_starts_with($name, ':') ? $name : ':' . $name;
+                    $row[$key] = $value;
                 }
             }
             unset($row);
         }
 
         return $data;
+    }
+
+    private function injectFontCache(array &$params): void
+    {
+        $path = __DIR__ . '/../../data/fonts/cache.json';
+        if (file_exists($path)) {
+            $fonts = json_decode(file_get_contents($path), true);
+            if (is_array($fonts)) {
+                $params['_fonts'] = $fonts;
+            }
+        }
     }
 }

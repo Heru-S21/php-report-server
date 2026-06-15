@@ -11,10 +11,12 @@ use ReportingEngine\Report\AggregateAccumulator;
 class HtmlRenderer implements RendererInterface
 {
     private array $fontMetrics = [];
+    private array $fonts = [];
 
     public function render(ReportDefinition $definition, array $data, array $params = []): string
     {
         $this->fontMetrics = isset($params['_fontMetrics']) && is_array($params['_fontMetrics']) ? $params['_fontMetrics'] : [];
+        $this->fonts = isset($params['_fonts']) && is_array($params['_fonts']) ? $params['_fonts'] : [];
         $page = $definition->pageSettings;
         $groups = $definition->groups;
         usort($groups, fn(GroupDefinition $a, GroupDefinition $b) => $a->level <=> $b->level);
@@ -79,10 +81,10 @@ class HtmlRenderer implements RendererInterface
             use (&$pageHtml, &$pageY, &$chOnPage, $has, $phBand, $chBand, $groups, $definition, &$pageNum)
         {
             // Page header
-            if ($has($phBand) && ($isFirst || $phBand->printOnEveryPage)) {
+            if ($has($phBand)) {
                 $effH = $this->calculateEffectiveBandHeight($phBand, $definition, null, null, $pageNum);
                 $pageHtml .= $this->renderBandElement($phBand, $definition, null, null, $pageNum, $effH);
-                $pageY += $effH;
+                $pageY += $effH + $phBand->border->getVerticalHeightMm();
             }
             // Reprint group headers that have reprintHeaderOnNewPage enabled
             foreach ($reprintGroups as $gi) {
@@ -91,26 +93,28 @@ class HtmlRenderer implements RendererInterface
                 if ($hdr && $has($hdr)) {
                     $effH = $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$gi], $lastRowData, $pageNum);
                     $pageHtml .= $this->renderBandElement($hdr, $definition, $groups[$gi], $lastRowData, $pageNum, $effH);
-                    $pageY += $effH;
+                    $pageY += $effH + $hdr->border->getVerticalHeightMm();
                 }
             }
             // Column header — only on page 1 or when printOnEveryPage is true
             if ($has($chBand) && ($isFirst || $chBand->printOnEveryPage)) {
                 $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, $pageNum);
                 $pageHtml .= $this->renderBandElement($chBand, $definition, null, null, $pageNum, $effH);
-                $pageY += $effH;
+                $pageY += $effH + $chBand->border->getVerticalHeightMm();
                 $chOnPage = true;
             }
         };
 
         // Reserve space for a band – break page if needed.
         // $rowData – current data row, passed for reprinted group-header field values.
-        $contentLimit = $usableHeight - ($has($pfBand) ? $pfBand->height : 0);
+        $contentLimit = $usableHeight - ($has($pfBand) ? $pfBand->height + $pfBand->border->getVerticalHeightMm() : 0);
         $fit = function(?Band $b, ?array $rowData = null, ?float $effectiveHeight = null) use (&$pageHtml, &$pageY, $contentLimit, &$closePage, &$openPage, &$renderPageTop, &$groupValues): float {
             if (!$b || !$b->visible || empty($b->elements)) return 0;
             $h = $effectiveHeight ?? $b->height;
             if ($h <= 0) return 0;
-            if ($pageY + $h > $contentLimit && $h <= $contentLimit) {
+            $borderH = $b->border ? $b->border->getVerticalHeightMm() : 0;
+            $totalH = $h + $borderH;
+            if ($pageY + $totalH > $contentLimit && $totalH <= $contentLimit) {
                 $reprint = [];
                 if (isset($groupValues)) {
                     foreach ($groupValues as $gi => $v) {
@@ -121,7 +125,7 @@ class HtmlRenderer implements RendererInterface
                 $openPage();
                 $renderPageTop($reprint, $rowData, false);
             }
-            return $h;
+            return $totalH;
         };
 
         // ---------- build ----------
@@ -131,7 +135,7 @@ class HtmlRenderer implements RendererInterface
         if ($has($phBand)) {
             $effH = $this->calculateEffectiveBandHeight($phBand, $definition, null, null, $pageNum);
             $pageHtml .= $this->renderBandElement($phBand, $definition, null, null, $pageNum, $effH);
-            $pageY += $effH;
+            $pageY += $effH + $phBand->border->getVerticalHeightMm();
         }
 
         // -- Report header --
@@ -633,9 +637,20 @@ class HtmlRenderer implements RendererInterface
 
     private function getBaseStyles(float $usableWidth, float $paperW, bool $showPrint = false): string
     {
-        $css = '
+        $fontFaceCss = '';
+        foreach ($this->fonts as $font) {
+            $family = htmlspecialchars($font['family'], ENT_QUOTES, 'UTF-8');
+            $weight = $font['weight'] ?? 400;
+            $style  = strtolower($font['style'] ?? 'normal');
+            if ($style === 'regular' || $style === 'normal') $style = 'normal';
+            $url    = '/api/fonts/file/' . rawurlencode($font['filename']);
+            $fontFaceCss .= "@font-face { font-family:'{$family}'; src:url('{$url}') format('truetype'); font-weight:{$weight}; font-style:{$style}; }\n";
+        }
+
+        $css = $fontFaceCss . '
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #e2e8f0; }
-            .report-page { width: ' . $usableWidth . 'mm; margin: 0 auto; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.12); position: relative; }
+            .report-page { width: ' . $usableWidth . 'mm; margin: 0 auto; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.12); position: relative; display:flex; flex-direction:column; }
+            .band-page_footer { margin-top: auto; }
             .band { padding: 2px 4px; overflow: hidden; }
             .element { overflow: hidden; }
             .paper-page { background: #fff; box-shadow: 0 2px 20px rgba(0,0,0,0.18); margin: 0 auto 32px auto; padding: 15mm 0; position: relative; page-break-after: always; }

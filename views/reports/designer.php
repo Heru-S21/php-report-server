@@ -11,6 +11,8 @@
                     <div class="hamburger-separator"></div>
                     <button class="hamburger-item" onclick="designer.exportPdf()"><i class="ph-file-pdf"></i> Export PDF</button>
                     <button class="hamburger-item" onclick="designer.exportHtml()"><i class="ph-file-html"></i> Export HTML</button>
+                    <div class="hamburger-separator"></div>
+                    <button class="hamburger-item" onclick="reloadFontCache()"><i class="ph-arrows-clockwise"></i> Reload Font Cache</button>
                 </div>
             </div>
             <button class="btn btn-primary" onclick="designer.save()" id="btn-save"><i class="ph-floppy-disk"></i> Save<span class="unsaved-dot" style="display:none"> &#9679;</span></button>
@@ -312,6 +314,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     window.ReportingEngine.state.activeReportId = <?= json_encode($reportId) ?>;
     window.ReportingEngine.state.activeReportGuid = null;
+    fetchUploadedFonts().then(fonts => updateFontFaceStyles(fonts));
     window.designer = new Designer('canvas-inner');
     window.bandManager = new BandManager(window.designer);
     window.elementEditor = new ElementEditor(window.designer);
@@ -350,5 +353,35 @@ function switchLeftPanel(name) {
 function switchCenterPanel(name) {
     document.querySelectorAll('.c-tab').forEach(t => t.classList.toggle('active', t.dataset.cpanel === name));
     document.querySelectorAll('.cpanel-content').forEach(c => c.classList.toggle('active', c.id === 'cpanel-' + name));
+}
+
+function updateFontFaceStyles(fonts) {
+    let css = '';
+    for (const f of fonts) {
+        const url = '/api/fonts/file/' + encodeURIComponent(f.filename);
+        const weight = f.weight || 400;
+        const style = (f.style || 'Regular').toLowerCase() === 'regular' ? 'normal' : (f.style || '').toLowerCase();
+        css += `@font-face { font-family:'${f.family}'; src:url('${url}') format('truetype'); font-weight:${weight}; font-style:${style || 'normal'}; }\n`;
+    }
+    let el = document.getElementById('font-face-styles');
+    if (!el) {
+        el = document.createElement('style');
+        el.id = 'font-face-styles';
+        document.head.appendChild(el);
+    }
+    el.textContent = css;
+}
+
+async function reloadFontCache() {
+    try {
+        const res = await fetch('/api/fonts/reload', { method: 'POST' });
+        const json = await res.json();
+        uploadedFontsCache = json.data || [];
+        updateFontFaceStyles(uploadedFontsCache);
+        if (window.elementEditor) window.elementEditor.render();
+        alert('Font cache reloaded: ' + (uploadedFontsCache.length) + ' fonts found');
+    } catch (e) {
+        alert('Failed to reload font cache: ' + e.message);
+    }
 }
 </script>

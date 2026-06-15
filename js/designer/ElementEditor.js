@@ -53,6 +53,20 @@ function getInstalledFonts() {
     });
 }
 
+let uploadedFontsCache = null;
+
+async function fetchUploadedFonts() {
+    if (uploadedFontsCache) return uploadedFontsCache;
+    try {
+        const res = await fetch('/api/fonts');
+        const json = await res.json();
+        uploadedFontsCache = json.data || [];
+        return uploadedFontsCache;
+    } catch {
+        return [];
+    }
+}
+
 function renderFontOptions(selected) {
     const standard = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana'];
     const selectedFont = selected || 'Arial';
@@ -68,6 +82,15 @@ function renderFontOptions(selected) {
         for (const name of installed) {
             const sel = selectedFont === name ? ' selected' : '';
             html += `<option value="${name}"${sel}>${name}</option>`;
+        }
+        html += '</optgroup>';
+    }
+    const uploaded = uploadedFontsCache || [];
+    if (uploaded.length) {
+        html += '<optgroup label="Uploaded Fonts">';
+        for (const f of uploaded) {
+            const sel = selectedFont === f.family ? ' selected' : '';
+            html += `<option value="${f.family}"${sel}>${f.family} (${f.style})</option>`;
         }
         html += '</optgroup>';
     }
@@ -201,7 +224,7 @@ class ElementEditor {
             <div class="prop-group">
                 <label>Format</label>
                 <input class="prop-control" type="text" value="${escapeHtml(el.format || '')}"
-                       onchange="window.elementEditor.updateField('format', this.value)" placeholder="${el.type === 'datetime' ? 'Y-m-d' : '#,##0.00'}">
+                       oninput="window.elementEditor.updateField('format', this.value)" placeholder="${el.type === 'datetime' ? 'Y-m-d' : '#,##0.00'}">
                 ${formatHelp}
             </div>
             <div class="prop-group">

@@ -12,13 +12,36 @@ use ReportingEngine\Report\AggregateAccumulator;
 class PdfRenderer implements RendererInterface
 {
     private array $fontMetrics = [];
+    private array $fonts = [];
 
     public function render(ReportDefinition $definition, array $data, array $params = []): string
     {
         $this->fontMetrics = isset($params['_fontMetrics']) && is_array($params['_fontMetrics']) ? $params['_fontMetrics'] : [];
+        $this->fonts = isset($params['_fonts']) && is_array($params['_fonts']) ? $params['_fonts'] : [];
         $page = $definition->pageSettings;
 
-        $mpdf = new Mpdf([
+        $fontDir = null;
+        $fontdata = [];
+        if (!empty($this->fonts)) {
+            $config = \ReportingEngine\Core\Database::getConfig();
+            $fontDir = ($config['data_path'] ?? __DIR__ . '/../../data') . '/fonts';
+            foreach ($this->fonts as $font) {
+                $family = $font['family'];
+                $fname  = $font['filename'];
+                $style  = strtolower($font['style'] ?? 'regular');
+                if ($style === 'regular' || $style === 'normal') $style = 'R';
+                elseif ($style === 'bold') $style = 'B';
+                elseif ($style === 'italic') $style = 'I';
+                elseif ($style === 'bold italic') $style = 'BI';
+                else $style = 'R';
+                if (!isset($fontdata[$family])) {
+                    $fontdata[$family] = [];
+                }
+                $fontdata[$family][$style] = $fname;
+            }
+        }
+
+        $mpdfConfig = [
             'mode'          => 'utf-8',
             'format'        => $page->paperSize,
             'orientation'   => $page->orientation,
@@ -27,30 +50,29 @@ class PdfRenderer implements RendererInterface
             'margin_left'   => $page->marginLeft,
             'margin_right'  => $page->marginRight,
             'tempDir'       => sys_get_temp_dir() . '/mpdf',
-        ]);
+        ];
+        if ($fontDir) {
+            $mpdfConfig['fontDir'] = $fontDir;
+            $mpdfConfig['fontdata'] = $fontdata;
+        }
+
+        $mpdf = new Mpdf($mpdfConfig);
 
         $has = function(?Band $b): bool {
             return $b && $b->visible && !empty($b->elements);
         };
 
-        // Page header/footer — delegated to mPDF
+        // Page header/footer — always render on every page if they have elements
         $phBand = $definition->bands->get('page_header');
-        $inlineHeader = null;
         if ($has($phBand)) {
             $hdrHtml = $this->renderBandsPlainHtml([$phBand], $definition, null, null);
-            if ($phBand->printOnEveryPage) {
-                $mpdf->SetHTMLHeader($hdrHtml);
-            } else {
-                $inlineHeader = $hdrHtml;
-            }
+            $mpdf->SetHTMLHeader($hdrHtml);
         }
 
         $pfBand = $definition->bands->get('page_footer');
         if ($has($pfBand)) {
             $ftHtml = $this->renderBandsPlainHtml([$pfBand], $definition, null, null);
-            if ($pfBand->printOnEveryPage) {
-                $mpdf->SetHTMLFooter($ftHtml);
-            }
+            $mpdf->SetHTMLFooter($ftHtml);
         }
 
         // Build printable-area dimensions for page-break decisions
@@ -60,8 +82,7 @@ class PdfRenderer implements RendererInterface
         }
         $usableHeight = $paperH - $page->marginTop - $page->marginBottom;
 
-        $phHeight = $has($phBand) ? $phBand->height : 0;
-        $bodyHtml = $this->buildBodies($definition, $data, $inlineHeader, $usableHeight, $phHeight);
+        $bodyHtml = $this->buildBodies($definition, $data, $usableHeight);
 
         $mpdf->WriteHTML($bodyHtml);
         return $mpdf->Output('', 'S');
@@ -72,9 +93,7 @@ class PdfRenderer implements RendererInterface
     private function buildBodies(
         ReportDefinition $definition,
         array $data,
-        ?string $inlineHeader,
-        float $usableHeight,
-        float $phHeight = 0
+        float $usableHeight
     ): string {
         $groups = $definition->groups;
         usort($groups, fn(GroupDefinition $a, GroupDefinition $b) => $a->level <=> $b->level);
@@ -129,13 +148,13 @@ class PdfRenderer implements RendererInterface
                 if ($hdr && $has($hdr) && $groups[$gi]->reprintHeaderOnNewPage) {
                     $effH = $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$gi], $lastRowData, 1);
                     $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$gi], $lastRowData, $effH);
-                    $pageY += $effH;
+                    $pageY += $effH + $hdr->border->getVerticalHeightMm();
                 }
             }
             if ($has($chBand) && $chBand->printOnEveryPage) {
                 $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, 1);
                 $html .= $this->renderSingleBandHtml($chBand, $definition, null, null, $effH);
-                $pageY += $effH;
+                $pageY += $effH + $chBand->border->getVerticalHeightMm();
                 $chOnPage = true;
             }
         };
@@ -146,20 +165,16 @@ class PdfRenderer implements RendererInterface
             if (!$b || !$b->visible || empty($b->elements)) return 0;
             $h = $effectiveHeight ?? $b->height;
             if ($h <= 0) return 0;
-            if ($pageY + $h > $usableHeight && $h <= $usableHeight) {
+            $borderH = $b->border ? $b->border->getVerticalHeightMm() : 0;
+            $totalH = $h + $borderH;
+            if ($pageY + $totalH > $usableHeight && $totalH <= $usableHeight) {
                 $html .= "<pagebreak />\n";
                 $pageY = 0;
                 $chOnPage = false;
                 $renderPageTop($reprintable($groupValues), $rowData);
             }
-            return $h;
+            return $totalH;
         };
-
-        // ------ inline page header (page 1 only, not reprinting) ------
-        if ($inlineHeader) {
-            $html .= $inlineHeader;
-            $pageY += $phHeight;
-        }
 
         // ------ report header ------
         if ($has($rhBand)) {
