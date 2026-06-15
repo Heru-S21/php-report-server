@@ -4,6 +4,7 @@ window.ReportingEngine = {
         definition: {},
         selectedElement: null,
         selectedBand: null,
+        selectedBandGroupField: null,
         undoStack: [],
         redoStack: [],
         history: [],
@@ -28,6 +29,16 @@ window.ReportingEngine = {
                 break;
             case 'SELECT_BAND':
                 this.state.selectedBand = payload;
+                this.state.selectedBandGroupField = null;
+                break;
+            case 'SELECT_BAND_GROUP':
+                if (payload && typeof payload === 'object') {
+                    this.state.selectedBand = payload.type;
+                    this.state.selectedBandGroupField = payload.groupField || null;
+                } else {
+                    this.state.selectedBand = payload;
+                    this.state.selectedBandGroupField = null;
+                }
                 break;
             case 'SET_ZOOM':
                 this.state.zoom = payload;

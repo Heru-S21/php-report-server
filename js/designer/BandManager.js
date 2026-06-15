@@ -95,9 +95,11 @@ class BandManager {
         }
     }
 
-    resizeBand(bandType, height) {
+    resizeBand(bandType, height, groupField) {
         this.designer.pushUndoState();
-        const band = this.designer.bands.find(b => b.type === bandType);
+        const band = groupField
+            ? this.designer.bands.find(b => b.type === bandType && b.groupField === groupField)
+            : this.designer.bands.find(b => b.type === bandType);
         if (!band) return;
         let minH = 1;
         if (band.elements) {

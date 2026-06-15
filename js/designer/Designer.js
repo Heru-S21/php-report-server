@@ -214,9 +214,12 @@ class Designer {
             ? `${band.type.replace('_', ' ')} [${band.groupField}]`
             : band.type.replace('_', ' ');
 
+        const isSelected = window.ReportingEngine.state.selectedBand === band.type
+            && (window.ReportingEngine.state.selectedBandGroupField || '') === (band.groupField || '');
         return `
-            <div class="band band-${band.type} ${window.ReportingEngine.state.selectedBand === band.type ? 'selected' : ''} drop-zone"
+            <div class="band band-${band.type} ${isSelected ? 'selected' : ''} drop-zone"
                  data-band-type="${band.type}"
+                 data-band-group-field="${band.groupField || ''}"
                  style="height:${band.height}mm; background:${band.backgroundColor || 'transparent'}; ${borderStyle}">
                 <span class="band-label">${label}</span>
                 ${band.elements ? band.elements.map(el => this.renderElement(el)).join('') : ''}
@@ -365,7 +368,7 @@ class Designer {
                     }
                 } else {
                     this.selectedElementIds = [];
-                    this.selectBand(band.dataset.bandType);
+                    this.selectBand(band.dataset.bandType, band.dataset.bandGroupField || null);
                     this.updateAlignmentButtons();
                 }
                 return;
@@ -462,8 +465,7 @@ class Designer {
             if (!type) return;
             const bandEl = this.findBandAtPoint(e.clientX, e.clientY);
             if (!bandEl) return;
-            const bandType = bandEl.dataset.bandType;
-            const bandData = this.bands.find(b => b.type === bandType);
+            const bandData = this.findBandByGroupField(bandEl);
             if (!bandData) return;
 
             // Convert visual pixels to mm using the canvas-to-mm ratio
@@ -479,7 +481,7 @@ class Designer {
             const elWidth = parseFloat(e.dataTransfer.getData('element-width')) || null;
             const elHeight = parseFloat(e.dataTransfer.getData('element-height')) || null;
             const fieldName = e.dataTransfer.getData('field-name') || null;
-            this.addElement(type, bandType, this.snapValue(x_mm), this.snapValue(y_mm), fieldName, elWidth, elHeight);
+            this.addElement(type, bandData, this.snapValue(x_mm), this.snapValue(y_mm), fieldName, elWidth, elHeight);
         });
     }
 
@@ -495,6 +497,17 @@ class Designer {
         return null;
     }
 
+    // Find band data object from a band DOM element, handling duplicate band types via groupField
+    findBandByGroupField(bandEl) {
+        if (!bandEl) return null;
+        const type = bandEl.dataset.bandType;
+        const groupField = bandEl.dataset.bandGroupField || null;
+        if (!type) return null;
+        return groupField
+            ? this.bands.find(b => b.type === type && b.groupField === groupField)
+            : this.bands.find(b => b.type === type);
+    }
+
     attachElementEvents() {
         const getPxToMm = () => {
             const cr = this.canvasInner.getBoundingClientRect();
@@ -508,8 +521,7 @@ class Designer {
                 const startY = e.clientY;
                 const elId = el.dataset.elementId;
                 const bandEl = el.closest('.band');
-                const bandType = bandEl.dataset.bandType;
-                const bandData = this.bands.find(b => b.type === bandType);
+                const bandData = this.findBandByGroupField(bandEl);
                 const origTop = parseFloat(el.style.top);
                 const origLeft = parseFloat(el.style.left);
                 const origHeight = parseFloat(el.style.height);
@@ -563,8 +575,7 @@ class Designer {
                 const el = handle.closest('.canvas-element');
                 const elId = el.dataset.elementId;
                 const bandEl = el.closest('.band');
-                const bandType = bandEl.dataset.bandType;
-                const bandData = this.bands.find(b => b.type === bandType);
+                const bandData = this.findBandByGroupField(bandEl);
                 const origTop = parseFloat(el.style.top);
                 const origW = parseFloat(el.style.width);
                 const origH = parseFloat(el.style.height);
@@ -615,11 +626,11 @@ class Designer {
         document.querySelectorAll('.band-resize-handle').forEach(handle => {
             handle.addEventListener('mousedown', (e) => {
                 e.stopPropagation();
-                const band = handle.closest('.band');
-                const bandType = band.dataset.bandType;
-                const bandData = this.bands.find(b => b.type === bandType);
+                const bandEl = handle.closest('.band');
+                const bandData = this.findBandByGroupField(bandEl);
+                if (!bandData) return;
                 const startY = e.clientY;
-                const origH = parseFloat(band.style.height);
+                const origH = parseFloat(bandEl.style.height);
                 const pxToMm = getPxToMm();
 
                 // Minimum height that doesn't clip any element
@@ -636,15 +647,14 @@ class Designer {
                 const onMove = (me) => {
                     const dh = (me.clientY - startY) * pxToMm;
                     const newH = Math.max(minH(), this.snapValue(origH + dh));
-                    band.style.height = newH + 'mm';
+                    bandEl.style.height = newH + 'mm';
                 };
 
                 const onUp = () => {
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
-                    const b = this.bands.find(b => b.type === bandType);
-                    if (b) {
-                        b.height = parseFloat(band.style.height);
+                    if (bandData) {
+                        bandData.height = parseFloat(bandEl.style.height);
                         window.ReportingEngine.dispatch('SET_DIRTY', true);
                     }
                 };
@@ -661,7 +671,7 @@ class Designer {
 
     selectElement(id) {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', id);
-        window.ReportingEngine.dispatch('SELECT_BAND', null);
+        window.ReportingEngine.dispatch('SELECT_BAND_GROUP', null);
         this.syncMultiSelect();
         document.querySelectorAll('.band').forEach(b => b.classList.remove('selected'));
         if (window.elementEditor) {
@@ -674,15 +684,19 @@ class Designer {
         this.renderObjectTree();
     }
 
-    selectBand(type) {
+    selectBand(type, groupField) {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
-        window.ReportingEngine.dispatch('SELECT_BAND', type);
+        window.ReportingEngine.dispatch('SELECT_BAND_GROUP', { type, groupField });
         this.selectedElementIds = [];
         this.syncMultiSelect();
         document.querySelectorAll('.canvas-element').forEach(el => el.classList.remove('selected', 'multi-selected'));
-        document.querySelectorAll('.band').forEach(b => b.classList.toggle('selected', b.dataset.bandType === type));
+        document.querySelectorAll('.band').forEach(b => b.classList.toggle('selected',
+            b.dataset.bandType === type && (b.dataset.bandGroupField || '') === (groupField || '')
+        ));
         if (window.elementEditor) {
-            const band = this.bands.find(b => b.type === type);
+            const band = groupField
+                ? this.bands.find(b => b.type === type && b.groupField === groupField)
+                : this.bands.find(b => b.type === type);
             if (band) window.elementEditor.loadBand(band);
         }
         this.renderObjectTree();
@@ -690,7 +704,7 @@ class Designer {
 
     selectReport() {
         window.ReportingEngine.dispatch('SELECT_ELEMENT', null);
-        window.ReportingEngine.dispatch('SELECT_BAND', null);
+        window.ReportingEngine.dispatch('SELECT_BAND_GROUP', null);
         this.selectedElementIds = [];
         this.syncMultiSelect();
         document.querySelectorAll('.canvas-element, .band').forEach(el => el.classList.remove('selected', 'multi-selected'));
@@ -734,9 +748,11 @@ class Designer {
         return sizes[type] || { width: 50, height: 10, text: null };
     }
 
-    addElement(type, bandType, x, y, fieldName, elWidth, elHeight) {
+    addElement(type, bandOrType, x, y, fieldName, elWidth, elHeight) {
         this.pushUndoState();
-        const band = this.bands.find(b => b.type === bandType);
+        const band = typeof bandOrType === 'string'
+            ? this.bands.find(b => b.type === bandOrType)
+            : bandOrType;
         if (!band) return;
 
         if (!band.elements) band.elements = [];
@@ -773,7 +789,7 @@ class Designer {
 
         if (type === 'aggregate') {
             el.aggregateFunc = 'sum';
-            el.aggregateScope = bandType === 'group_footer' ? 'group' : 'report';
+            el.aggregateScope = band.type === 'group_footer' ? 'group' : 'report';
             el.format = '#,##0.00';
         }
 
@@ -814,7 +830,7 @@ class Designer {
     }
 
     findBandByType(type, groupField) {
-        return this.bands.find(b => b.type === type && (!groupField || b.groupField === groupField));
+        return this.bands.find(b => b.type === type && (groupField == null || b.groupField === groupField));
     }
 
     addSubtotal(fieldElementId) {
@@ -1001,11 +1017,13 @@ class Designer {
         this.removeElement(id);
     }
 
-    pasteElement(targetBandType, cursorX, cursorY) {
+    pasteElement(targetBandType, cursorX, cursorY, groupField) {
         this.pushUndoState();
         if (!window.clipboard || !window.clipboard.element) return;
 
-        const band = this.bands.find(b => b.type === targetBandType);
+        const band = groupField
+            ? this.bands.find(b => b.type === targetBandType && b.groupField === groupField)
+            : this.bands.find(b => b.type === targetBandType);
         if (!band) return;
         if (!band.elements) band.elements = [];
 
@@ -1014,7 +1032,10 @@ class Designer {
         el.id = 'el-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
 
         // Convert cursor position to mm coordinates within the target band
-        const bandEl = this.canvasInner.querySelector(`.band[data-band-type="${targetBandType}"]`);
+        const selector = groupField
+            ? `.band[data-band-type="${targetBandType}"][data-band-group-field="${groupField}"]`
+            : `.band[data-band-type="${targetBandType}"]`;
+        const bandEl = this.canvasInner.querySelector(selector);
         if (bandEl && cursorX != null && cursorY != null) {
             const bandRect = bandEl.getBoundingClientRect();
             const canvasRect = this.canvasInner.getBoundingClientRect();
@@ -1606,12 +1627,14 @@ class Designer {
                      </div>`;
 
         for (const band of sortedBands) {
-            const isSelected = window.ReportingEngine.state.selectedBand === band.type;
+            const isSelected = window.ReportingEngine.state.selectedBand === band.type
+                && (window.ReportingEngine.state.selectedBandGroupField || '') === (band.groupField || '');
             const label = band.type.replace(/_/g, ' ');
             const hasChildren = band.elements && band.elements.length > 0;
 
             html += `<div class="tree-item band-tree-item ${isSelected ? 'selected' : ''}"
-                         data-tree-band="${band.type}">
+                         data-tree-band="${band.type}"
+                         data-tree-band-group-field="${band.groupField || ''}">
                         <i class="ph-square"></i>
                         <span>${label}</span>
                         ${hasChildren ? `<span class="tree-badge">${band.elements.length}</span>` : ''}
@@ -1649,11 +1672,12 @@ class Designer {
                 return;
             }
             const bandType = target.dataset.treeBand;
+            const groupField = target.dataset.treeBandGroupField || null;
             const elementId = target.dataset.treeElement;
             if (elementId) {
                 this.selectElement(elementId);
             } else if (bandType) {
-                this.selectBand(bandType);
+                this.selectBand(bandType, groupField);
             }
         };
         container.addEventListener('click', this._treeClickHandler);

@@ -449,7 +449,7 @@ class ElementEditor {
             <div class="prop-group">
                 <label>Height (mm)</label>
                 <input class="prop-control" type="number" value="${band.height}" min="${bandMinH}" step="0.5"
-                       onchange="window.bandManager.resizeBand('${band.type}', parseFloat(this.value))">
+                       onchange="window.bandManager.resizeBand('${band.type}', parseFloat(this.value), '${band.groupField || ''}')">
             </div>
             <div class="prop-group">
                 <label>Background Color</label>

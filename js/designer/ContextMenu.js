@@ -4,6 +4,7 @@ class ContextMenu {
         this.menuEl = null;
         this.targetElementId = null;
         this.targetBandType = null;
+        this.targetBandGroupField = null;
         this.cursorX = 0;
         this.cursorY = 0;
         this.init();
@@ -31,15 +32,17 @@ class ContextMenu {
                 this.targetElementId = el.dataset.elementId;
                 const bandEl = el.closest('.band');
                 this.targetBandType = bandEl ? bandEl.dataset.bandType : null;
+                this.targetBandGroupField = bandEl ? (bandEl.dataset.bandGroupField || null) : null;
                 this.show(e.clientX, e.clientY, true);
                 return;
             }
 
             if (band) {
                 e.preventDefault();
-                this.designer.selectBand(band.dataset.bandType);
+                this.designer.selectBand(band.dataset.bandType, band.dataset.bandGroupField || null);
                 this.targetElementId = null;
                 this.targetBandType = band.dataset.bandType;
+                this.targetBandGroupField = band.dataset.bandGroupField || null;
                 this.show(e.clientX, e.clientY, false);
                 return;
             }
@@ -73,7 +76,7 @@ class ContextMenu {
             icon: 'ph-clipboard-text',
             label: 'Paste',
             shortcut: '⌘V',
-            action: () => this.designer.pasteElement(this.targetBandType, this.cursorX, this.cursorY),
+            action: () => this.designer.pasteElement(this.targetBandType, this.cursorX, this.cursorY, this.targetBandGroupField),
             enabled: !!window.clipboard && !!window.clipboard.element,
         });
 
