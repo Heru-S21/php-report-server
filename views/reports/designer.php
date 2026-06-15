@@ -15,7 +15,7 @@
                     <button class="hamburger-item" onclick="reloadFontCache()"><i class="ph-arrows-clockwise"></i> Reload Font Cache</button>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="designer.save()" id="btn-save"><i class="ph-floppy-disk"></i> Save<span class="unsaved-dot" style="display:none"> &#9679;</span></button>
+            <button class="btn btn-primary" onclick="designer.save()" id="btn-save"><i class="ph-floppy-disk"></i> Save<span class="unsaved-dot" style="visibility:hidden"> &#9679;</span></button>
             <button class="btn" onclick="designer.preview()"><i class="ph-eye"></i> Preview</button>
             <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="designer.handleImportFile(event)">
         </div>

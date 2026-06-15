@@ -33,27 +33,37 @@ const preview = {
     async init() {
         this.renderRuler();
         if (!this.reportId) return;
-        let def;
-        if (this.isUnsaved) {
-            const stored = localStorage.getItem('designer_draft_' + this.reportId);
-            if (!stored) {
-                document.getElementById('preview-container').innerHTML = '<div class="error-message">Unsaved preview data not found. Please go back to the designer and try again.</div>';
-                return;
+        try {
+            let def;
+            if (this.isUnsaved) {
+                const stored = localStorage.getItem('designer_draft_' + this.reportId);
+                if (!stored) {
+                    document.getElementById('preview-container').innerHTML = '<div class="error-message">Unsaved preview data not found. Please go back to the designer and try again.</div>';
+                    return;
+                }
+                def = JSON.parse(stored);
+                this.definition = def;
+            } else {
+                const res = await fetch('/api/reports/' + this.reportId);
+                const ct = res.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    const text = await res.text();
+                    document.getElementById('preview-container').innerHTML = '<div class="error-message">Failed to load report: server returned ' + ct + '</div>';
+                    return;
+                }
+                const json = await res.json();
+                if (!json.data) { document.getElementById('preview-container').innerHTML = '<div class="error-message">Report not found</div>'; return; }
+                def = typeof json.data.definition === 'string' ? JSON.parse(json.data.definition) : json.data.definition;
+                this.definition = def;
             }
-            def = JSON.parse(stored);
-            this.definition = def;
-        } else {
-            const res = await fetch('/api/reports/' + this.reportId);
-            const json = await res.json();
-            if (!json.data) { document.getElementById('preview-container').innerHTML = '<div class="error-message">Report not found</div>'; return; }
-            def = typeof json.data.definition === 'string' ? JSON.parse(json.data.definition) : json.data.definition;
-            this.definition = def;
-        }
-        const params = def.query?.parameters || [];
-        if (params.length > 0) {
-            this.renderParamForm(params);
-        } else {
-            this.loadPreview();
+            const params = def.query?.parameters || [];
+            if (params.length > 0) {
+                this.renderParamForm(params);
+            } else {
+                this.loadPreview();
+            }
+        } catch (e) {
+            document.getElementById('preview-container').innerHTML = '<div class="error-message">Failed to load preview: ' + e.message + '</div>';
         }
     },
     renderRuler() {
@@ -285,6 +295,7 @@ const preview = {
             .join('&');
     },
     postRenderRequest(format) {
+        if (!this.definition) { document.getElementById('preview-container').innerHTML = '<div class="error-message">Report definition not loaded. Please reload the page.</div>'; return; }
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '/api/render/preview';
@@ -313,6 +324,7 @@ const preview = {
     },
     exportPdf() {
         if (!this.reportId) return;
+        if (!this.definition) { document.getElementById('preview-container').innerHTML = '<div class="error-message">Report definition not loaded. Please reload the page.</div>'; return; }
         if (this.isUnsaved) { this.postRenderRequest('pdf'); return; }
         const qs = this.getParamQueryString();
         window.open(`/api/render/${this.reportId}?format=pdf${qs ? '&' + qs : ''}`, '_blank');

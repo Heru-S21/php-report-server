@@ -227,6 +227,28 @@ class ElementEditor {
                        oninput="window.elementEditor.updateField('format', this.value)" placeholder="${el.type === 'datetime' ? 'Y-m-d' : '#,##0.00'}">
                 ${formatHelp}
             </div>
+            ${el.type === 'line' ? `
+            <div class="prop-group">
+                <label>Orientation</label>
+                <select class="prop-control" onchange="var v=this.value;window.elementEditor.updateField('orientation',v);elementEditor.render()">
+                    <option value="horizontal" ${(el.orientation||'horizontal')==='horizontal'?'selected':''}>Horizontal</option>
+                    <option value="vertical" ${el.orientation==='vertical'?'selected':''}>Vertical</option>
+                </select>
+            </div>
+            <div class="prop-group">
+                <label>Alignment</label>
+                <select class="prop-control" onchange="window.elementEditor.updateField('lineAlign', this.value)">
+                    ${(el.orientation||'horizontal')==='vertical' ? `
+                    <option value="left" ${(el.lineAlign||'center')==='left'?'selected':''}>Left</option>
+                    <option value="center" ${(el.lineAlign||'center')==='center'?'selected':''}>Center</option>
+                    <option value="right" ${(el.lineAlign||'center')==='right'?'selected':''}>Right</option>
+                    ` : `
+                    <option value="top" ${(el.lineAlign||'middle')==='top'?'selected':''}>Top</option>
+                    <option value="middle" ${(el.lineAlign||'middle')==='middle'?'selected':''}>Middle</option>
+                    <option value="bottom" ${(el.lineAlign||'middle')==='bottom'?'selected':''}>Bottom</option>
+                    `}
+                </select>
+            </div>` : ''}
             <div class="prop-group">
                 <label>Conditional Visibility</label>
                 <input class="prop-control" type="text" value="${escapeHtml(el.conditionalExpression || '')}"

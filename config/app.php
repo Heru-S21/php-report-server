@@ -7,6 +7,12 @@ return [
     'encryption_method' => 'AES-256-CBC',
     'default_pdf_engine' => 'mpdf',
     'max_upload_size' => 1048576, // 1 MB default
+    'default_margins' => [
+        'top' => 10,
+        'bottom' => 10,
+        'left' => 15,
+        'right' => 15,
+    ],
     'date_format' => 'Y-m-d',
     'number_format_decimals' => 2,
     'number_format_dec_point' => '.',

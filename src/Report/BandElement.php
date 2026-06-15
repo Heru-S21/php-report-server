@@ -35,6 +35,8 @@ class BandElement
     public ?string $barcodeSymbology = 'code128';
     public bool $barcodeShowText = true;
     public ?string $barcodeExpression = null;
+    public string $orientation = 'horizontal';
+    public string $lineAlign = 'middle';
 
     public function __construct()
     {
@@ -75,6 +77,8 @@ class BandElement
         $el->barcodeSymbology = $data['barcodeSymbology'] ?? 'code128';
         $el->barcodeShowText = (bool)($data['barcodeShowText'] ?? true);
         $el->barcodeExpression = $data['barcodeExpression'] ?? null;
+        $el->orientation = $data['orientation'] ?? 'horizontal';
+        $el->lineAlign = $data['lineAlign'] ?? 'middle';
         return $el;
     }
 
@@ -112,6 +116,8 @@ class BandElement
             'barcodeSymbology' => $this->barcodeSymbology,
             'barcodeShowText' => $this->barcodeShowText,
             'barcodeExpression' => $this->barcodeExpression,
+            'orientation' => $this->orientation,
+            'lineAlign' => $this->lineAlign,
         ];
     }
 }

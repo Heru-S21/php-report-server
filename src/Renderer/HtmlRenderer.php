@@ -27,7 +27,7 @@ class HtmlRenderer implements RendererInterface
             [$paperW, $paperH] = [$paperH, $paperW];
         }
         $usableWidth  = $paperW - $page->marginLeft - $page->marginRight;
-        $usableHeight = $paperH - $page->marginTop  - $page->marginBottom - 25;
+        $usableHeight = $paperH - $page->marginTop  - $page->marginBottom;
 
         $html  = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">';
         $html .= '<title>' . htmlspecialchars($definition->name ?: 'Report') . '</title>';
@@ -296,12 +296,12 @@ class HtmlRenderer implements RendererInterface
         $totalPages = count($pages);
         $wrapped = [];
         foreach ($pages as $pageHtml) {
-            $minH = '';
-            if (preg_match('/min-height:([\d.]+)mm/', $pageHtml, $m)) {
-                $minH = 'min-height:' . ((float)$m[1] + 30) . 'mm;';
-            }
             $pageHtml = str_replace('{{PAGECOUNT}}', (string)$totalPages, $pageHtml);
-            $wrapped[] = '<div class="paper-page" style="width:' . $paperW . 'mm;' . $minH . '">' . "\n" . $pageHtml . "\n" . '</div>';
+            $padding = sprintf(
+                'padding:%.1fmm %.1fmm %.1fmm %.1fmm;box-sizing:border-box',
+                $page->marginTop, $page->marginRight, $page->marginBottom, $page->marginLeft
+            );
+            $wrapped[] = '<div class="paper-page" style="width:' . $paperW . 'mm;min-height:' . $paperH . 'mm;' . $padding . '">' . "\n" . $pageHtml . "\n" . '</div>';
         }
         $html .= implode("\n", $wrapped);
         if ($showPrint) {
@@ -373,7 +373,29 @@ class HtmlRenderer implements RendererInterface
             $effectiveElH = (float)$el->height;
         }
 
-        if ($verticalAlign === 'top') {
+        if ($el->type === 'line') {
+            $orient = $el->orientation ?? 'horizontal';
+            $lineAlign = $el->lineAlign ?? ($orient === 'horizontal' ? 'middle' : 'center');
+            if ($orient === 'horizontal') {
+                $jc = match ($lineAlign) { 'top' => 'flex-start', 'bottom' => 'flex-end', default => 'center' };
+                $style = sprintf(
+                    'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; display:flex; flex-direction:column; justify-content:%s; align-items:stretch; overflow:hidden; background:%s; %s',
+                    $el->top, $el->left, $el->width, $effectiveElH,
+                    $jc,
+                    $backgroundColor,
+                    $borderStyle
+                );
+            } else {
+                $jc = match ($lineAlign) { 'left' => 'flex-start', 'right' => 'flex-end', default => 'center' };
+                $style = sprintf(
+                    'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; display:flex; flex-direction:row; justify-content:%s; align-items:stretch; overflow:hidden; background:%s; %s',
+                    $el->top, $el->left, $el->width, $effectiveElH,
+                    $jc,
+                    $backgroundColor,
+                    $borderStyle
+                );
+            }
+        } elseif ($verticalAlign === 'top') {
             $style = sprintf(
                 'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; text-decoration:%s; color:%s; text-align:%s; overflow:hidden; %s %s background:%s; %s',
                 $el->top, $el->left, $el->width, $effectiveElH,
@@ -496,7 +518,9 @@ class HtmlRenderer implements RendererInterface
                 : '',
             'aggregate' => $this->renderAggregate($el, $data),
             'image' => $el->imageUrl ? '<img src="' . htmlspecialchars($el->imageUrl) . '" style="width:100%;height:100%;object-fit:' . $this->imageFit($el->imageDisplay) . '">' : '',
-            'line' => '<hr style="border:none;border-top:1px solid #000;margin:0;width:100%">',
+            'line' => ($el->orientation ?? 'horizontal') === 'vertical'
+                ? '<div style="border-left:1px solid ' . ($el->color ?: '#000') . '; width:0; align-self:stretch; min-height:100%;"></div>'
+                : '<hr style="border:none;border-top:1px solid ' . ($el->color ?: '#000') . ';margin:0;width:100%">',
             'rect' => '',
             'pageno' => (string)$pageNum,
             'pagecount' => '{{PAGECOUNT}}',
@@ -650,16 +674,17 @@ class HtmlRenderer implements RendererInterface
         $css = $fontFaceCss . '
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #e2e8f0; }
             .report-page { width: ' . $usableWidth . 'mm; margin: 0 auto; background: white; box-shadow: 0 4px 16px rgba(0,0,0,0.12); position: relative; display:flex; flex-direction:column; }
-            .band-page_footer { margin-top: auto; }
-            .band { padding: 2px 4px; overflow: hidden; }
+            .band-page_footer { margin-top:auto; }
+            .band { padding: 0; overflow: hidden; }
             .element { overflow: hidden; }
-            .paper-page { background: #fff; box-shadow: 0 2px 20px rgba(0,0,0,0.18); margin: 0 auto 32px auto; padding: 15mm 0; position: relative; page-break-after: always; }
+            .paper-page { background: #fff; box-shadow: 0 2px 20px rgba(0,0,0,0.18); margin: 0 auto 32px auto; position: relative; page-break-after: always; box-sizing: border-box; }
             .paper-page:last-child { margin-bottom: 0; page-break-after: auto; }
             .paper-page .report-page { margin: 0 auto !important; box-shadow: none !important; background: transparent !important; }
+            @page { margin: 0; }
             @media print {
                 body { background: white; padding: 0; }
                 .report-page { box-shadow: none; margin: 0; }
-                .paper-page { box-shadow: none !important; margin: 0 auto !important; padding: 0 !important; page-break-after: always; }
+                .paper-page { box-shadow: none !important; margin: 0 auto !important; page-break-after: always; }
                 .paper-page:last-child { page-break-after: auto; }
                 .paper-page .report-page { box-shadow: none !important; margin: 0 !important; }
             }

@@ -66,7 +66,7 @@ class Designer {
         if (!btn) return;
         const dot = btn.querySelector('.unsaved-dot');
         if (!dot) return;
-        dot.style.display = window.ReportingEngine.state.isDirty ? 'inline' : 'none';
+        dot.style.visibility = window.ReportingEngine.state.isDirty ? 'visible' : 'hidden';
     }
 
     async loadReport(id) {
@@ -183,8 +183,7 @@ class Designer {
         this.canvasUsableWidth = usableWidth;
 
         this.canvasInner.style.width = usableWidth + 'mm';
-        this.canvasInner.style.transform = `scale(${this.zoom})`;
-        this.canvasInner.style.transformOrigin = 'top center';
+        this.canvasInner.style.zoom = this.zoom;
 
         let html = '';
         const bandOrder = ['page_header', 'report_header', 'group_header', 'column_header', 'detail', 'group_footer', 'report_footer', 'page_footer'];
@@ -234,6 +233,22 @@ class Designer {
         const vertAlign = el.verticalAlign || 'top';
         const flexAlign = vertAlign === 'middle' ? 'center' : vertAlign === 'bottom' ? 'flex-end' : null;
         const flexJustify = textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start';
+        let extraStyle = '';
+        if (el.type === 'line') {
+            const orient = el.orientation || 'horizontal';
+            const lineAlign = el.lineAlign || (orient === 'horizontal' ? 'middle' : 'center');
+            if (orient === 'horizontal') {
+                const jc = lineAlign === 'top' ? 'flex-start' : lineAlign === 'bottom' ? 'flex-end' : 'center';
+                extraStyle = `display:flex; flex-direction:column; justify-content:${jc}; align-items:stretch;`;
+            } else {
+                const jc = lineAlign === 'left' ? 'flex-start' : lineAlign === 'right' ? 'flex-end' : 'center';
+                extraStyle = `display:flex; flex-direction:row; justify-content:${jc}; align-items:stretch;`;
+            }
+        } else if (flexAlign) {
+            extraStyle = `display:flex; align-items:${flexAlign}; justify-content:${flexJustify};`;
+        } else {
+            extraStyle = `text-align:${textAlign};`;
+        }
         const style = `
             top: ${el.top}mm;
             left: ${el.left}mm;
@@ -245,7 +260,7 @@ class Designer {
             font-style: ${el.italic ? 'italic' : 'normal'};
             text-decoration: ${el.underline ? 'underline' : 'none'};
             color: ${el.color || '#000000'};
-            ${flexAlign ? `display:flex; align-items:${flexAlign}; justify-content:${flexJustify};` : `text-align:${textAlign};`}
+            ${extraStyle}
             background-color: ${el.backgroundColor || 'transparent'};
             ${el.border ? this.borderToStyle(el.border) : ''}
         `;
@@ -277,7 +292,9 @@ class Designer {
                 const imgFit = el.imageDisplay === 'original' ? 'none' : el.imageDisplay === 'stretch' ? 'fill' : 'contain';
                 return el.imageUrl ? `<img src="${el.imageUrl}" style="width:100%;height:100%;object-fit:${imgFit}">` : '[Image]';
             }
-            case 'line': return '<hr style="border:none;border-top:1px solid #000;margin:0">';
+            case 'line': return (el.orientation || 'horizontal') === 'vertical'
+                ? '<div style="border-left:1px solid #000; min-height:100%; width:0; align-self:stretch;"></div>'
+                : '<hr style="border:none;border-top:1px solid #000;margin:0;width:100%">';
             case 'rect': return '';
             case 'pageno': return el.text || '{PAGENO}';
             case 'pagecount': return el.text || '{PAGECOUNT}';
@@ -519,6 +536,8 @@ class Designer {
                 const onUp = () => {
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
+                    // Skip if element wasn't actually dragged (pure click)
+                    if (parseFloat(el.style.top) === origTop && parseFloat(el.style.left) === origLeft) return;
                     this.pushUndoState();
                     const band = this.findBandForElement(elId);
                     if (band) {
@@ -704,7 +723,7 @@ class Designer {
             field:     { width: 50, height: 10, text: null, fieldText: '[Field]' },
             aggregate: { width: 50, height: 10, text: null, fieldText: '{AGG}' },
             image:     { width: 50, height: 10, text: null },
-            line:      { width: 50, height: 10, text: null },
+            line:      { width: 50, height: 10, text: null, orientation: 'horizontal', lineAlign: 'middle' },
             rect:      { width: 50, height: 10, text: null },
             pageno:    { width: 50, height: 10, text: '{PAGENO}' },
             pagecount: { width: 50, height: 10, text: '{PAGECOUNT}' },

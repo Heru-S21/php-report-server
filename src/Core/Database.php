@@ -170,7 +170,7 @@ class Database
             'name' => 'Untitled Report',
             'description' => '',
             'connectionId' => null,
-            'page' => ['paperSize' => 'A4', 'orientation' => 'portrait', 'marginTop' => 20, 'marginBottom' => 20, 'marginLeft' => 15, 'marginRight' => 15],
+            'page' => ['paperSize' => 'A4', 'orientation' => 'portrait', 'marginTop' => 10, 'marginBottom' => 10, 'marginLeft' => 15, 'marginRight' => 15],
             'query' => ['sql' => '', 'visualJson' => null, 'parameters' => []],
             'groups' => [],
             'bands' => [
@@ -193,7 +193,7 @@ class Database
             'name' => 'Sales by Customer',
             'description' => '',
             'connectionId' => null,
-            'page' => ['paperSize' => 'A4', 'orientation' => 'portrait', 'marginTop' => 20, 'marginBottom' => 20, 'marginLeft' => 15, 'marginRight' => 15],
+            'page' => ['paperSize' => 'A4', 'orientation' => 'portrait', 'marginTop' => 10, 'marginBottom' => 10, 'marginLeft' => 15, 'marginRight' => 15],
             'query' => ['sql' => "-- Write your query here\nSELECT c.name, p.product_name, oi.qty, oi.unit_price, (oi.qty * oi.unit_price) AS line_total\nFROM order_items oi\nJOIN orders o ON oi.order_id = o.id\nJOIN customers c ON o.customer_id = c.id\nJOIN products p ON oi.product_id = p.id\nORDER BY c.name, p.product_name", 'visualJson' => null, 'parameters' => []],
             'groups' => [
                 ['id' => 'grp-001', 'fieldName' => 'name', 'level' => 0, 'sortDirection' => 'ASC', 'pageBreakBefore' => false, 'reprintHeaderOnNewPage' => true, 'showHeader' => true, 'showFooter' => true],
@@ -244,7 +244,7 @@ class Database
             'name' => 'Simple List',
             'description' => '',
             'connectionId' => null,
-            'page' => ['paperSize' => 'A4', 'orientation' => 'portrait', 'marginTop' => 20, 'marginBottom' => 20, 'marginLeft' => 15, 'marginRight' => 15],
+            'page' => ['paperSize' => 'A4', 'orientation' => 'portrait', 'marginTop' => 10, 'marginBottom' => 10, 'marginLeft' => 15, 'marginRight' => 15],
             'query' => ['sql' => "-- Write your query here\nSELECT * FROM your_table LIMIT 100", 'visualJson' => null, 'parameters' => []],
             'groups' => [],
             'bands' => [
@@ -281,7 +281,7 @@ class Database
             'name' => 'Summary Report',
             'description' => '',
             'connectionId' => null,
-            'page' => ['paperSize' => 'A4', 'orientation' => 'portrait', 'marginTop' => 20, 'marginBottom' => 20, 'marginLeft' => 15, 'marginRight' => 15],
+            'page' => ['paperSize' => 'A4', 'orientation' => 'portrait', 'marginTop' => 10, 'marginBottom' => 10, 'marginLeft' => 15, 'marginRight' => 15],
             'query' => ['sql' => "-- Write your query here\nSELECT category, amount\nFROM your_table\nORDER BY category", 'visualJson' => null, 'parameters' => []],
             'groups' => [],
             'bands' => [

@@ -1,0 +1,44 @@
+[
+    {
+        "filename": "EnvyCodeR-Bold.ttf",
+        "family": "Envy Code R",
+        "style": "Bold",
+        "weight": 700
+    },
+    {
+        "filename": "EnvyCodeR-Regular.ttf",
+        "family": "Envy Code R",
+        "style": "Regular",
+        "weight": 400
+    },
+    {
+        "filename": "Inconsolata-Bold.ttf",
+        "family": "Inconsolata Bold",
+        "style": "Regular",
+        "weight": 700
+    },
+    {
+        "filename": "Inconsolata-Regular.ttf",
+        "family": "Inconsolata",
+        "style": "Regular",
+        "weight": 400
+    },
+    {
+        "filename": "MonaspaceNeonFrozen-Bold.ttf",
+        "family": "Monaspace Neon Frozen",
+        "style": "Bold",
+        "weight": 700
+    },
+    {
+        "filename": "MonaspaceNeonFrozen-Regular.ttf",
+        "family": "Monaspace Neon Frozen",
+        "style": "Regular",
+        "weight": 400
+    },
+    {
+        "filename": "ShareTechMono-Regular.ttf",
+        "family": "Share Tech Mono",
+        "style": "Regular",
+        "weight": 400
+    }
+]

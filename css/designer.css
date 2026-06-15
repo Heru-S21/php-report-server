@@ -99,6 +99,7 @@
     font-size: 12px;
     vertical-align: top;
     margin-left: 2px;
+    visibility: hidden;
 }
 
 .designer-panels {
@@ -617,6 +618,12 @@
 
 .cpanel-content.active {
     display: block;
+}
+
+#cpanel-designer.active {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 #cpanel-datasource.active {
