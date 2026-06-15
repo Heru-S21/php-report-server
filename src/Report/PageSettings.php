@@ -17,13 +17,26 @@ class PageSettings
     {
         $config = \ReportingEngine\Core\Database::getConfig();
         $dm = $config['default_margins'] ?? [];
+
+        // Check app_settings for runtime overrides
+        $dbMargins = [];
+        try {
+            $pdo = \ReportingEngine\Core\Database::getInstance();
+            $stmt = $pdo->query("SELECT key, value FROM app_settings WHERE key LIKE 'default_margins_%'");
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $dbMargins[$row['key']] = (float)$row['value'];
+            }
+        } catch (\Exception) {
+            // Fall back to config defaults
+        }
+
         $p = new self();
         $p->paperSize = $data['paperSize'] ?? 'A4';
         $p->orientation = $data['orientation'] ?? 'portrait';
-        $p->marginTop = (float)($data['marginTop'] ?? $dm['top'] ?? 10);
-        $p->marginBottom = (float)($data['marginBottom'] ?? $dm['bottom'] ?? 10);
-        $p->marginLeft = (float)($data['marginLeft'] ?? $dm['left'] ?? 15);
-        $p->marginRight = (float)($data['marginRight'] ?? $dm['right'] ?? 15);
+        $p->marginTop = (float)($data['marginTop'] ?? $dbMargins['default_margins_top'] ?? $dm['top'] ?? 10);
+        $p->marginBottom = (float)($data['marginBottom'] ?? $dbMargins['default_margins_bottom'] ?? $dm['bottom'] ?? 10);
+        $p->marginLeft = (float)($data['marginLeft'] ?? $dbMargins['default_margins_left'] ?? $dm['left'] ?? 15);
+        $p->marginRight = (float)($data['marginRight'] ?? $dbMargins['default_margins_right'] ?? $dm['right'] ?? 15);
         $p->width = (int)($data['width'] ?? 0);
         $p->height = (int)($data['height'] ?? 0);
         return $p;

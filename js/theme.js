@@ -26,7 +26,7 @@ async function syncTheme() {
     try {
         const res = await window.ReportingEngine.api('GET', '/api/settings');
         if (res.success !== false) {
-            const serverTheme = res.data?.theme || 'light';
+            const serverTheme = res.data?.values?.theme || 'light';
             const localTheme = getTheme();
             if (serverTheme !== localTheme) {
                 applyTheme(serverTheme);

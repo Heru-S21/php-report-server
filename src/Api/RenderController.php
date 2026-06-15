@@ -122,13 +122,30 @@ class RenderController
     {
         try {
             $pdo = Database::getInstance();
-            $stmt = $pdo->query("SELECT * FROM app_settings");
-            $settings = [];
+            $stmt = $pdo->query("SELECT key, value FROM app_settings");
+            $dbValues = [];
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                if ($row['key'] === 'auth_password') continue;
-                $settings[$row['key']] = $row['value'];
+                $dbValues[$row['key']] = $row['value'];
             }
-            return Response::json($settings);
+
+            $definitions = \ReportingEngine\Core\SettingsManager::getDefinitions();
+            $values = [];
+
+            // Merge defaults with DB overrides
+            foreach ($definitions as $def) {
+                $key = $def['key'];
+                if ($key === 'auth_password') {
+                    // Never expose the password hash
+                    $values[$key] = '';
+                    continue;
+                }
+                $values[$key] = $dbValues[$key] ?? $def['default'];
+            }
+
+            return Response::json([
+                'definitions' => $definitions,
+                'values' => $values,
+            ]);
         } catch (\Exception $e) {
             return Response::error($e->getMessage(), 500);
         }
@@ -138,15 +155,29 @@ class RenderController
     {
         try {
             $pdo = Database::getInstance();
+            $editableKeys = \ReportingEngine\Core\SettingsManager::getEditableKeys();
+
             foreach ($request->body as $key => $value) {
+                // Reject unknown settings
+                if (!in_array($key, $editableKeys, true)) {
+                    continue;
+                }
+
+                // Special handling for password
                 if ($key === 'auth_password') {
                     if ($value === '' || $value === null) continue;
                     $value = password_hash($value, PASSWORD_BCRYPT);
-                    $key = 'auth_password';
+                    $stmt = $pdo->prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)");
+                    $stmt->execute(['auth_password', $value]);
+                    continue;
                 }
+
+                // Type-cast and store
+                $casted = \ReportingEngine\Core\SettingsManager::castValue($key, $value);
                 $stmt = $pdo->prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)");
-                $stmt->execute([$key, $value]);
+                $stmt->execute([$key, $casted]);
             }
+
             return Response::json(null, 200, 'Settings updated');
         } catch (\Exception $e) {
             return Response::error($e->getMessage(), 500);

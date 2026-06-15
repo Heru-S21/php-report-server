@@ -30,8 +30,8 @@ class ImagePicker {
     async loadMaxSize() {
         try {
             const res = await window.ReportingEngine.api('GET', '/api/settings');
-            if (res.success !== false && res.data?.max_upload_size) {
-                const mb = (parseInt(res.data.max_upload_size) / 1048576).toFixed(1);
+            if (res.success !== false && res.data?.values?.max_upload_size) {
+                const mb = (parseInt(res.data.values.max_upload_size) / 1048576).toFixed(1);
                 const el = document.getElementById('image-picker-size-info');
                 if (el) el.textContent = `Max file size: ${mb} MB · Allowed: JPEG, PNG, GIF, WebP`;
             }

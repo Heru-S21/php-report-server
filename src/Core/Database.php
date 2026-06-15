@@ -141,16 +141,9 @@ class Database
             $pdo->prepare("INSERT OR IGNORE INTO app_settings VALUES ('app_key', ?)")->execute([$key]);
         }
 
-        $defaults = [
-            ['pdf_engine', 'mpdf'],
-            ['date_format', 'Y-m-d'],
-            ['number_format_decimals', '2'],
-            ['number_format_dec_point', '.'],
-            ['number_format_thousands_sep', ','],
-        ];
-
-        foreach ($defaults as [$key, $value]) {
-            $pdo->prepare("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)")->execute([$key, $value]);
+        // Seed all editable settings from SettingsManager
+        foreach (SettingsManager::getDefaults() as $key => $value) {
+            $pdo->prepare("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)")->execute([$key, (string)$value]);
         }
 
         // Seed report templates if table is empty
