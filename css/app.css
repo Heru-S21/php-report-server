@@ -360,6 +360,18 @@ a:hover {
     opacity: 1;
 }
 
+.category-tab-edit {
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0.4;
+    cursor: pointer;
+    margin-right: 2px;
+}
+
+.category-tab-edit:hover {
+    opacity: 1;
+}
+
 /* Category sections */
 .category-section {
     margin-bottom: 8px;

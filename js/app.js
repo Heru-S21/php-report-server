@@ -206,7 +206,7 @@ function renderCategoryTabs(categories) {
         const tab = document.createElement('button');
         tab.className = 'category-tab';
         tab.dataset.categoryId = cat.id;
-        tab.innerHTML = `${escapeHtml(cat.name)} <span class="category-tab-x" onclick="event.stopPropagation();deleteCategory(${cat.id},'${escapeHtml(cat.name)}')">&times;</span>`;
+        tab.innerHTML = `<span class="category-tab-edit" onclick="event.stopPropagation();editCategory(${cat.id},'${escapeHtml(cat.name)}')" title="Rename">&#9998;</span> ${escapeHtml(cat.name)} <span class="category-tab-x" onclick="event.stopPropagation();deleteCategory(${cat.id},'${escapeHtml(cat.name)}')">&times;</span>`;
         tab.addEventListener('click', () => filterByCategory(cat.id));
         tabsContainer.appendChild(tab);
     });
@@ -376,6 +376,21 @@ async function deleteCategory(categoryId, name) {
         }
     } catch (e) {
         alert('Failed to delete category: ' + e.message);
+    }
+}
+
+async function editCategory(categoryId, currentName) {
+    const newName = prompt('Rename category:', currentName);
+    if (!newName || newName.trim() === currentName) return;
+    try {
+        const res = await window.ReportingEngine.api('PUT', `/api/categories/${categoryId}`, { name: newName.trim() });
+        if (res.success) {
+            await refreshReportsList();
+        } else {
+            alert('Failed to rename category: ' + (res.message || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Failed to rename category: ' + e.message);
     }
 }
 
