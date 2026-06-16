@@ -558,7 +558,8 @@ class DompdfRenderer implements RendererInterface
 
         $serif = ['times new roman', 'times', 'georgia', 'garamond', 'palatino',
                   'bookman', 'book antiqua', 'palatino linotype', 'didot',
-                  'bodoni mt', 'new york', 'goudy old style', 'big caslon'];
+                  'bodoni mt', 'new york', 'goudy old style', 'big caslon',
+                  'dejavu serif', 'deja vu serif'];
 
         $mono = ['courier new', 'courier', 'consolas', 'monaco', 'menlo',
                  'dejavu sans mono', 'dejavu mono', 'liberation mono',
@@ -567,20 +568,20 @@ class DompdfRenderer implements RendererInterface
                  'lucida console', 'lucida sans typewriter'];
 
         if (isset($this->fontFamilyMap[$lower])) {
-            if (str_contains($lower, 'mono') || str_contains($lower, 'code')) {
-                return sprintf('font-family:"%s", monospace, Courier;', $fontFamily);
+            if (str_contains($lower, 'mono') || str_contains($lower, 'code') || str_contains($lower, 'consol')) {
+                return sprintf("font-family:'%s', monospace, Courier;", $fontFamily);
             }
-            return sprintf('font-family:"%s", Helvetica, sans-serif;', $fontFamily);
+            return sprintf("font-family:'%s', Helvetica, sans-serif;", $fontFamily);
         }
 
         if (in_array($lower, $mono)) {
-            return sprintf('font-family:"%s", monospace, Courier;', $fontFamily);
+            return sprintf("font-family:'%s', monospace, Courier;", $fontFamily);
         }
         if (in_array($lower, $serif)) {
-            return sprintf('font-family:"%s", serif, Times;', $fontFamily);
+            return sprintf("font-family:'%s', serif, Times;", $fontFamily);
         }
 
-        return sprintf('font-family:"%s", Helvetica, sans-serif;', $fontFamily);
+        return sprintf("font-family:'%s', Helvetica, sans-serif;", $fontFamily);
     }
 
     private function renderElementHtml(BandElement $el, ReportDefinition $def, $group, $data): string
