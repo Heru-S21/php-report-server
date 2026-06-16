@@ -120,6 +120,53 @@ class PdfRenderer implements RendererInterface
         return $mpdf->Output('', 'S');
     }
 
+    /**
+     * Return the raw body HTML that would be passed to mPDF's WriteHTML.
+     * Useful for debugging PDF layout issues — output this to a browser
+     * to see exactly what mPDF receives.
+     */
+    public function getBodyHtml(ReportDefinition $definition, array $data, array $params = []): string
+    {
+        // Mirror the minimal setup from render() without creating mPDF
+        $this->fontMetrics = isset($params['_fontMetrics']) && is_array($params['_fontMetrics']) ? $params['_fontMetrics'] : [];
+        $this->fonts = isset($params['_fonts']) && is_array($params['_fonts']) ? $params['_fonts'] : [];
+        $this->fontFamilyMap = [];
+
+        if (!empty($this->fonts)) {
+            foreach ($this->fonts as $font) {
+                $family = isset($font['family']) ? strtolower(trim($font['family'])) : '';
+                $fname  = $font['filename'] ?? '';
+                if ($family === '' || $fname === '') continue;
+                $sanitized = preg_replace('/[^a-z0-9\-]/', '', $family);
+                $this->fontFamilyMap[$family] = $sanitized;
+            }
+        }
+
+        $page = $definition->pageSettings;
+
+        $has = function(?Band $b): bool {
+            return $b && $b->visible && !empty($b->elements);
+        };
+
+        $phBand = $definition->bands->get('page_header');
+        $pfBand = $definition->bands->get('page_footer');
+        $hdrBandH = $has($phBand) ? ($phBand->height ?? 10) : 0;
+        $ftBandH  = $has($pfBand) ? ($pfBand->height ?? 10) : 0;
+        $hdrTop = 1;
+        $ftBot  = max(3, $page->marginBottom * 0.3);
+
+        $marginTop = $hdrBandH > 0 ? max($page->marginTop, $hdrTop + $hdrBandH) : $page->marginTop;
+        $marginBottom = $ftBandH > 0 ? max($page->marginBottom, $ftBot + $ftBandH) : $page->marginBottom;
+
+        $paperH = $page->getPaperHeightMm();
+        if ($page->orientation === 'landscape') {
+            $paperH = $page->getPaperWidthMm();
+        }
+        $usableHeight = $paperH - $marginTop - $marginBottom;
+
+        return $this->buildBodies($definition, $data, $usableHeight);
+    }
+
     // ------------------------------------------------------------------ build
 
     private function buildBodies(

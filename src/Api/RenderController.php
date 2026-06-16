@@ -48,6 +48,15 @@ class RenderController
 
             if ($format === 'pdf') {
                 $renderer = new PdfRenderer();
+
+                // Debug: output raw HTML instead of PDF
+                if (!empty($request->query['debug_pdf_html'])) {
+                    $bodyHtml = $renderer->getBodyHtml($definition, $data, $params);
+                    return new Response($bodyHtml, 200, [
+                        'Content-Type' => 'text/html; charset=utf-8',
+                    ]);
+                }
+
                 $pdfContent = $renderer->render($definition, $data, $params);
 
                 return new Response($pdfContent, 200, [
@@ -99,6 +108,15 @@ class RenderController
 
             if ($format === 'pdf') {
                 $renderer = new PdfRenderer();
+
+                // Debug: output raw HTML instead of PDF
+                if (!empty($request->body['debug_pdf_html'])) {
+                    $bodyHtml = $renderer->getBodyHtml($definition, $data, $body);
+                    return new Response($bodyHtml, 200, [
+                        'Content-Type' => 'text/html; charset=utf-8',
+                    ]);
+                }
+
                 $pdfContent = $renderer->render($definition, $data, $body);
                 return new Response($pdfContent, 200, [
                     'Content-Type' => 'application/pdf',

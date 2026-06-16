@@ -1,6 +1,6 @@
 # PHP Reporting Server
 
-A self-contained web-based reporting application with a visual drag-and-drop report designer. Create, preview, and export reports as HTML or PDF.
+A self-contained web-based reporting application with a visual drag-and-drop report designer. Create, preview, and export reports as HTML.
 
 ## Requirements
 
@@ -58,7 +58,7 @@ Add barcode or QR code elements to reports using `picqer/php-barcode-generator`.
 | MSI | Modified Plessey, 14-char max |
 | Pharmacode | Pharmaceutical, narrow-only bars |
 
-Configure symbology, value expression, and show-text toggle in the element properties panel. Barcodes render as `<img>` tags in both HTML and PDF output.
+Configure symbology, value expression, and show-text toggle in the element properties panel. Barcodes render as `<img>` tags in HTML output.
 
 ### 5. Enhanced Parameters
 
@@ -190,7 +190,7 @@ src/
   Core/                — Router, Request, Response, Database (PDO singleton), Auth
   Api/                 — REST controllers for CRUD + rendering
   Report/              — Report definition model, bands, elements, groups, page settings
-  Renderer/            — HtmlRenderer, PdfRenderer (mPDF)
+  Renderer/            — HtmlRenderer
   Query/               — Query execution (PDO), visual query builder
   Connection/          — Database connection drivers (MySQL, PostgreSQL, SQLite, SQL Server)
 views/                 — PHP view templates (dashboard, designer, preview, etc.)
@@ -277,7 +277,7 @@ The designer auto-saves your work to `localStorage` on every change. A red dot o
 | DELETE | `/api/reports/{id}` | Delete report |
 | GET | `/api/reports/{id}/export` | Export report design (embeds images) |
 | POST | `/api/reports/import` | Import report design (restores images) |
-| GET | `/api/render/{id}?format=html\|pdf` | Render report |
+| GET | `/api/render/{id}?format=html` | Render report |
 | POST | `/api/render/preview` | Render unsaved definition |
 | POST | `/api/query/execute` | Run SQL query |
 | POST | `/api/query/fields` | Extract columns from SQL |
@@ -296,7 +296,6 @@ Render reports from external systems via URL (use report GUID for secure access)
 
 ```
 GET /api/render/{guid}?format=html
-GET /api/render/{guid}?format=pdf
 GET /api/render/{guid}?format=html&param_status=shipped&param_date=2026-01-01
 ```
 
@@ -358,7 +357,3 @@ These resolve to the accumulated aggregate value for the current group or report
 
 Supports MySQL, PostgreSQL, SQLite, and SQL Server via PDO. Connections are managed through the Connections UI and stored encrypted.
 
-## Output Formats
-
-- **HTML** — multi-page output with page breaks, repeating page header/footer and column headers, page numbering, Print button (hidden during print)
-- **PDF** — rendered via mPDF with the same page layout, fonts, and styling
