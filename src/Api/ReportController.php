@@ -21,7 +21,14 @@ class ReportController
     public function index(Request $request): Response
     {
         try {
-            $reports = $this->repository->all();
+            $categoryId = $request->getParam('category_id');
+            if ($categoryId !== null) {
+                if (!is_numeric($categoryId) || (int) $categoryId <= 0) {
+                    return Response::error('Invalid category_id parameter', 422);
+                }
+                $categoryId = (int) $categoryId;
+            }
+            $reports = $this->repository->all($categoryId);
             return Response::json($reports);
         } catch (\Exception $e) {
             return Response::error($e->getMessage(), 500);
@@ -58,6 +65,13 @@ class ReportController
             if ($this->repository->findByName($request->body['name'])) {
                 return Response::error("A report named '{$request->body['name']}' already exists", 422);
             }
+            // Validate category_id if provided
+            if (!empty($request->body['category_id'])) {
+                $catRepo = new \ReportingEngine\Report\CategoryRepository();
+                if (!$catRepo->find((int) $request->body['category_id'])) {
+                    return Response::error('Category not found', 422);
+                }
+            }
             $result = $this->repository->create($request->body);
             return Response::json($result, 201, 'Report created');
         } catch (\Exception $e) {
@@ -76,6 +90,13 @@ class ReportController
                 $existing = $this->repository->findByName($request->body['name']);
                 if ($existing && (int)$existing['id'] !== (int)$report['id']) {
                     return Response::error("A report named '{$request->body['name']}' already exists", 422);
+                }
+            }
+            // Validate category_id if provided
+            if (array_key_exists('category_id', $request->body) && !empty($request->body['category_id'])) {
+                $catRepo = new \ReportingEngine\Report\CategoryRepository();
+                if (!$catRepo->find((int) $request->body['category_id'])) {
+                    return Response::error('Category not found', 422);
                 }
             }
             $this->repository->update((int)$report['id'], $request->body);
@@ -165,6 +186,7 @@ class ReportController
                 'name' => $report['name'],
                 'description' => $report['description'],
                 'connection_name' => $report['connection_name'] ?? null,
+                'category_name' => $report['category_name'] ?? null,
                 'definition' => $definition,
                 '_embeddedImages' => $embeddedImages,
                 'exported_at' => date('c'),
@@ -264,10 +286,21 @@ class ReportController
                 }
             }
 
+            // Match category by name if provided
+            $categoryId = null;
+            if (!empty($data['category_name'])) {
+                $catRepo = new \ReportingEngine\Report\CategoryRepository();
+                $cat = $catRepo->findByName($data['category_name']);
+                if ($cat) {
+                    $categoryId = $cat['id'];
+                }
+            }
+
             $reportData = [
                 'name' => $name,
                 'description' => $data['description'] ?? '',
                 'connection_id' => $connectionId,
+                'category_id' => $categoryId,
                 'definition' => $definition,
             ];
             $result = $this->repository->create($reportData);

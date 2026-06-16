@@ -14,21 +14,38 @@ class ReportRepository
         $this->pdo = Database::getInstance();
     }
 
-    public function all(): array
+    public function all(?int $categoryId = null): array
     {
-        $stmt = $this->pdo->query("
-            SELECT r.*, c.name as connection_name
+        $sql = "
+            SELECT r.*, c.name as connection_name,
+                (SELECT rc.name FROM report_category_map rcm
+                 JOIN report_categories rc ON rcm.category_id = rc.id
+                 WHERE rcm.report_id = r.id LIMIT 1) AS category_name,
+                (SELECT rcm.category_id FROM report_category_map rcm
+                 WHERE rcm.report_id = r.id LIMIT 1) AS category_id
             FROM reports r
             LEFT JOIN connections c ON r.connection_id = c.id
-            ORDER BY r.updated_at DESC
-        ");
+        ";
+        $params = [];
+        if ($categoryId !== null) {
+            $sql .= " WHERE EXISTS (SELECT 1 FROM report_category_map WHERE report_id = r.id AND category_id = ?)";
+            $params[] = $categoryId;
+        }
+        $sql .= " ORDER BY r.updated_at DESC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, c.name as connection_name
+            SELECT r.*, c.name as connection_name,
+                (SELECT rc.name FROM report_category_map rcm
+                 JOIN report_categories rc ON rcm.category_id = rc.id
+                 WHERE rcm.report_id = r.id LIMIT 1) AS category_name,
+                (SELECT rcm.category_id FROM report_category_map rcm
+                 WHERE rcm.report_id = r.id LIMIT 1) AS category_id
             FROM reports r
             LEFT JOIN connections c ON r.connection_id = c.id
             WHERE r.id = ?
@@ -43,7 +60,12 @@ class ReportRepository
     public function findByGuid(string $guid): ?array
     {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, c.name as connection_name
+            SELECT r.*, c.name as connection_name,
+                (SELECT rc.name FROM report_category_map rcm
+                 JOIN report_categories rc ON rcm.category_id = rc.id
+                 WHERE rcm.report_id = r.id LIMIT 1) AS category_name,
+                (SELECT rcm.category_id FROM report_category_map rcm
+                 WHERE rcm.report_id = r.id LIMIT 1) AS category_id
             FROM reports r
             LEFT JOIN connections c ON r.connection_id = c.id
             WHERE r.guid = ?
@@ -58,7 +80,12 @@ class ReportRepository
     public function findByName(string $name): ?array
     {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, c.name as connection_name
+            SELECT r.*, c.name as connection_name,
+                (SELECT rc.name FROM report_category_map rcm
+                 JOIN report_categories rc ON rcm.category_id = rc.id
+                 WHERE rcm.report_id = r.id LIMIT 1) AS category_name,
+                (SELECT rcm.category_id FROM report_category_map rcm
+                 WHERE rcm.report_id = r.id LIMIT 1) AS category_id
             FROM reports r
             LEFT JOIN connections c ON r.connection_id = c.id
             WHERE r.name = ?
@@ -90,7 +117,13 @@ class ReportRepository
             $definition,
             $guid,
         ]);
-        return ['id' => (int) $this->pdo->lastInsertId(), 'guid' => $guid];
+        $reportId = (int) $this->pdo->lastInsertId();
+
+        if (!empty($data['category_id'])) {
+            $this->setCategory($reportId, (int) $data['category_id']);
+        }
+
+        return ['id' => $reportId, 'guid' => $guid];
     }
 
     public function update(int $id, array $data): void
@@ -111,14 +144,37 @@ class ReportRepository
             $values[] = is_array($def) ? json_encode($def, JSON_UNESCAPED_UNICODE) : $def;
         }
 
-        if (empty($fields)) return;
+        if (!empty($fields)) {
+            $fields[] = "updated_at = datetime('now')";
+            $values[] = $id;
+            $sql = "UPDATE reports SET " . implode(', ', $fields) . " WHERE id = ?";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($values);
+        }
 
-        $fields[] = "updated_at = datetime('now')";
-        $values[] = $id;
+        if (array_key_exists('category_id', $data)) {
+            if (!empty($data['category_id'])) {
+                $this->setCategory($id, (int) $data['category_id']);
+            } else {
+                $this->removeCategory($id);
+            }
+        }
+    }
 
-        $sql = "UPDATE reports SET " . implode(', ', $fields) . " WHERE id = ?";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($values);
+    public function setCategory(int $reportId, int $categoryId): void
+    {
+        // Single-category enforcement: delete existing, then insert
+        // Wrapped in transaction to prevent data loss if INSERT fails
+        $this->pdo->beginTransaction();
+        $this->pdo->prepare("DELETE FROM report_category_map WHERE report_id = ?")->execute([$reportId]);
+        $stmt = $this->pdo->prepare("INSERT INTO report_category_map (report_id, category_id) VALUES (?, ?)");
+        $stmt->execute([$reportId, $categoryId]);
+        $this->pdo->commit();
+    }
+
+    public function removeCategory(int $reportId): void
+    {
+        $this->pdo->prepare("DELETE FROM report_category_map WHERE report_id = ?")->execute([$reportId]);
     }
 
     public function findByImageGuid(string $guid): array
@@ -179,6 +235,13 @@ class ReportRepository
             $definition,
             $guid,
         ]);
-        return ['id' => (int) $this->pdo->lastInsertId(), 'guid' => $guid];
+        $newId = (int) $this->pdo->lastInsertId();
+
+        // Copy category if set
+        if (!empty($original['category_id'])) {
+            $this->setCategory($newId, (int) $original['category_id']);
+        }
+
+        return ['id' => $newId, 'guid' => $guid];
     }
 }

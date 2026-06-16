@@ -513,7 +513,17 @@ class ElementEditor {
                 <textarea class="prop-control" rows="2" style="resize:vertical"
                     onchange="window.elementEditor.updateReportField('description', this.value)">${escapeHtml(def.description || '')}</textarea>
             </div>
+            <div class="prop-group">
+                <label>Category</label>
+                <select class="prop-control" id="report-category-select"
+                    onchange="elementEditor.updateReportCategory(this.value)">
+                    <option value="">No Category</option>
+                </select>
+            </div>
         `;
+
+        // Load categories for the dropdown
+        this.loadReportCategories(window.ReportingEngine.state.reportCategoryId);
     }
 
     renderReportStyleTab() {
@@ -627,6 +637,37 @@ class ElementEditor {
         window.ReportingEngine.dispatch('SET_DIRTY', true);
         this.designer.renderCanvas();
         this.renderReportProps();
+    }
+
+    async updateReportCategory(value) {
+        const categoryId = value ? parseInt(value) : null;
+        window.ReportingEngine.dispatch('SET_REPORT_CATEGORY', categoryId);
+        window.ReportingEngine.dispatch('SET_DIRTY', true);
+
+        // Reload the category dropdown to reflect the change
+        await this.loadReportCategories(categoryId);
+    }
+
+    async loadReportCategories(selectedId) {
+        try {
+            const res = await window.ReportingEngine.api('GET', '/api/categories');
+            const select = document.getElementById('report-category-select');
+            if (!select) return;
+
+            const categories = res.data || [];
+            select.innerHTML = '<option value="">No Category</option>';
+            categories.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                if (Number(c.id) === Number(selectedId)) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        } catch (e) {
+            console.error('Failed to load categories:', e);
+        }
     }
 
     updatePageSetting(field, value) {

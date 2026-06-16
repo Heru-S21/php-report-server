@@ -1,5 +1,6 @@
 <?php
 
+use ReportingEngine\Api\CategoryController;
 use ReportingEngine\Api\ConnectionController;
 use ReportingEngine\Api\ImageController;
 use ReportingEngine\Api\ReportController;
@@ -28,6 +29,12 @@ $router->delete('/api/reports/{id}', [ReportController::class, 'destroy']);
 $router->post('/api/reports/{id}/duplicate', [ReportController::class, 'duplicate']);
 $router->get('/api/reports/{id}/export', [ReportController::class, 'export']);
 $router->post('/api/reports/import', [ReportController::class, 'import']);
+
+// Categories
+$router->get('/api/categories', [CategoryController::class, 'index']);
+$router->post('/api/categories', [CategoryController::class, 'store']);
+$router->put('/api/categories/{id}', [CategoryController::class, 'update']);
+$router->delete('/api/categories/{id}', [CategoryController::class, 'destroy']);
 
 // Images
 $router->get('/api/images', [ImageController::class, 'index']);

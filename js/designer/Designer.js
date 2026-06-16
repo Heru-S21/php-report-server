@@ -93,6 +93,13 @@ class Designer {
                     def.connectionId = parseInt(res.data.connection_id);
                 }
 
+                // Store category_id in state
+                if (res.data.category_id) {
+                    window.ReportingEngine.dispatch('SET_REPORT_CATEGORY', parseInt(res.data.category_id));
+                } else {
+                    window.ReportingEngine.dispatch('SET_REPORT_CATEGORY', null);
+                }
+
                 if (!stored) {
                     window.ReportingEngine.dispatch('LOAD_DEFINITION', def);
                     this.bands = def.bands || this.getDefaultBands();
@@ -1378,6 +1385,7 @@ class Designer {
             name: def.name || 'Untitled Report',
             description: def.description || '',
             connection_id: def.connectionId,
+            category_id: window.ReportingEngine.state.reportCategoryId,
             definition: JSON.stringify(def),
         };
 

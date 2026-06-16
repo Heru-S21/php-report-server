@@ -1,6 +1,7 @@
 window.ReportingEngine = {
     state: {
         activeReportId: null,
+        reportCategoryId: null,
         definition: {},
         selectedElement: null,
         selectedBand: null,
@@ -48,6 +49,9 @@ window.ReportingEngine = {
                 break;
             case 'SET_QUERY_COLUMNS':
                 this.state.queryColumns = payload;
+                break;
+            case 'SET_REPORT_CATEGORY':
+                this.state.reportCategoryId = payload;
                 break;
             case 'UNDO_STACK':
                 this.state.undoStack = payload;
@@ -172,28 +176,211 @@ async function initDashboard() {
 
 async function initReportsList() {
     try {
-        const res = await window.ReportingEngine.api('GET', '/api/reports');
-        const tbody = document.querySelector('#reports-table tbody');
-        if (!res.data || res.data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-muted">No reports yet. <a href="/reports/new">Create one</a></td></tr>';
-            return;
-        }
-        tbody.innerHTML = res.data.map(r => `
-            <tr>
-                <td><a href="/reports/designer/${r.id}">${escapeHtml(r.name)}</a></td>
-                <td>${escapeHtml(r.description || '-')}</td>
-                <td>${r.connection_id || '-'}</td>
-                <td>${r.updated_at || '-'}</td>
-                <td class="actions">
-                    <a class="btn btn-sm" href="/reports/designer/${r.id}" title="Design"><i class="ph-pencil"></i></a>
-                    <a class="btn btn-sm" href="/reports/preview/${r.id}" title="Preview"><i class="ph-eye"></i></a>
-                    <button class="btn btn-sm" onclick="deleteReport(${r.id})" title="Delete"><i class="ph-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
+        const [reportsRes, catsRes] = await Promise.all([
+            window.ReportingEngine.api('GET', '/api/reports'),
+            window.ReportingEngine.api('GET', '/api/categories'),
+        ]);
+
+        const reports = reportsRes.data || [];
+        const categories = catsRes.data || [];
+
+        renderCategoryTabs(categories);
+        renderGroupedReports(reports, categories);
     } catch (e) {
         console.error('Reports list error:', e);
+        const tbody = document.querySelector('#reports-table tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-muted">Error loading reports</td></tr>';
     }
+}
+
+function renderCategoryTabs(categories) {
+    const tabsContainer = document.getElementById('category-tabs');
+    if (!tabsContainer) return;
+
+    // "All" tab is already in HTML, remove other children
+    const allTab = tabsContainer.querySelector('[data-category-id=""]');
+    tabsContainer.innerHTML = '';
+    tabsContainer.appendChild(allTab);
+
+    categories.forEach(cat => {
+        const tab = document.createElement('button');
+        tab.className = 'category-tab';
+        tab.dataset.categoryId = cat.id;
+        tab.innerHTML = `${escapeHtml(cat.name)} <span class="category-tab-x" onclick="event.stopPropagation();deleteCategory(${cat.id},'${escapeHtml(cat.name)}')">&times;</span>`;
+        tab.addEventListener('click', () => filterByCategory(cat.id));
+        tabsContainer.appendChild(tab);
+    });
+
+    // Update "All" tab click to remove active from others
+    allTab.addEventListener('click', () => filterByCategory(''));
+}
+
+async function filterByCategory(categoryId) {
+    // Update tab active states
+    document.querySelectorAll('.category-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.categoryId === String(categoryId));
+    });
+
+    const res = await window.ReportingEngine.api('GET', '/api/reports' + (categoryId ? `?category_id=${categoryId}` : ''));
+    const reports = res.data || [];
+
+    // Re-fetch categories in case they changed
+    const catsRes = await window.ReportingEngine.api('GET', '/api/categories');
+    const categories = catsRes.data || [];
+
+    renderGroupedReports(reports, categories);
+}
+
+function renderGroupedReports(reports, categories) {
+    const container = document.getElementById('reports-container');
+    if (!container) return;
+
+    if (reports.length === 0) {
+        container.innerHTML = `
+            <table class="table">
+                <thead><tr><th>Name</th><th>Description</th><th>Category</th><th>Connection</th><th>Updated</th><th>Actions</th></tr></thead>
+                <tbody><tr><td colspan="6" class="text-muted">No reports yet. <a href="/reports/new">Create one</a></td></tr></tbody>
+            </table>`;
+        return;
+    }
+
+    // Group reports by category_id
+    const grouped = {};
+    const uncategorized = [];
+    reports.forEach(r => {
+        const catId = r.category_id;
+        if (catId) {
+            if (!grouped[catId]) grouped[catId] = [];
+            grouped[catId].push(r);
+        } else {
+            uncategorized.push(r);
+        }
+    });
+
+    let html = '';
+
+    // Render category sections in alphabetical order
+    const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
+    sortedCategories.forEach(cat => {
+        const catReports = grouped[cat.id];
+        if (!catReports || catReports.length === 0) return;
+
+        html += `
+            <div class="category-section">
+                <div class="category-header" onclick="toggleCategorySection(this)">
+                    <span class="category-caret">&#9654;</span>
+                    <span class="category-name">${escapeHtml(cat.name)}</span>
+                    <span class="category-count">(${catReports.length})</span>
+                </div>
+                <div class="category-body">
+                    <table class="table">
+                        <thead><tr><th>Name</th><th>Description</th><th>Category</th><th>Connection</th><th>Updated</th><th>Actions</th></tr></thead>
+                        <tbody>${catReports.map(r => renderReportRow(r, categories)).join('')}</tbody>
+                    </table>
+                </div>
+            </div>`;
+    });
+
+    // Render uncategorized section
+    if (uncategorized.length > 0) {
+        html += `
+            <div class="category-section">
+                <div class="category-header uncategorized" onclick="toggleCategorySection(this)">
+                    <span class="category-caret">&#9654;</span>
+                    <span class="category-name">Uncategorized</span>
+                    <span class="category-count">(${uncategorized.length})</span>
+                </div>
+                <div class="category-body">
+                    <table class="table">
+                        <thead><tr><th>Name</th><th>Description</th><th>Category</th><th>Connection</th><th>Updated</th><th>Actions</th></tr></thead>
+                        <tbody>${uncategorized.map(r => renderReportRow(r, categories)).join('')}</tbody>
+                    </table>
+                </div>
+            </div>`;
+    }
+
+    container.innerHTML = html;
+}
+
+function renderReportRow(r, categories) {
+    const catOptions = categories.map(c =>
+        `<option value="${c.id}" ${Number(r.category_id) === Number(c.id) ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
+    ).join('');
+
+    return `
+        <tr>
+            <td><a href="/reports/designer/${r.id}">${escapeHtml(r.name)}</a></td>
+            <td>${escapeHtml(r.description || '-')}</td>
+            <td>
+                <select class="category-select-inline" onchange="changeReportCategory(${r.id}, this.value)">
+                    <option value="">No Category</option>
+                    ${catOptions}
+                </select>
+            </td>
+            <td>${r.connection_name || r.connection_id || '-'}</td>
+            <td>${r.updated_at || '-'}</td>
+            <td class="actions">
+                <a class="btn btn-sm" href="/reports/designer/${r.id}" title="Design"><i class="ph-pencil"></i></a>
+                <a class="btn btn-sm" href="/reports/preview/${r.id}" title="Preview"><i class="ph-eye"></i></a>
+                <button class="btn btn-sm" onclick="deleteReport(${r.id})" title="Delete"><i class="ph-trash"></i></button>
+            </td>
+        </tr>`;
+}
+
+function toggleCategorySection(headerEl) {
+    headerEl.classList.toggle('collapsed');
+    const caret = headerEl.querySelector('.category-caret');
+    if (caret) caret.innerHTML = headerEl.classList.contains('collapsed') ? '&#9660;' : '&#9654;';
+    const body = headerEl.nextElementSibling;
+    if (body) body.style.display = headerEl.classList.contains('collapsed') ? 'none' : '';
+}
+
+async function changeReportCategory(reportId, categoryId) {
+    try {
+        const res = await window.ReportingEngine.api('PUT', `/api/reports/${reportId}`, {
+            category_id: categoryId ? parseInt(categoryId) : null
+        });
+        if (!res.success) {
+            alert('Failed to update category: ' + (res.message || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Failed to update category: ' + e.message);
+    }
+}
+
+async function addCategory() {
+    const input = document.getElementById('category-name-input');
+    const name = input.value.trim();
+    if (!name) return;
+    try {
+        const res = await window.ReportingEngine.api('POST', '/api/categories', { name });
+        if (res.success) {
+            input.value = '';
+            await refreshReportsList();
+        } else {
+            alert('Failed to add category: ' + (res.message || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Failed to add category: ' + e.message);
+    }
+}
+
+async function deleteCategory(categoryId, name) {
+    if (!confirm(`Delete category "${name}"? Reports in this category will become uncategorized.`)) return;
+    try {
+        const res = await window.ReportingEngine.api('DELETE', `/api/categories/${categoryId}`);
+        if (res.success) {
+            await refreshReportsList();
+        } else {
+            alert('Failed to delete category: ' + (res.message || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Failed to delete category: ' + e.message);
+    }
+}
+
+async function refreshReportsList() {
+    await initReportsList();
 }
 
 async function initConnectionsList() {
