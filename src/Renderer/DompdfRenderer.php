@@ -31,8 +31,8 @@ class DompdfRenderer implements RendererInterface
                 if ($family === '' || $fname === '') {
                     continue;
                 }
-                $sanitized = preg_replace('/[^a-z0-9\-]/', '', $family);
-                $this->fontFamilyMap[$family] = $sanitized;
+                // Store original family name (preserve case) so @font-face CSS matches the font-family value
+                $this->fontFamilyMap[$family] = $font['family'];
             }
         }
 
@@ -81,6 +81,34 @@ class DompdfRenderer implements RendererInterface
 
         // @page rules for margins
         $fullHtml .= $this->getStyles() . "\n";
+
+        // @font-face CSS for custom fonts — register local TTF fonts so Dompdf can embed them
+        if (!empty($this->fonts)) {
+            $fontDir = realpath(__DIR__ . '/../../data/fonts');
+            if ($fontDir !== false) {
+                foreach ($this->fonts as $font) {
+                    $family = $font['family'] ?? '';
+                    $fname  = $font['filename'] ?? '';
+                    if ($family === '' || $fname === '') continue;
+
+                    $weight = $font['weight'] ?? 400;
+                    $style  = strtolower($font['style'] ?? 'normal');
+                    if ($style === 'regular' || $style === 'normal') $style = 'normal';
+
+                    $fontPath = $fontDir . '/' . $fname;
+                    if (!file_exists($fontPath)) continue;
+
+                    $fullHtml .= sprintf(
+                        "@font-face { font-family:'%s'; src:url('file://%s') format('truetype'); font-weight:%s; font-style:%s; }\n",
+                        htmlspecialchars($family, ENT_QUOTES, 'UTF-8'),
+                        $fontPath,
+                        $weight,
+                        $style
+                    );
+                }
+            }
+        }
+
         $fullHtml .= '</style></head>';
 
         // Page header as position:fixed
@@ -141,8 +169,8 @@ class DompdfRenderer implements RendererInterface
                 $family = isset($font['family']) ? strtolower(trim($font['family'])) : '';
                 $fname  = $font['filename'] ?? '';
                 if ($family === '' || $fname === '') continue;
-                $sanitized = preg_replace('/[^a-z0-9\-]/', '', $family);
-                $this->fontFamilyMap[$family] = $sanitized;
+                // Store original family name (preserve case) so @font-face CSS matches the font-family value
+                $this->fontFamilyMap[$family] = $font['family'];
             }
         }
 
