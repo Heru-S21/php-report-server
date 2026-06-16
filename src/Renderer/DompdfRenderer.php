@@ -167,7 +167,7 @@ class DompdfRenderer implements RendererInterface
         // Create Dompdf instance
         $options = new Options();
         $options->set('isRemoteEnabled', true);
-        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isHtml5ParserEnabled', false);
 
         // Allow Dompdf to load custom font files from the project fonts directory.
         // Without this, Dompdf's default chroot prevents @font-face file:// access
@@ -183,6 +183,7 @@ class DompdfRenderer implements RendererInterface
 
         $dompdf = new Dompdf($options);
         $dompdf->setPaper($page->paperSize, $page->orientation);
+        set_time_limit(120); // Allow up to 2 minutes for large reports
         $dompdf->loadHtml($fullHtml);
         $dompdf->render();
 
