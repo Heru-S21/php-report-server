@@ -112,10 +112,10 @@ class PdfRenderer implements RendererInterface
         $bodyHtml = $this->buildBodies($definition, $data, $usableHeight);
 
         // Chunk at band boundaries to avoid mPDF pcre.backtrack_limit exhaustion
-        $parts = explode('<div class="band"', $bodyHtml);
+        $parts = explode('<div class="band ', $bodyHtml);
         $mpdf->WriteHTML(array_shift($parts));
         foreach ($parts as $part) {
-            $mpdf->WriteHTML('<div class="band"' . $part);
+            $mpdf->WriteHTML('<div class="band ' . $part);
         }
         return $mpdf->Output('', 'S');
     }
