@@ -183,6 +183,32 @@ class DompdfRenderer implements RendererInterface
             }
         }
 
+        // Self-heal: Dompdf 3.1.5 package install omits installed-fonts.dist.json
+        // FontMetrics.php expects it for bundled font family definitions.
+        $distFile = $options->getRootDir() . '/lib/fonts/installed-fonts.dist.json';
+        if (!file_exists($distFile)) {
+            $bundled = [
+                'sans-serif'       => ['normal' => 'Helvetica', 'bold' => 'Helvetica-Bold', 'italic' => 'Helvetica-Oblique', 'bold_italic' => 'Helvetica-BoldOblique'],
+                'serif'             => ['normal' => 'Times-Roman', 'bold' => 'Times-Bold', 'italic' => 'Times-Italic', 'bold_italic' => 'Times-BoldItalic'],
+                'monospace'         => ['normal' => 'Courier', 'bold' => 'Courier-Bold', 'italic' => 'Courier-Oblique', 'bold_italic' => 'Courier-BoldOblique'],
+                'times'             => ['normal' => 'Times-Roman', 'bold' => 'Times-Bold', 'italic' => 'Times-Italic', 'bold_italic' => 'Times-BoldItalic'],
+                'times-roman'       => ['normal' => 'Times-Roman', 'bold' => 'Times-Bold', 'italic' => 'Times-Italic', 'bold_italic' => 'Times-BoldItalic'],
+                'courier'           => ['normal' => 'Courier', 'bold' => 'Courier-Bold', 'italic' => 'Courier-Oblique', 'bold_italic' => 'Courier-BoldOblique'],
+                'helvetica'         => ['normal' => 'Helvetica', 'bold' => 'Helvetica-Bold', 'italic' => 'Helvetica-Oblique', 'bold_italic' => 'Helvetica-BoldOblique'],
+                'zapfdingbats'      => ['normal' => 'ZapfDingbats', 'bold' => 'ZapfDingbats', 'italic' => 'ZapfDingbats', 'bold_italic' => 'ZapfDingbats'],
+                'symbol'            => ['normal' => 'Symbol', 'bold' => 'Symbol', 'italic' => 'Symbol', 'bold_italic' => 'Symbol'],
+                'fixed'             => ['normal' => 'Courier', 'bold' => 'Courier-Bold', 'italic' => 'Courier-Oblique', 'bold_italic' => 'Courier-BoldOblique'],
+                'dejavu sans'       => ['normal' => 'DejaVuSans', 'bold' => 'DejaVuSans-Bold', 'italic' => 'DejaVuSans-Oblique', 'bold_italic' => 'DejaVuSans-BoldOblique'],
+                'dejavu sans mono'  => ['normal' => 'DejaVuSansMono', 'bold' => 'DejaVuSansMono-Bold', 'italic' => 'DejaVuSansMono-Oblique', 'bold_italic' => 'DejaVuSansMono-BoldOblique'],
+                'dejavu serif'      => ['normal' => 'DejaVuSerif', 'bold' => 'DejaVuSerif-Bold', 'italic' => 'DejaVuSerif-Italic', 'bold_italic' => 'DejaVuSerif-BoldItalic'],
+            ];
+            $dir = dirname($distFile);
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
+            file_put_contents($distFile, json_encode($bundled, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        }
+
         $dompdf = new Dompdf($options);
         $dompdf->setPaper($page->paperSize, $page->orientation);
         set_time_limit(120); // Allow up to 2 minutes for large reports
