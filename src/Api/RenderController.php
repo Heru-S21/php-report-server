@@ -11,6 +11,7 @@ use ReportingEngine\Connection\ConnectionManager;
 use ReportingEngine\Query\QueryRunner;
 use ReportingEngine\Renderer\HtmlRenderer;
 use ReportingEngine\Renderer\PdfRenderer;
+use ReportingEngine\Renderer\DompdfRenderer;
 use PDO;
 
 class RenderController
@@ -47,10 +48,16 @@ class RenderController
             $this->injectFontCache($params);
 
             if ($format === 'pdf') {
-                $renderer = new PdfRenderer();
+                $pdfEngine = $this->resolvePdfEngine();
 
-                // Debug: output raw HTML instead of PDF
-                if (!empty($request->query['debug_pdf_html'])) {
+                if ($pdfEngine === 'dompdf') {
+                    $renderer = new DompdfRenderer();
+                } else {
+                    $renderer = new PdfRenderer();
+                }
+
+                // Debug: output raw HTML instead of PDF (only mPDF supports this)
+                if ($pdfEngine !== 'dompdf' && !empty($request->query['debug_pdf_html'])) {
                     $bodyHtml = $renderer->getBodyHtml($definition, $data, $params);
                     return new Response($bodyHtml, 200, [
                         'Content-Type' => 'text/html; charset=utf-8',
@@ -107,10 +114,16 @@ class RenderController
             $data = $this->fetchData($definition, $request);
 
             if ($format === 'pdf') {
-                $renderer = new PdfRenderer();
+                $pdfEngine = $this->resolvePdfEngine();
 
-                // Debug: output raw HTML instead of PDF
-                if (!empty($request->body['debug_pdf_html'])) {
+                if ($pdfEngine === 'dompdf') {
+                    $renderer = new DompdfRenderer();
+                } else {
+                    $renderer = new PdfRenderer();
+                }
+
+                // Debug: output raw HTML instead of PDF (only mPDF supports this)
+                if ($pdfEngine !== 'dompdf' && !empty($request->body['debug_pdf_html'])) {
                     $bodyHtml = $renderer->getBodyHtml($definition, $data, $body);
                     return new Response($bodyHtml, 200, [
                         'Content-Type' => 'text/html; charset=utf-8',
@@ -312,6 +325,19 @@ class RenderController
             if (is_array($fonts)) {
                 $params['_fonts'] = $fonts;
             }
+        }
+    }
+
+    private function resolvePdfEngine(): string
+    {
+        try {
+            $pdo = Database::getInstance();
+            $stmt = $pdo->prepare("SELECT value FROM app_settings WHERE key = ?");
+            $stmt->execute(['pdf_engine']);
+            $val = $stmt->fetchColumn();
+            return $val ?: 'mpdf';
+        } catch (\Exception $e) {
+            return 'mpdf';
         }
     }
 }

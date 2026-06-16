@@ -70,7 +70,7 @@ class SettingsManager
                 'description' => 'Engine used for PDF export',
                 'type' => 'select',
                 'default' => 'mpdf',
-                'options' => ['mpdf' => 'mPDF'],
+                'options' => ['mpdf' => 'mPDF', 'dompdf' => 'Dompdf'],
                 'group' => 'PDF Engine',
             ],
 
