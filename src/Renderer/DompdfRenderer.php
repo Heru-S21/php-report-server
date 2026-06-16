@@ -58,6 +58,15 @@ class DompdfRenderer implements RendererInterface
         $usableHeight = $paperH - $marginTop - $marginBottom;
 
         $bodyHtml = $this->buildBodies($definition, $data, $usableHeight);
+        // Strip the document wrapper — buildBodies() returns a full <html> document,
+        // but render() provides its own document structure.
+        // Extract only the content between <body ...> and </body>
+        $bodyContent = '';
+        if (preg_match('/<body[^>]*>(.*)<\/body>/s', $bodyHtml, $match)) {
+            $bodyContent = $match[1];
+        } else {
+            $bodyContent = $bodyHtml;
+        }
 
         // Generate header/footer HTML
         $hdrHtml = '';
@@ -81,6 +90,15 @@ class DompdfRenderer implements RendererInterface
 
         // @page rules for margins
         $fullHtml .= $this->getStyles() . "\n";
+
+        // Page margins from report settings
+        $fullHtml .= sprintf(
+            "@page { margin: %.1fmm %.1fmm %.1fmm %.1fmm; }\n",
+            $page->marginTop,
+            $page->marginRight,
+            $page->marginBottom,
+            $page->marginLeft
+        );
 
         // @font-face CSS for custom fonts — register local TTF fonts so Dompdf can embed them
         if (!empty($this->fonts)) {
@@ -137,7 +155,7 @@ class DompdfRenderer implements RendererInterface
             0,
             0,
             $usableWidth,
-            $bodyHtml
+            $bodyContent
         );
 
         $fullHtml .= '</html>';
