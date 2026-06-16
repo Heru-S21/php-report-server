@@ -57,7 +57,7 @@ class DompdfRenderer implements RendererInterface
 
         $usableHeight = $paperH - $marginTop - $marginBottom;
 
-        $bodyHeight = $usableHeight - $hdrBandH - $ftBandH;
+        $bodyHeight = $usableHeight - $hdrBandH - $ftBandH - 2; // 2mm gutter for Dompdf rendering tolerance
         if ($bodyHeight < 50) {
             $bodyHeight = 50; // minimum 50mm to prevent page break fragmentation
         }
@@ -575,13 +575,13 @@ class DompdfRenderer implements RendererInterface
         }
 
         if (in_array($lower, $mono)) {
-            return sprintf("font-family:'%s', monospace, Courier;", $fontFamily);
+            return 'font-family:monospace, Courier;';
         }
         if (in_array($lower, $serif)) {
-            return sprintf("font-family:'%s', serif, Times;", $fontFamily);
+            return 'font-family:serif, Times;';
         }
 
-        return sprintf("font-family:'%s', Helvetica, sans-serif;", $fontFamily);
+        return 'font-family:Helvetica, sans-serif;';
     }
 
     private function renderElementHtml(BandElement $el, ReportDefinition $def, $group, $data): string
@@ -919,6 +919,7 @@ class DompdfRenderer implements RendererInterface
     private function getStyles(): string
     {
         return '
+            html { margin: 0; padding: 0; }
             body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; padding: 0; }
             .band { padding: 0; overflow: hidden; position: relative; }
             .element { overflow: hidden; }
