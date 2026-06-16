@@ -111,12 +111,13 @@ class PdfRenderer implements RendererInterface
 
         $bodyHtml = $this->buildBodies($definition, $data, $usableHeight);
 
-        // Chunk at band boundaries to avoid mPDF pcre.backtrack_limit exhaustion
-        $parts = explode('<div class="band ', $bodyHtml);
-        $mpdf->WriteHTML(array_shift($parts));
-        foreach ($parts as $part) {
-            $mpdf->WriteHTML('<div class="band ' . $part);
-        }
+        // Increase PCRE backtrack limit — mPDF processes the full HTML as one
+        // string and its internal regex engine exhausts the default 1M limit
+        // on large reports.
+        $prevLimit = ini_get('pcre.backtrack_limit');
+        ini_set('pcre.backtrack_limit', '20000000');
+        $mpdf->WriteHTML($bodyHtml);
+        ini_set('pcre.backtrack_limit', $prevLimit);
         return $mpdf->Output('', 'S');
     }
 
