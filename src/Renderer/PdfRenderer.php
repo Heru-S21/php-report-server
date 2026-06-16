@@ -385,7 +385,7 @@ class PdfRenderer implements RendererInterface
     {
         $h = $effectiveHeight ?? $band->height;
         $style = sprintf(
-            'style="position:relative; height:%.1fmm; overflow:hidden; background:%s; %s"',
+            'style="position:relative; height:%.1fmm; overflow:hidden; clear:both; background:%s; %s"',
             $h,
             $band->backgroundColor ?: 'transparent',
             $band->border ? $band->border->toHtmlStyle() : ''
