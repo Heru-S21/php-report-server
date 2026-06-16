@@ -392,8 +392,6 @@ class PdfRenderer implements RendererInterface
         );
         $html = sprintf('<div class="band band-%s" %s>', $band->type, $style);
 
-        // Group elements by top position into visual rows
-        $rows = [];
         foreach ($band->elements as $element) {
             $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
             if ($element->visibleExpression !== null && !ExpressionEvaluator::evaluateBool($element->visibleExpression, $rowData)) {
@@ -402,38 +400,7 @@ class PdfRenderer implements RendererInterface
             if ($element->conditionalExpression && !ExpressionEvaluator::evaluateBool($element->conditionalExpression, $rowData)) {
                 continue;
             }
-            $rows[(string)$element->top][] = $element;
-        }
-        ksort($rows, SORT_NUMERIC);
-
-        $prevBottom = 0.0;
-        foreach ($rows as $top => $elements) {
-            // Vertical spacer to position this row at the correct top
-            $gap = (float)$top - $prevBottom;
-            if ($gap > 0) {
-                $html .= sprintf('<div style="height:%.1fmm"></div>', $gap);
-            }
-
-            // Compute row height as max element height in this row
-            $rowH = 0.0;
-            foreach ($elements as $el) {
-                $rowH = max($rowH, (float)$el->height);
-            }
-
-            $html .= sprintf('<div style="overflow:hidden; height:%.1fmm">', $rowH);
-
-            // Sort elements left-to-right
-            usort($elements, fn(BandElement $a, BandElement $b) => $a->left <=> $b->left);
-
-            $prevRight = 0.0;
-            foreach ($elements as $el) {
-                $marginLeft = (float)$el->left - $prevRight;
-                $html .= $this->renderElementHtml($el, $def, $group, $data, $marginLeft);
-                $prevRight = (float)$el->left + (float)$el->width;
-            }
-
-            $html .= '</div>';
-            $prevBottom = (float)$top + $rowH;
+            $html .= $this->renderElementHtml($element, $def, $group, $data);
         }
 
         $html .= '</div>';
@@ -446,7 +413,7 @@ class PdfRenderer implements RendererInterface
         return $this->fontFamilyMap[$lower] ?? $lower;
     }
 
-    private function renderElementHtml(BandElement $el, ReportDefinition $def, $group, $data, float $marginLeft = 0.0): string
+    private function renderElementHtml(BandElement $el, ReportDefinition $def, $group, $data): string
     {
         $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
         if ($el->visibleExpression !== null && !ExpressionEvaluator::evaluateBool($el->visibleExpression, $rowData)) {
@@ -508,8 +475,8 @@ class PdfRenderer implements RendererInterface
                     default  => $effectiveElH . 'mm',
                 };
                 $style = sprintf(
-                    'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; line-height:%s; font-size:0; overflow:hidden; background:%s; %s',
-                    $marginLeft, $el->width, $effectiveElH,
+                    'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; line-height:%s; font-size:0; overflow:hidden; background:%s; %s',
+                    $el->top, $el->left, $el->width, $effectiveElH,
                     $lh,
                     $backgroundColor,
                     $borderStyle
@@ -517,8 +484,8 @@ class PdfRenderer implements RendererInterface
             } else {
                 $ta = match ($lineAlign) { 'left' => 'left', 'right' => 'right', default => 'center' };
                 $style = sprintf(
-                    'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; text-align:%s; font-size:0; line-height:0; overflow:hidden; background:%s; %s',
-                    $marginLeft, $el->width, $effectiveElH,
+                    'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; text-align:%s; font-size:0; line-height:0; overflow:hidden; background:%s; %s',
+                    $el->top, $el->left, $el->width, $effectiveElH,
                     $ta,
                     $backgroundColor,
                     $borderStyle
@@ -526,8 +493,8 @@ class PdfRenderer implements RendererInterface
             }
         } else {
             $style = sprintf(
-                'float:left; margin-left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; overflow:hidden; background:%s; %s',
-                $marginLeft, $el->width, $effectiveElH,
+                'position:absolute; top:%.1fmm; left:%.1fmm; width:%.1fmm; height:%.1fmm; font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; overflow:hidden; background:%s; %s',
+                $el->top, $el->left, $el->width, $effectiveElH,
                 $fontFamily,
                 $fontSize,
                 $bold ? 'bold' : 'normal',
@@ -766,7 +733,7 @@ class PdfRenderer implements RendererInterface
         return '
             body { font-family: Arial, sans-serif; font-size: 10pt; margin: 0; padding: 0; }
             .band { padding: 0; overflow: hidden; }
-            .element { display: inline-block; overflow: hidden; }
+            .element { overflow: hidden; }
 
         ';
     }
