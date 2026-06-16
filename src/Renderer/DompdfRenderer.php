@@ -114,8 +114,10 @@ class DompdfRenderer implements RendererInterface
                     if ($family === '' || $fname === '') continue;
 
                     $weight = $font['weight'] ?? 400;
-                    $style  = strtolower($font['style'] ?? 'normal');
-                    if ($style === 'regular' || $style === 'normal') $style = 'normal';
+                    $style = match (strtolower($font['style'] ?? 'normal')) {
+                        'italic', 'oblique' => 'italic',
+                        default => 'normal',
+                    };
 
                     $fontPath = $fontDir . '/' . $fname;
                     if (!file_exists($fontPath)) continue;
@@ -549,6 +551,38 @@ class DompdfRenderer implements RendererInterface
         return $this->fontFamilyMap[$lower] ?? $lower;
     }
 
+    private function fontFamilyCss(string $origFontFamily): string
+    {
+        $fontFamily = $this->mapFontFamily($origFontFamily);
+        $lower = strtolower(trim($origFontFamily));
+
+        $serif = ['times new roman', 'times', 'georgia', 'garamond', 'palatino',
+                  'bookman', 'book antiqua', 'palatino linotype', 'didot',
+                  'bodoni mt', 'new york', 'goudy old style', 'big caslon'];
+
+        $mono = ['courier new', 'courier', 'consolas', 'monaco', 'menlo',
+                 'dejavu sans mono', 'dejavu mono', 'liberation mono',
+                 'source code pro', 'fira code', 'droid sans mono',
+                 'jetbrains mono', 'sf mono', 'andale mono',
+                 'lucida console', 'lucida sans typewriter'];
+
+        if (isset($this->fontFamilyMap[$lower])) {
+            if (str_contains($lower, 'mono') || str_contains($lower, 'code')) {
+                return sprintf('font-family:"%s", monospace, Courier;', $fontFamily);
+            }
+            return sprintf('font-family:"%s", Helvetica, sans-serif;', $fontFamily);
+        }
+
+        if (in_array($lower, $mono)) {
+            return sprintf('font-family:"%s", monospace, Courier;', $fontFamily);
+        }
+        if (in_array($lower, $serif)) {
+            return sprintf('font-family:"%s", serif, Times;', $fontFamily);
+        }
+
+        return sprintf('font-family:"%s", Helvetica, sans-serif;', $fontFamily);
+    }
+
     private function renderElementHtml(BandElement $el, ReportDefinition $def, $group, $data): string
     {
         $rowData = $data instanceof AggregateAccumulator ? $data->getLastValues() : ($data ?: []);
@@ -565,7 +599,7 @@ class DompdfRenderer implements RendererInterface
         $color = $condStyle['color'] ?? $el->color ?: '#000';
         $backgroundColor = $condStyle['backgroundColor'] ?? $el->backgroundColor ?: 'transparent';
         $origFontFamily = $condStyle['fontFamily'] ?? $el->fontFamily ?: 'Arial';
-        $fontFamily = $this->mapFontFamily($origFontFamily);
+        $fontFamilyCss = $this->fontFamilyCss($origFontFamily);
         $fontSize = $condStyle['fontSize'] ?? $el->fontSize ?: 10;
         $textAlign = $condStyle['textAlign'] ?? $el->textAlign ?: 'left';
         $verticalAlign = $condStyle['verticalAlign'] ?? $el->verticalAlign ?? 'top';
@@ -610,8 +644,8 @@ class DompdfRenderer implements RendererInterface
 
         if ($isTextType) {
             $style .= sprintf(
-                ' font-family:"%s"; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; %s %s',
-                $fontFamily,
+                ' %s font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; %s %s',
+                $fontFamilyCss,
                 $fontSize,
                 $bold ? 'bold' : 'normal',
                 $italic ? 'italic' : 'normal',
