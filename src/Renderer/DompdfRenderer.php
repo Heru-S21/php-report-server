@@ -57,7 +57,11 @@ class DompdfRenderer implements RendererInterface
 
         $usableHeight = $paperH - $marginTop - $marginBottom;
 
-        $bodyHtml = $this->buildBodies($definition, $data, $usableHeight);
+        $bodyHeight = $usableHeight - $hdrBandH - $ftBandH;
+        if ($bodyHeight < 50) {
+            $bodyHeight = 50; // minimum 50mm to prevent page break fragmentation
+        }
+        $bodyHtml = $this->buildBodies($definition, $data, $bodyHeight);
         // Strip the document wrapper — buildBodies() returns a full <html> document,
         // but render() provides its own document structure.
         // Extract only the content between <body ...> and </body>
@@ -605,7 +609,7 @@ class DompdfRenderer implements RendererInterface
 
         if ($isTextType) {
             $style .= sprintf(
-                ' font-family:%s; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; %s %s',
+                ' font-family:"%s"; font-size:%dpt; font-weight:%s; font-style:%s; color:%s; text-align:%s; vertical-align:%s; %s %s',
                 $fontFamily,
                 $fontSize,
                 $bold ? 'bold' : 'normal',
