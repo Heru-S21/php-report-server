@@ -146,6 +146,19 @@ class DompdfRenderer implements RendererInterface
         $options = new Options();
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
+
+        // Allow Dompdf to load custom font files from the project fonts directory.
+        // Without this, Dompdf's default chroot prevents @font-face file:// access
+        // to files outside its own installation directory.
+        $fontDir = realpath(__DIR__ . '/../../data/fonts');
+        if ($fontDir !== false) {
+            $chroot = $options->getChroot();
+            if (!in_array($fontDir, $chroot, true)) {
+                $chroot[] = $fontDir;
+                $options->setChroot($chroot);
+            }
+        }
+
         $dompdf = new Dompdf($options);
         $dompdf->setPaper($page->paperSize, $page->orientation);
         $dompdf->loadHtml($fullHtml);
