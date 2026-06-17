@@ -16,53 +16,48 @@ class DompdfRenderer implements RendererInterface
     private array $fonts = [];
     private array $fontFamilyMap = [];
 
+    /** Margin of safety subtracted from body height to prevent content overflow (mm) */
+    private const BODY_HEIGHT_GUTTER = 2;
+
     public function render(ReportDefinition $definition, array $data, array $params = []): string
     {
-        $this->fontMetrics = isset($params['_fontMetrics']) && is_array($params['_fontMetrics']) ? $params['_fontMetrics'] : [];
-        $this->fonts = isset($params['_fonts']) && is_array($params['_fonts']) ? $params['_fonts'] : [];
-        $this->fontFamilyMap = [];
+        $this->initializeFonts($params);
         $page = $definition->pageSettings;
-
-        // Build font family map
-        if (!empty($this->fonts)) {
-            foreach ($this->fonts as $font) {
-                $family = isset($font['family']) ? strtolower(trim($font['family'])) : '';
-                $fname  = $font['filename'] ?? '';
-                if ($family === '' || $fname === '') {
-                    continue;
-                }
-                // Store original family name (preserve case) so @font-face CSS matches the font-family value
-                $this->fontFamilyMap[$family] = $font['family'];
-            }
-        }
-
-        $has = function(?Band $b): bool {
-            return $b && $b->visible && !empty($b->elements);
-        };
 
         $phBand = $definition->bands->get('page_header');
         $pfBand = $definition->bands->get('page_footer');
-        $hdrBandH = $has($phBand) ? ($phBand->height ?? 10) : 0;
-        $ftBandH  = $has($pfBand) ? ($pfBand->height ?? 10) : 0;
+        $hdrBandH = $this->hasBand($phBand) ? ($phBand->height ?? 10) : 0;
+        $ftBandH  = $this->hasBand($pfBand) ? ($pfBand->height ?? 10) : 0;
+
+        $hdrTop = 1.0; // 1mm clearance from page edge to prevent printer clipping
+        $ftBot  = $ftBandH > 0 ? max(3.0, $page->marginBottom * 0.3) : 0.0; // Footer clearance: minimum 3mm, scales with marginBottom
+        $effectiveMarginTop    = $hdrBandH > 0 ? max($page->marginTop, $hdrTop + $hdrBandH) : $page->marginTop;
+        $effectiveMarginBottom = $ftBandH > 0 ? max($page->marginBottom, $ftBot + $ftBandH) : $page->marginBottom;
+
+        // Body padding for ALL spacing (margins + header/footer clearance).
+        // Since Dompdf @page margins are unreliable, padding + explicit width handle everything.
+        $paddingTop    = $hdrBandH > 0 ? $effectiveMarginTop : $page->marginTop;
+        $paddingBottom = $ftBandH > 0 ? $effectiveMarginBottom : $page->marginBottom;
+        $paddingLeft   = $page->marginLeft;
+        $paddingRight  = $page->marginRight;
 
         $paperH = $page->getPaperHeightMm();
+        $paperW = $page->getPaperWidthMm();
         if ($page->orientation === 'landscape') {
-            $paperH = $page->getPaperWidthMm();
+            $tmp    = $paperH;
+            $paperH = $paperW;
+            $paperW = $tmp;
         }
 
-        $marginTop    = $page->marginTop;
-        $marginBottom = $page->marginBottom;
-        $marginLeft   = $page->marginLeft;
-        $marginRight  = $page->marginRight;
+        $bodyWidth = $paperW - $paddingLeft - $paddingRight;
 
-        $usableHeight = $paperH - $marginTop - $marginBottom;
-
-        $bodyHeight = $usableHeight - $hdrBandH - $ftBandH - 2; // 2mm gutter for Dompdf rendering tolerance
-        if ($bodyHeight < 50) {
-            $bodyHeight = 50; // minimum 50mm to prevent page break fragmentation
+        // Body height = page height - top padding - bottom padding - gutter
+        $bodyHeight = $paperH - $paddingTop - $paddingBottom - self::BODY_HEIGHT_GUTTER;
+        if ($bodyHeight < 50) { // Minimum body height floor to prevent degenerate layouts
+            $bodyHeight = 50;
         }
         $bodyHtml = $this->buildBodies($definition, $data, $bodyHeight);
-        // Strip the document wrapper — buildBodies() returns a full <html> document,
+        // Strip the body wrapper — buildBodies() returns a <body>...</body> fragment,
         // but render() provides its own document structure.
         // Extract only the content between <body ...> and </body>
         $bodyContent = '';
@@ -75,34 +70,22 @@ class DompdfRenderer implements RendererInterface
         // Generate header/footer HTML
         $hdrHtml = '';
         $ftHtml  = '';
-        if ($has($phBand)) {
+        if ($this->hasBand($phBand)) {
             $hdrHtml = $this->renderBandsPlainHtml([$phBand], $definition, null, null);
         }
-        if ($has($pfBand)) {
+        if ($this->hasBand($pfBand)) {
             $ftHtml = $this->renderBandsPlainHtml([$pfBand], $definition, null, null);
         }
-
-        // Compute usable width for body
-        $paperW = $page->getPaperWidthMm();
-        if ($page->orientation === 'landscape') {
-            $paperW = $page->getPaperHeightMm();
-        }
-        $usableWidth = $paperW - $marginLeft - $marginRight;
 
         // Build full HTML document
         $fullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' . "\n";
 
-        // @page rules for margins
         $fullHtml .= $this->getStyles() . "\n";
 
-        // Page margins from report settings
-        $fullHtml .= sprintf(
-            "@page { margin: %.1fmm %.1fmm %.1fmm %.1fmm; }\n",
-            $page->marginTop,
-            $page->marginRight,
-            $page->marginBottom,
-            $page->marginLeft
-        );
+        // @page with zero margins — Dompdf's @page margin support is unreliable.
+        // All spacing (margins + header/footer clearance) is handled via body padding
+        // with explicit width, so elements position correctly within the content area.
+        $fullHtml .= "@page { margin: 0; }\n";
 
         // @font-face CSS for custom fonts — register local TTF fonts so Dompdf can embed them
         if (!empty($this->fonts)) {
@@ -135,36 +118,42 @@ class DompdfRenderer implements RendererInterface
 
         $fullHtml .= '</style></head>';
 
-        // Page header as position:fixed
+        // Body — padding handles ALL spacing (margins + header/footer clearance)
+        // Explicit width ensures the body content width equals usableWidth.
+        // Total body box = paddingLeft + bodyWidth + paddingRight = paperW = page width.
+        $fullHtml .= sprintf(
+            '<body style="padding:%.1fmm %.1fmm %.1fmm %.1fmm; width:%.1fmm;">',
+            $paddingTop,
+            $paddingRight,
+            $paddingBottom,
+            $paddingLeft,
+            $bodyWidth
+        );
+
+        // Page header as position:fixed (inside <body> for valid HTML)
         if ($hdrHtml !== '') {
             $fullHtml .= sprintf(
-                '<div class="page-header" style="position:fixed; top:0; left:0; width:100%%; height:%.1fmm; z-index:100; overflow:hidden;">%s</div>',
+                '<div class="page-header" style="position:fixed; top:%.1fmm; left:0; width:100%%; height:%.1fmm; z-index:100; overflow:hidden;">%s</div>',
+                $hdrTop,
                 $hdrBandH,
                 $hdrHtml
             );
         }
 
-        // Page footer as position:fixed
+        // Page footer as position:fixed (inside <body> for valid HTML)
         if ($ftHtml !== '') {
             $fullHtml .= sprintf(
-                '<div class="page-footer" style="position:fixed; bottom:0; left:0; width:100%%; height:%.1fmm; z-index:100; overflow:hidden;">%s</div>',
+                '<div class="page-footer" style="position:fixed; bottom:%.1fmm; left:0; width:100%%; height:%.1fmm; z-index:100; overflow:hidden;">%s</div>',
+                $ftBot,
                 $ftBandH,
                 $ftHtml
             );
         }
 
-        // Body with padding to avoid overlap with fixed header/footer
-        $fullHtml .= sprintf(
-            '<body style="padding-top:%.1fmm; padding-bottom:%.1fmm; padding-left:%.1fmm; padding-right:%.1fmm; width:%.1fmm;">%s</body>',
-            $hdrBandH,
-            $ftBandH,
-            0,
-            0,
-            $usableWidth,
-            $bodyContent
-        );
+        // Body content
+        $fullHtml .= $bodyContent;
 
-        $fullHtml .= '</html>';
+        $fullHtml .= '</body></html>';
 
         // Create Dompdf instance
         $options = new Options();
@@ -204,7 +193,7 @@ class DompdfRenderer implements RendererInterface
             ];
             $dir = dirname($distFile);
             if (!is_dir($dir)) {
-                @mkdir($dir, 0755, true);
+                mkdir($dir, 0755, true);
             }
             file_put_contents($distFile, json_encode($bundled, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         }
@@ -241,39 +230,27 @@ class DompdfRenderer implements RendererInterface
      */
     public function getBodyHtml(ReportDefinition $definition, array $data, array $params = []): string
     {
-        $this->fontMetrics = isset($params['_fontMetrics']) && is_array($params['_fontMetrics']) ? $params['_fontMetrics'] : [];
-        $this->fonts = isset($params['_fonts']) && is_array($params['_fonts']) ? $params['_fonts'] : [];
-        $this->fontFamilyMap = [];
-
-        if (!empty($this->fonts)) {
-            foreach ($this->fonts as $font) {
-                $family = isset($font['family']) ? strtolower(trim($font['family'])) : '';
-                $fname  = $font['filename'] ?? '';
-                if ($family === '' || $fname === '') continue;
-                // Store original family name (preserve case) so @font-face CSS matches the font-family value
-                $this->fontFamilyMap[$family] = $font['family'];
-            }
-        }
-
+        $this->initializeFonts($params);
         $page = $definition->pageSettings;
-
-        $has = function(?Band $b): bool {
-            return $b && $b->visible && !empty($b->elements);
-        };
 
         $phBand = $definition->bands->get('page_header');
         $pfBand = $definition->bands->get('page_footer');
-        $hdrBandH = $has($phBand) ? ($phBand->height ?? 10) : 0;
-        $ftBandH  = $has($pfBand) ? ($pfBand->height ?? 10) : 0;
+        $hdrBandH = $this->hasBand($phBand) ? ($phBand->height ?? 10) : 0;
+        $ftBandH  = $this->hasBand($pfBand) ? ($pfBand->height ?? 10) : 0;
 
-        $marginTop    = $page->marginTop;
-        $marginBottom = $page->marginBottom;
+        $hdrTop = 1.0; // 1mm clearance from page edge to prevent printer clipping
+        $ftBot  = $ftBandH > 0 ? max(3.0, $page->marginBottom * 0.3) : 0.0; // Footer clearance: minimum 3mm, scales with marginBottom
+        $effectiveMarginTop    = $hdrBandH > 0 ? max($page->marginTop, $hdrTop + $hdrBandH) : $page->marginTop;
+        $effectiveMarginBottom = $ftBandH > 0 ? max($page->marginBottom, $ftBot + $ftBandH) : $page->marginBottom;
+
+        $paddingTop    = $hdrBandH > 0 ? $effectiveMarginTop : $page->marginTop;
+        $paddingBottom = $ftBandH > 0 ? $effectiveMarginBottom : $page->marginBottom;
 
         $paperH = $page->getPaperHeightMm();
         if ($page->orientation === 'landscape') {
             $paperH = $page->getPaperWidthMm();
         }
-        $usableHeight = $paperH - $marginTop - $marginBottom;
+        $usableHeight = $paperH - $paddingTop - $paddingBottom - self::BODY_HEIGHT_GUTTER;
 
         return $this->buildBodies($definition, $data, $usableHeight);
     }
@@ -287,10 +264,6 @@ class DompdfRenderer implements RendererInterface
     ): string {
         $groups = $definition->groups;
         usort($groups, fn(GroupDefinition $a, GroupDefinition $b) => $a->level <=> $b->level);
-
-        $has = function(?Band $b): bool {
-            return $b && $b->visible && !empty($b->elements);
-        };
 
         $rhBand = $definition->bands->get('report_header');
         $rfBand = $definition->bands->get('report_footer');
@@ -306,8 +279,7 @@ class DompdfRenderer implements RendererInterface
         }
         $usableWidth = $paperW - $page->marginLeft - $page->marginRight;
         $html = sprintf(
-            '<html><head><style>%s</style></head><body style="width:%.1fmm">',
-            $this->getStyles(),
+            '<body style="width:%.1fmm">',
             $usableWidth
         );
 
@@ -325,17 +297,17 @@ class DompdfRenderer implements RendererInterface
 
         // Render everything that goes at the top of a content page
         $renderPageTop = function(array $reprintGroups, ?array $lastRowData)
-            use (&$html, &$pageY, &$chOnPage, $has, $chBand, $groups, $definition)
+            use (&$html, &$pageY, &$chOnPage, $chBand, $groups, $definition)
         {
             foreach ($reprintGroups as $gi) {
                 $hdr = $this->findGroupHeader($definition, $groups[$gi]);
-                if ($hdr && $has($hdr) && $groups[$gi]->reprintHeaderOnNewPage) {
+                if ($hdr && $this->hasBand($hdr) && $groups[$gi]->reprintHeaderOnNewPage) {
                     $effH = $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$gi], $lastRowData, 1);
                     $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$gi], $lastRowData, $effH);
                     $pageY += $effH + $hdr->border->getVerticalHeightMm();
                 }
             }
-            if ($has($chBand) && $chBand->printOnEveryPage) {
+            if ($this->hasBand($chBand) && $chBand->printOnEveryPage) {
                 $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, 1);
                 $html .= $this->renderSingleBandHtml($chBand, $definition, null, null, $effH);
                 $pageY += $effH + $chBand->border->getVerticalHeightMm();
@@ -349,7 +321,7 @@ class DompdfRenderer implements RendererInterface
         $fit = function(?Band $b, ?array $rowData = null, ?float $effectiveHeight = null)
             use (&$html, &$pageY, &$chOnPage, $usableHeight, &$renderPageTop, &$groupValues): float
         {
-            if (!$b || !$b->visible || empty($b->elements)) return 0;
+            if (!$this->hasBand($b)) return 0;
             $h = $effectiveHeight ?? $b->height;
             if ($h <= 0) return 0;
             $borderH = $b->border ? $b->border->getVerticalHeightMm() : 0;
@@ -370,14 +342,14 @@ class DompdfRenderer implements RendererInterface
         };
 
         // ------ report header ------
-        if ($has($rhBand)) {
+        if ($this->hasBand($rhBand)) {
             $effH = $this->calculateEffectiveBandHeight($rhBand, $definition, null, null, 1);
             $pageY += $fit($rhBand, null, $effH);
             $html .= $this->renderSingleBandHtml($rhBand, $definition, null, null, $effH);
         }
 
         if (empty($data)) {
-            if ($has($chBand)) {
+            if ($this->hasBand($chBand)) {
                 $html .= $this->renderSingleBandHtml($chBand, $definition, null, null);
             }
             $html .= '<p>No data returned.</p>';
@@ -417,9 +389,9 @@ class DompdfRenderer implements RendererInterface
 
                         for ($inner = count($groups) - 1; $inner >= $g; $inner--) {
                             $ft = $this->findGroupFooter($definition, $groups[$inner]);
-                            $effH = $ft && $has($ft) ? $this->calculateEffectiveBandHeight($ft, $definition, $groups[$inner], $groupAggs[$inner], 1) : 0;
+                            $effH = $ft && $this->hasBand($ft) ? $this->calculateEffectiveBandHeight($ft, $definition, $groups[$inner], $groupAggs[$inner], 1) : 0;
                             $pageY += $fit($ft, $row, $effH);
-                            if ($ft && $has($ft)) {
+                            if ($ft && $this->hasBand($ft)) {
                                 $html .= $this->renderSingleBandHtml($ft, $definition, $groups[$inner], $groupAggs[$inner], $effH);
                             }
                             $groupAggs[$inner]->reset();
@@ -429,14 +401,14 @@ class DompdfRenderer implements RendererInterface
                         for ($outer = $g; $outer < count($groups); $outer++) {
                             $groupValues[$outer] = $row[$groups[$outer]->fieldName] ?? null;
                             $hdr = $this->findGroupHeader($definition, $groups[$outer]);
-                            $effH = $hdr && $has($hdr) ? $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$outer], $row, 1) : 0;
+                            $effH = $hdr && $this->hasBand($hdr) ? $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$outer], $row, 1) : 0;
                             $pageY += $fit($hdr, $row, $effH);
-                            if ($hdr && $has($hdr)) {
+                            if ($hdr && $this->hasBand($hdr)) {
                                 $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$outer], $row, $effH);
                             }
                         }
 
-                        if (!$chOnPage && $has($chBand)) {
+                        if (!$chOnPage && $this->hasBand($chBand)) {
                             $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, 1);
                             $pageY += $fit($chBand, $row, $effH);
                             $html .= $this->renderSingleBandHtml($chBand, $definition, null, null, $effH);
@@ -453,13 +425,13 @@ class DompdfRenderer implements RendererInterface
                     for ($g = 0; $g < count($groups); $g++) {
                         $groupValues[$g] = $row[$groups[$g]->fieldName] ?? null;
                         $hdr = $this->findGroupHeader($definition, $groups[$g]);
-                        $effH = $hdr && $has($hdr) ? $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$g], $row, 1) : 0;
+                        $effH = $hdr && $this->hasBand($hdr) ? $this->calculateEffectiveBandHeight($hdr, $definition, $groups[$g], $row, 1) : 0;
                         $pageY += $fit($hdr, $row, $effH);
-                        if ($hdr && $has($hdr)) {
+                        if ($hdr && $this->hasBand($hdr)) {
                             $html .= $this->renderSingleBandHtml($hdr, $definition, $groups[$g], $row, $effH);
                         }
                     }
-                    if (!$chOnPage && $has($chBand)) {
+                    if (!$chOnPage && $this->hasBand($chBand)) {
                         $effH = $this->calculateEffectiveBandHeight($chBand, $definition, null, null, 1);
                         $pageY += $fit($chBand, $row, $effH);
                         $html .= $this->renderSingleBandHtml($chBand, $definition, null, null, $effH);
@@ -486,9 +458,9 @@ class DompdfRenderer implements RendererInterface
                 }
 
                 // ------ detail ------
-                $effH = $has($dtBand) ? $this->calculateEffectiveBandHeight($dtBand, $definition, null, $row, 1) : 0;
+                $effH = $this->hasBand($dtBand) ? $this->calculateEffectiveBandHeight($dtBand, $definition, null, $row, 1) : 0;
                 $pageY += $fit($dtBand, $row, $effH);
-                if ($has($dtBand)) {
+                if ($this->hasBand($dtBand)) {
                     $html .= $this->renderSingleBandHtml($dtBand, $definition, null, $row, $effH);
                 }
             }
@@ -496,36 +468,57 @@ class DompdfRenderer implements RendererInterface
             // ------ close remaining groups ------
             for ($g = count($groups) - 1; $g >= 0; $g--) {
                 $ft = $this->findGroupFooter($definition, $groups[$g]);
-                $effH = $ft && $has($ft) ? $this->calculateEffectiveBandHeight($ft, $definition, $groups[$g], $groupAggs[$g], 1) : 0;
+                $effH = $ft && $this->hasBand($ft) ? $this->calculateEffectiveBandHeight($ft, $definition, $groups[$g], $groupAggs[$g], 1) : 0;
                 $pageY += $fit($ft, $row ?? null, $effH);
-                if ($ft && $has($ft)) {
+                if ($ft && $this->hasBand($ft)) {
                     $html .= $this->renderSingleBandHtml($ft, $definition, $groups[$g], $groupAggs[$g], $effH);
                 }
                 $groupAggs[$g]->reset();
             }
 
             // ------ report footer ------
-            $effH = $has($rfBand) ? $this->calculateEffectiveBandHeight($rfBand, $definition, null, $reportAggs, 1) : 0;
+            $effH = $this->hasBand($rfBand) ? $this->calculateEffectiveBandHeight($rfBand, $definition, null, $reportAggs, 1) : 0;
             $pageY += $fit($rfBand, null, $effH);
-            if ($has($rfBand)) {
+            if ($this->hasBand($rfBand)) {
                 $html .= $this->renderSingleBandHtml($rfBand, $definition, null, $reportAggs, $effH);
             }
         }
 
-        $html .= '</body></html>';
+        $html .= '</body>';
         return $html;
     }
 
     // --------------------------------------------------------------- helpers
 
+    private function hasBand(?Band $b): bool
+    {
+        return $b && $b->visible && !empty($b->elements);
+    }
+
+    private function initializeFonts(array $params): void
+    {
+        $this->fontMetrics = isset($params['_fontMetrics']) && is_array($params['_fontMetrics']) ? $params['_fontMetrics'] : [];
+        $this->fonts = isset($params['_fonts']) && is_array($params['_fonts']) ? $params['_fonts'] : [];
+        $this->fontFamilyMap = [];
+
+        if (!empty($this->fonts)) {
+            foreach ($this->fonts as $font) {
+                $family = isset($font['family']) ? strtolower(trim($font['family'])) : '';
+                $fname  = $font['filename'] ?? '';
+                if ($family === '' || $fname === '') {
+                    continue;
+                }
+                // Store original family name (preserve case) so @font-face CSS matches the font-family value
+                $this->fontFamilyMap[$family] = $font['family'];
+            }
+        }
+    }
+
     private function renderBandsPlainHtml(array $bands, ReportDefinition $def, $group, $data): string
     {
         $out = '';
-        $has = function(?Band $b): bool {
-            return $b && $b->visible && !empty($b->elements);
-        };
         foreach ($bands as $b) {
-            if ($has($b)) {
+            if ($this->hasBand($b)) {
                 $out .= $this->renderSingleBandHtml($b, $def, $group, $data);
             }
         }
@@ -657,11 +650,13 @@ class DompdfRenderer implements RendererInterface
         // Pre-truncate nowrap text in PHP to prevent wrapping + overflow pagination.
         // Skip pageno/pagecount — their values are placeholders.
         if (!$wordWrap && $isTextType && $value !== '' && !in_array($el->type, ['pageno', 'pagecount'])) {
-            $plainText = strip_tags($value);
+            // $value is already htmlspecialchars'd from getElementValue()
+            // Decode for accurate measurement and clean truncation
+            $plainText = strip_tags(html_entity_decode($value, ENT_QUOTES, 'UTF-8'));
             $truncKey = $origFontFamily . '-' . $fontSize . '-' . ($bold ? '1' : '0') . '-' . ($italic ? '1' : '0');
             $avgCharWidth = isset($this->fontMetrics[$truncKey])
                 ? (float)$this->fontMetrics[$truncKey]
-                : 2.0 * ($fontSize / 10);
+                : 2.0 * ($fontSize / 10); // Fallback avg char width (mm) when no font metrics available
             $textWidth = mb_strlen($plainText) * $avgCharWidth;
             if ($textWidth > $el->width) {
                 $maxChars = max(1, (int)(($el->width - $avgCharWidth) / $avgCharWidth));
@@ -726,7 +721,7 @@ class DompdfRenderer implements RendererInterface
         if (isset($this->fontMetrics[$key])) {
             $avgCharWidth = (float)$this->fontMetrics[$key];
         } else {
-            $avgCharWidth = 2.0 * ($fontSize / 10);
+            $avgCharWidth = 2.0 * ($fontSize / 10); // Fallback avg char width (mm) when no font metrics available
         }
         $charsPerLine = max(1, $widthMm / $avgCharWidth);
         $lines = max(1, ceil(mb_strlen($text) / $charsPerLine));
@@ -787,7 +782,7 @@ class DompdfRenderer implements RendererInterface
                         : ''))
                 : '',
             'aggregate' => $this->renderAggValue($el, $data),
-            'image' => $el->imageUrl ? '<img src="' . $el->imageUrl . '" style="width:100%;height:100%;object-fit:' . $this->imageFit($el->imageDisplay) . '">' : '',
+            'image' => $el->imageUrl ? '<img src="' . htmlspecialchars($el->imageUrl, ENT_QUOTES, 'UTF-8') . '" style="width:100%;height:100%;object-fit:' . $this->imageFit($el->imageDisplay) . '">' : '',
             'line' => $this->renderLineValue($el, $data),
             'rect' => '',
             'pageno' => '<span class="dompdf-pageno"></span>',
@@ -846,7 +841,7 @@ class DompdfRenderer implements RendererInterface
             : ($el->text ?? '');
         if (!$value) return '';
         $src = BarcodeRenderer::renderPng($value, $el->barcodeSymbology ?? 'code128', $el->barcodeShowText ?? true);
-        return '<img src="' . $src . '" style="width:100%;height:100%;object-fit:contain" alt="barcode">';
+        return '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" style="width:100%;height:100%;object-fit:contain" alt="barcode">';
     }
 
     private function renderAggValue(BandElement $el, $data): string
@@ -872,7 +867,7 @@ class DompdfRenderer implements RendererInterface
         if (str_contains($format, '%')) {
             $v = $value;
             if (is_numeric($value)) $v = (float)$value;
-            $result = @sprintf($format, $v);
+            $result = sprintf($format, $v);
             if ($result !== false && $result !== $format) {
                 return $result;
             }
@@ -888,7 +883,7 @@ class DompdfRenderer implements RendererInterface
             if ($hasDateChars >= 2) {
                 $ts = strtotime((string)$value);
                 if ($ts !== false && $ts > 0) {
-                    $result = @date($format, $ts);
+                    $result = date($format, $ts);
                     if ($result !== false) return $result;
                 }
             }
