@@ -1,6 +1,10 @@
 <div class="reports-page">
     <div class="page-header">
         <h1>Reports</h1>
+        <div class="report-search-bar" style="display:flex;align-items:center;gap:8px;">
+            <input type="text" id="report-search" placeholder="Search reports by name..." class="form-control" style="width:280px;font-size:13px" onkeydown="if(event.key==='Enter') applySearchFilter()">
+            <button class="btn btn-secondary btn-sm" onclick="applySearchFilter()"><i class="ph-magnifying-glass"></i></button>
+        </div>
         <div class="page-header-actions">
             <button class="btn btn-secondary" onclick="document.getElementById('import-report-input').click()">
                 <i class="ph-upload"></i> Import

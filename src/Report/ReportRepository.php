@@ -14,7 +14,7 @@ class ReportRepository
         $this->pdo = Database::getInstance();
     }
 
-    public function all(?int $categoryId = null): array
+    public function all(?int $categoryId = null, ?string $name = null): array
     {
         $sql = "
             SELECT r.*, c.name as connection_name,
@@ -27,9 +27,17 @@ class ReportRepository
             LEFT JOIN connections c ON r.connection_id = c.id
         ";
         $params = [];
+        $conditions = [];
         if ($categoryId !== null) {
-            $sql .= " WHERE EXISTS (SELECT 1 FROM report_category_map WHERE report_id = r.id AND category_id = ?)";
+            $conditions[] = "EXISTS (SELECT 1 FROM report_category_map WHERE report_id = r.id AND category_id = ?)";
             $params[] = $categoryId;
+        }
+        if ($name !== null && $name !== '') {
+            $conditions[] = "r.name LIKE ?";
+            $params[] = '%' . $name . '%';
+        }
+        if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(' AND ', $conditions);
         }
         $sql .= " ORDER BY r.updated_at DESC";
         $stmt = $this->pdo->prepare($sql);

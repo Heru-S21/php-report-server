@@ -174,10 +174,25 @@ async function initDashboard() {
     }
 }
 
+let currentCategoryId = '';
+let currentSearchTerm = '';
+
 async function initReportsList() {
+    currentCategoryId = '';
+    currentSearchTerm = '';
+    document.getElementById('report-search').value = '';
+    await loadReports();
+}
+
+async function loadReports() {
     try {
+        const params = new URLSearchParams();
+        if (currentCategoryId) params.set('category_id', currentCategoryId);
+        if (currentSearchTerm) params.set('name', currentSearchTerm);
+        const query = params.toString() ? '?' + params.toString() : '';
+
         const [reportsRes, catsRes] = await Promise.all([
-            window.ReportingEngine.api('GET', '/api/reports'),
+            window.ReportingEngine.api('GET', '/api/reports' + query),
             window.ReportingEngine.api('GET', '/api/categories'),
         ]);
 
@@ -191,6 +206,17 @@ async function initReportsList() {
         const tbody = document.querySelector('#reports-table tbody');
         if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-muted">Error loading reports</td></tr>';
     }
+}
+
+function applySearchFilter() {
+    const input = document.getElementById('report-search');
+    currentSearchTerm = input.value.trim();
+    currentCategoryId = '';
+    // Deactivate all category tabs
+    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+    const allTab = document.querySelector('.category-tab[data-category-id=""]');
+    if (allTab) allTab.classList.add('active');
+    loadReports();
 }
 
 function renderCategoryTabs(categories) {
@@ -216,19 +242,12 @@ function renderCategoryTabs(categories) {
 }
 
 async function filterByCategory(categoryId) {
+    currentCategoryId = categoryId;
     // Update tab active states
     document.querySelectorAll('.category-tab').forEach(t => {
         t.classList.toggle('active', t.dataset.categoryId === String(categoryId));
     });
-
-    const res = await window.ReportingEngine.api('GET', '/api/reports' + (categoryId ? `?category_id=${categoryId}` : ''));
-    const reports = res.data || [];
-
-    // Re-fetch categories in case they changed
-    const catsRes = await window.ReportingEngine.api('GET', '/api/categories');
-    const categories = catsRes.data || [];
-
-    renderGroupedReports(reports, categories);
+    await loadReports();
 }
 
 function renderGroupedReports(reports, categories) {

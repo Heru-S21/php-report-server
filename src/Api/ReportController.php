@@ -28,7 +28,8 @@ class ReportController
                 }
                 $categoryId = (int) $categoryId;
             }
-            $reports = $this->repository->all($categoryId);
+            $name = $request->getParam('name');
+            $reports = $this->repository->all($categoryId, $name);
             return Response::json($reports);
         } catch (\Exception $e) {
             return Response::error($e->getMessage(), 500);
