@@ -2,6 +2,26 @@
 
 A self-contained web-based reporting application with a visual drag-and-drop report designer. Create, preview, and export reports as HTML or PDF.
 
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Key Concepts](#key-concepts)
+- [Page Settings](#page-settings)
+- [Embedded Fonts](#embedded-fonts)
+- [Theme Support (Dark Mode)](#theme-support-dark-mode)
+- [PDF Engines](#pdf-engines)
+- [Encryption](#encryption)
+- [Report Categories](#report-categories)
+- [Settings Manager](#settings-manager)
+- [Routes](#routes)
+- [External Access](#external-access)
+- [Expression Evaluator](#expression-evaluator)
+- [Database Connections](#database-connections)
+- [Output Formats](#output-formats)
+
 ## Requirements
 
 - PHP 8.2+
@@ -148,6 +168,7 @@ Report designs can be exported as JSON and re-imported. Exported files include:
 - Connection name (matched on import)
 - **Embedded images** — base64-encoded and auto-restored on import
 - **Saved templates** — accessible via File → Save as Template
+- **Categories** — category assignments are preserved in exports and matched by name on import
 
 Use the **hamburger menu** (≡) in the designer toolbar or the API endpoints:
 
@@ -187,7 +208,7 @@ Stateless authentication using HMAC-signed tokens (no PHP sessions, no DB token 
 index.php              — Entry point, requires routes, dispatches via Router
 config/app.php         — Application config
 src/
-  Core/                — Router, Request, Response, Database (PDO singleton), Auth
+  Core/                — Router, Request, Response, Database (PDO singleton), Auth, SettingsManager
   Api/                 — REST controllers for CRUD + rendering
   Report/              — Report definition model, bands, elements, groups, page settings
   Renderer/            — HtmlRenderer, PdfRenderer (mPDF)
@@ -195,8 +216,10 @@ src/
   Connection/          — Database connection drivers (MySQL, PostgreSQL, SQLite, SQL Server)
 views/                 — PHP view templates (dashboard, designer, preview, etc.)
 js/designer/           — Client-side report designer (vanilla JS)
-css/                   — Stylesheets
+css/                   — Stylesheets (light + dark theme support)
 ```
+
+API responses include `Access-Control-Allow-Origin: *` headers, enabling cross-origin embedding of reports via iframe or fetch. See [`EMBED.md`](EMBED.md) for CORS configuration guidance.
 
 ## Key Concepts
 
@@ -240,9 +263,6 @@ Elements are positioned absolutely within bands using mm coordinates:
 
 All elements support **conditional visibility** and **conditional style** (see Features 7–8).
 
-### Word Wrap
-Elements default to single-line. Enable **Word Wrap** in the Advanced tab for multi-line text. When enabled, the element height auto-grows on the canvas and in rendered output based on estimated text lines.
-
 ### Groups
 Data can be grouped by one or more fields. Each group has:
 - Group Header band (renders when group value changes)
@@ -252,6 +272,102 @@ Data can be grouped by one or more fields. Each group has:
 
 ### Autosave
 The designer auto-saves your work to `localStorage` on every change. A red dot on the **Save** button indicates unsaved changes. The **Save** button alone writes to the database; preview and export use the in-memory definition (no save required to preview).
+
+## Page Settings
+
+Reports support configurable page dimensions via the Properties panel:
+
+| Setting | Options |
+|---------|---------|
+| **Paper Size** | A4 (default), Letter, Legal |
+| **Orientation** | Portrait, Landscape |
+| **Margins** | Top/Bottom (default 10mm), Left/Right (default 15mm) |
+
+Margins can be overridden per-report in the definition JSON, with defaults from `config/app.php` and runtime overrides from the Settings page.
+
+## Embedded Fonts
+
+The engine supports custom TrueType fonts embedded in rendered output. Font files are stored in `data/fonts/` and managed via:
+
+| Font | Variants |
+|------|----------|
+| **Envy Code R** | Regular, Bold |
+| **Inconsolata** | Regular, Bold |
+| **Monaspace Neon Frozen** | Regular, Bold |
+| **Share Tech Mono** | Regular |
+
+**Font Controller API:**
+- `GET /api/fonts` — list cached fonts and their metadata
+- `POST /api/fonts` — reload the font cache (scans `data/fonts/` for TTF/OTF/WOFF/WOFF2)
+- `GET /api/fonts/file/{filename}` — serve font files with proper MIME types and 1-year cache headers
+
+**How fonts are embedded in output:**
+- **HTML renderer** — injects `@font-face` CSS rules pointing to `/api/fonts/file/{filename}`
+- **mPDF renderer** — registers fonts via `fontDir` + `fontdata` config, merged with mPDF's built-in fonts
+- **Dompdf renderer** — injects `@font-face` CSS with `file://` paths, adds `data/fonts/` to Dompdf's chroot
+
+The **Element Editor** lists uploaded fonts under an "Uploaded Fonts" group in the font selector. Use **File → Reload Font Cache** in the designer hamburger menu to refresh after adding new `.ttf` files to `data/fonts/`.
+
+Font parsing uses `phenx/php-font-lib` to extract family, weight, and style metadata from TTF files.
+
+## Theme Support (Dark Mode)
+
+The application supports light and dark themes with full CSS coverage:
+
+- **Toggle** — Moon/sun icon in the navbar toggles between light and dark
+- **Persistence** — Theme choice is saved to `localStorage` and synced to the server via `PUT /api/settings`
+- **CSS Implementation** — `[data-theme="dark"]` selectors override colors for all UI components (navbar, tables, buttons, forms, modals, sidebar, canvas, property panels, query builder, field lists, template cards)
+- **CSS Custom Properties** — Both themes define `--color-primary`, `--color-surface`, `--color-bg`, `--color-text`, `--color-hover`, `--font-ui`, `--font-mono`, etc.
+
+Configure the default theme via the Settings page or `app_settings` table.
+
+## PDF Engines
+
+The engine supports two PDF rendering engines, selectable in Settings:
+
+### mPDF (Default)
+- Full support for page numbers (`{PAGENO}`) and page count (`{nb}`)
+- Custom fonts registered via `fontDir` + `fontdata` configuration
+- PCRE backtrack limit increased to 20M for large reports
+- UTF-8 mode with multi-byte text support
+
+### Dompdf
+- Page numbers via CSS `counter(page)` (page count shows "?" — Dompdf does not support `counter(page-count)`)
+- `@font-face` CSS rules with `file://` paths for custom fonts
+- Self-heals missing Dompdf installation files (generates `installed-fonts.dist.json` and `.afm.json` cache for 14 core PostScript fonts)
+- Remote images enabled, HTML5 parser disabled for performance
+- 2-minute timeout for large reports
+
+## Encryption
+
+Database connection passwords are stored encrypted using **AES-256-CBC** with an auto-generated encryption key stored in the application settings table. The encryption method is configurable in `config/app.php`.
+
+Encryption/decryption is handled transparently by the Connection Manager — passwords are encrypted on save and decrypted on use, never exposed in plain text in API responses.
+
+## Report Categories
+
+Reports can be organized into categories for easier navigation:
+
+- **Category Management** — Add, rename, and delete categories via the report list UI or API (`/api/categories`)
+- **Collapsible Sections** — Reports are grouped under category headings on the dashboard
+- **Inline Assignment** — Change a report's category directly from the report list via dropdown
+- **Export/Import** — Category assignments are preserved in exported designs and matched by name on import
+
+## Settings Manager
+
+Application-wide settings are managed via the Settings page (`/settings`) and stored in the `app_settings` table. Available settings include:
+
+| Group | Settings |
+|-------|----------|
+| Date & Number Format | Date format, decimal places, decimal point, thousands separator |
+| Image Upload | Max upload size (default 1 MB) |
+| PDF Engine | mPDF or Dompdf |
+| Appearance | Theme (light/dark), font family |
+| Report Default Margins | Top, bottom, left, right |
+| Authentication | Enable/disable, username, password |
+| Developer | Debug mode |
+
+Settings are accessed via `GET/PUT /api/settings`.
 
 ## Routes
 
@@ -302,18 +418,6 @@ GET /api/render/{guid}?format=html&param_status=shipped&param_date=2026-01-01
 
 The report GUID is shown as a read-only field in the designer's Report properties. Unlike the numeric ID, GUIDs cannot be guessed sequentially. External access routes bypass auth even when enabled.
 
-## Parameters
-
-Use `:paramName` placeholders in SQL queries. Parameters are auto-detected in the designer and configurable with:
-
-- **Name** — auto-detected from SQL
-- **Type** — text, number, date, boolean, **dropdown**, **multi-select**
-- **Default value** — used when no value is supplied
-- **Static options** (for dropdown/multi-select) — one option per line (`value,Label`)
-- **Depends On** — parent parameter for cascading
-
-When previewing, the user is prompted for parameter values. Values are passed as `param_<name>` query parameters to the render endpoint.
-
 ## Expression Evaluator
 
 Labels support dynamic content via expressions in the designer's properties panel. Syntax:
@@ -361,4 +465,4 @@ Supports MySQL, PostgreSQL, SQLite, and SQL Server via PDO. Connections are mana
 ## Output Formats
 
 - **HTML** — multi-page output with page breaks, repeating page header/footer and column headers, page numbering, Print button (hidden during print)
-- **PDF** — rendered via mPDF with the same page layout, fonts, and styling
+- **PDF** — rendered via mPDF (default) or Dompdf with the same page layout, fonts, and styling
